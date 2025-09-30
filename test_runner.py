@@ -6,14 +6,14 @@ Runs both unit tests and integration tests
 
 import sys
 import unittest
+import numpy as np
 from pathlib import Path
+from unittest.mock import Mock, MagicMock
 
-# Import test modules
+# Import the new test classes
 from test_security_scanner import (
     TestSecurityRuleEngine,
-    TestModelManager, 
-    TestIntelligentSecurityScanner,
-    TestVulnerabilityDataclass
+    TestIntelligentSecurityScanner
 )
 
 
@@ -29,9 +29,7 @@ def run_unit_tests():
     
     # Add test classes
     suite.addTests(loader.loadTestsFromTestCase(TestSecurityRuleEngine))
-    suite.addTests(loader.loadTestsFromTestCase(TestModelManager))
     suite.addTests(loader.loadTestsFromTestCase(TestIntelligentSecurityScanner))
-    suite.addTests(loader.loadTestsFromTestCase(TestVulnerabilityDataclass))
     
     # Run tests
     runner = unittest.TextTestRunner(verbosity=2)
@@ -47,9 +45,20 @@ def run_integration_tests():
     print("RUNNING INTEGRATION TESTS")
     print("="*60)
     
-    from security_scanner import IntelligentSecurityScanner
+    from security_scanner import (
+        IntelligentSecurityScanner,
+        HCLParser,
+        SecurityRuleEngine,
+        MLPredictor,
+        ModelManager
+    )
     
-    scanner = IntelligentSecurityScanner()
+    # Initialize scanner with dependency injection
+    parser = HCLParser()
+    rule_analyzer = SecurityRuleEngine()
+    model_manager = ModelManager()
+    ml_predictor = MLPredictor(model_manager)
+    scanner = IntelligentSecurityScanner(parser, rule_analyzer, ml_predictor)
     test_cases = [
         ("test_files/vulnerable.tf", 70, 100, "HIGH RISK"),
         ("test_files/secure.tf", 0, 30, "LOW RISK"),
