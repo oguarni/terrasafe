@@ -2,6 +2,17 @@
 """
 Unit tests for TerraSafe security scanner
 Tests individual components and integration
+
+Test Structure:
+- TestSecurityRuleEngine: Tests rule-based vulnerability detection (5 tests)
+- TestIntelligentSecurityScanner: Unit tests with mocked dependencies (10 tests)
+- TestIntelligentSecurityScannerIntegration: Integration tests with real components (3 tests)
+- TestModelManager: Tests ML model persistence (2 tests)
+- TestVulnerabilityDataclass: Tests data structures (2 tests)
+- TestHCLParser: Tests Terraform file parsing (2 tests)
+- TestMLPredictor: Tests ML prediction functionality (2 tests)
+
+Total: 25+ comprehensive tests covering all major components
 """
 
 import unittest
@@ -81,29 +92,101 @@ class TestSecurityRuleEngine(unittest.TestCase):
 
 
 class TestIntelligentSecurityScanner(unittest.TestCase):
-    """Test the main scanner integration"""
-
+    """Test scanner with proper mocking"""
+    
     def setUp(self):
-        # Create real components for integration testing
-        self.parser = HCLParser()
-        self.rule_analyzer = SecurityRuleEngine()
-        self.ml_predictor = MLPredictor()
+        # Mock all dependencies
+        self.mock_parser = Mock()
+        self.mock_rule_analyzer = Mock()
+        self.mock_ml_predictor = Mock()
         
         self.scanner = IntelligentSecurityScanner(
-            parser=self.parser,
-            rule_analyzer=self.rule_analyzer,
-            ml_predictor=self.ml_predictor
+            parser=self.mock_parser,
+            rule_analyzer=self.mock_rule_analyzer,
+            ml_predictor=self.mock_ml_predictor
         )
-
-    def test_scan_nonexistent_file(self):
-        """Test scanning a non-existent file"""
-        results = self.scanner.scan("nonexistent.tf")
+    
+    def test_scan_successful(self):
+        """Test successful scan with mocked components"""
+        # Arrange
+        test_file = "test.tf"
+        tf_content = {"resource": []}
+        raw_content = "resource {}"
         
+        self.mock_parser.parse.return_value = (tf_content, raw_content)
+        
+        vulnerabilities = [
+            Vulnerability(Severity.HIGH, 20, "Test vuln", "resource1")
+        ]
+        self.mock_rule_analyzer.analyze.return_value = vulnerabilities
+        
+        self.mock_ml_predictor.predict_risk.return_value = (45.5, "MEDIUM")
+        
+        # Act
+        with patch('pathlib.Path.stat') as mock_stat:
+            mock_stat.return_value.st_size = 1024
+            results = self.scanner.scan(test_file)
+        
+        # Assert
+        self.assertEqual(results['file'], test_file)
+        self.assertEqual(results['rule_based_score'], 20)
+        self.assertEqual(results['ml_score'], 45.5)
+        self.assertEqual(results['confidence'], "MEDIUM")
+        self.assertEqual(results['score'], 30)  # 0.6 * 20 + 0.4 * 45.5 = 30.2 → 30
+        
+        # Verify mocks were called
+        self.mock_parser.parse.assert_called_once_with(test_file)
+        self.mock_rule_analyzer.analyze.assert_called_once_with(tf_content, raw_content)
+        self.mock_ml_predictor.predict_risk.assert_called_once()
+    
+    def test_scan_parse_error(self):
+        """Test scan handling parse errors"""
+        # Arrange
+        test_file = "invalid.tf"
+        self.mock_parser.parse.side_effect = TerraformParseError("Invalid syntax")
+        
+        # Act
+        results = self.scanner.scan(test_file)
+        
+        # Assert
         self.assertEqual(results['score'], -1)
         self.assertIn('error', results)
+        self.assertIn('Invalid syntax', results['error'])
         
+        # Verify rule analyzer and ML predictor were not called
+        self.mock_rule_analyzer.analyze.assert_not_called()
+        self.mock_ml_predictor.predict_risk.assert_not_called()
+    
+    def test_scan_file_not_found_error(self):
+        """Test scan handling file not found errors"""
+        # Arrange
+        test_file = "nonexistent.tf"
+        self.mock_parser.parse.side_effect = TerraformParseError("File not found: nonexistent.tf")
+        
+        # Act
+        results = self.scanner.scan(test_file)
+        
+        # Assert
+        self.assertEqual(results['score'], -1)
+        self.assertIn('error', results)
+        self.assertIn('File not found', results['error'])
+    
+    def test_scan_unexpected_error(self):
+        """Test scan handling unexpected errors"""
+        # Arrange
+        test_file = "test.tf"
+        self.mock_parser.parse.side_effect = Exception("Unexpected error")
+        
+        # Act
+        results = self.scanner.scan(test_file)
+        
+        # Assert
+        self.assertEqual(results['score'], -1)
+        self.assertIn('error', results)
+        self.assertIn('An unexpected error occurred', results['error'])
+    
     def test_feature_extraction(self):
-        """Test feature extraction from vulnerabilities"""
+        """Test feature extraction isolation"""
         vulnerabilities = [
             Vulnerability(Severity.CRITICAL, 30, "Open security group - SSH port 22 exposed to internet", "sg1"),
             Vulnerability(Severity.CRITICAL, 30, "Hardcoded password detected", "db1"),
@@ -111,15 +194,11 @@ class TestIntelligentSecurityScanner(unittest.TestCase):
             Vulnerability(Severity.HIGH, 20, "Unencrypted RDS instance", "db2")
         ]
         
-        # Test the private method through reflection
         features = self.scanner._extract_features(vulnerabilities)
         
-        # Should detect: 1 open port, 1 secret, 1 public access, 1 unencrypted
-        self.assertEqual(features.shape, (1, 5))
-        self.assertEqual(features[0][0], 1)  # 1 open port
-        self.assertEqual(features[0][1], 1)  # 1 hardcoded secret
-        self.assertEqual(features[0][2], 1)  # 1 public access
-        self.assertEqual(features[0][3], 1)  # 1 unencrypted
+        # Expected: [1 open_port, 1 secret, 1 public_access, 1 unencrypted, 5 resources]
+        expected = np.array([[1, 1, 1, 1, 5]])
+        np.testing.assert_array_equal(features, expected)
         
     def test_vulnerability_summarization(self):
         """Test vulnerability severity summarization"""
@@ -151,9 +230,74 @@ class TestIntelligentSecurityScanner(unittest.TestCase):
         }
         
         self.assertEqual(vuln_dict, expected)
+            
+    def test_format_features(self):
+        """Test feature formatting"""
+        features = np.array([[2, 1, 0, 3, 10]])
+        formatted = self.scanner._format_features(features)
         
+        expected = {
+            'open_ports': 2,
+            'hardcoded_secrets': 1,
+            'public_access': 0,
+            'unencrypted_storage': 3,
+            'total_resources': 10
+        }
+        
+        self.assertEqual(formatted, expected)
+    
+    def test_complex_scan_scenario(self):
+        """Test complex scan with multiple vulnerabilities"""
+        # Arrange
+        test_file = "complex.tf"
+        tf_content = {"resource": [{"aws_security_group": []}]}
+        raw_content = "complex terraform content"
+        
+        self.mock_parser.parse.return_value = (tf_content, raw_content)
+        
+        vulnerabilities = [
+            Vulnerability(Severity.CRITICAL, 30, "Critical SSH issue", "sg1"),
+            Vulnerability(Severity.HIGH, 20, "High RDS issue", "db1"),
+            Vulnerability(Severity.MEDIUM, 10, "Medium S3 issue", "s3")
+        ]
+        self.mock_rule_analyzer.analyze.return_value = vulnerabilities
+        
+        self.mock_ml_predictor.predict_risk.return_value = (75.0, "HIGH")
+        
+        # Act
+        with patch('pathlib.Path.stat') as mock_stat:
+            mock_stat.return_value.st_size = 2048
+            results = self.scanner.scan(test_file)
+        
+        # Assert
+        self.assertEqual(results['file'], test_file)
+        self.assertEqual(results['rule_based_score'], 60)  # 30 + 20 + 10
+        self.assertEqual(results['ml_score'], 75.0)
+        self.assertEqual(results['confidence'], "HIGH")
+        self.assertEqual(results['score'], 66)  # 0.6 * 60 + 0.4 * 75 = 66
+        self.assertEqual(len(results['vulnerabilities']), 3)
+        self.assertIn('performance', results)
+        self.assertIn('scan_time_seconds', results['performance'])
+        self.assertIn('file_size_kb', results['performance'])
+
+
+class TestIntelligentSecurityScannerIntegration(unittest.TestCase):
+    """Integration tests using real components"""
+    
+    def setUp(self):
+        # Create real components for integration testing
+        self.parser = HCLParser()
+        self.rule_analyzer = SecurityRuleEngine()
+        self.ml_predictor = MLPredictor()
+        
+        self.scanner = IntelligentSecurityScanner(
+            parser=self.parser,
+            rule_analyzer=self.rule_analyzer,
+            ml_predictor=self.ml_predictor
+        )
+    
     def test_scan_vulnerable_test_file(self):
-        """Test scanning the actual vulnerable test file"""
+        """Integration test scanning the actual vulnerable test file"""
         filepath = "test_files/vulnerable.tf"
         if Path(filepath).exists():
             results = self.scanner.scan(filepath)
@@ -172,7 +316,7 @@ class TestIntelligentSecurityScanner(unittest.TestCase):
             self.assertIn('performance', results)
             
     def test_scan_secure_test_file(self):
-        """Test scanning the actual secure test file"""
+        """Integration test scanning the actual secure test file"""
         filepath = "test_files/secure.tf"
         if Path(filepath).exists():
             results = self.scanner.scan(filepath)
@@ -187,21 +331,24 @@ class TestIntelligentSecurityScanner(unittest.TestCase):
             self.assertIn('rule_based_score', results)
             self.assertIn('ml_score', results)
             self.assertIn('confidence', results)
+    
+    def test_scan_mixed_test_file(self):
+        """Integration test scanning mixed security configuration"""
+        filepath = "test_files/mixed.tf"
+        if Path(filepath).exists():
+            results = self.scanner.scan(filepath)
             
-    def test_format_features(self):
-        """Test feature formatting"""
-        features = np.array([[2, 1, 0, 3, 10]])
-        formatted = self.scanner._format_features(features)
-        
-        expected = {
-            'open_ports': 2,
-            'hardcoded_secrets': 1,
-            'public_access': 0,
-            'unencrypted_storage': 3,
-            'total_resources': 10
-        }
-        
-        self.assertEqual(formatted, expected)
+            # Should successfully scan
+            self.assertNotEqual(results['score'], -1)
+            
+            # Mixed file should have moderate score
+            self.assertGreater(results['score'], 20)
+            self.assertLess(results['score'], 80)
+            
+            # Check result structure
+            self.assertIn('rule_based_score', results)
+            self.assertIn('ml_score', results)
+            self.assertIn('confidence', results)
 
 
 class TestModelManager(unittest.TestCase):
