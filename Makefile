@@ -1,5 +1,5 @@
 # Makefile for TerraSafe - Terraform Security Scanner
-.PHONY: help install test run-demo clean docker lint coverage
+.PHONY: help install test run-demo clean docker lint coverage api metrics test-api
 
 # Variables
 PYTHON := python3
@@ -20,6 +20,9 @@ help:
 	@echo "  make demo       - Run demo on all test files"
 	@echo "  make scan FILE=<path> - Scan specific Terraform file"
 	@echo "  make docker     - Build and run in Docker container"
+	@echo "  make api        - Start the FastAPI REST API server"
+	@echo "  make metrics    - Display Prometheus metrics"
+	@echo "  make test-api   - Test API endpoints"
 	@echo "  make clean      - Remove generated files and cache"
 
 # Install dependencies
@@ -126,6 +129,24 @@ train-model: install
 	@echo "🤖 Training ML model..."
 	$(VENV)/bin/python -c "from security_scanner import IntelligentSecurityScanner; scanner = IntelligentSecurityScanner()"
 	@echo "✅ Model trained and saved"
+
+# Run API server
+api: install
+	@echo "🚀 Starting TerraSafe API..."
+	$(VENV)/bin/python -m terrasafe.api
+
+# Display Prometheus metrics
+metrics: install
+	@echo "📊 Starting with Prometheus metrics..."
+	$(VENV)/bin/python -c "from terrasafe.metrics import generate_latest; print(generate_latest().decode())"
+
+# Test API endpoints
+test-api: install
+	@echo "🧪 Testing API endpoints..."
+	@echo "Testing /health endpoint..."
+	@curl -X GET http://localhost:8000/health || echo "API not running. Start with 'make api' first."
+	@echo "\nTesting /scan endpoint with vulnerable.tf..."
+	@curl -X POST -F "file=@test_files/vulnerable.tf" http://localhost:8000/scan || echo "API not running or file not found."
 
 # GitHub Actions local test
 test-ci:
