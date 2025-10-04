@@ -254,7 +254,7 @@ Example feature vectors from tests:
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/terrasafe.git
+git clone https://github.com/oguarni/terrasafe.git
 cd terrasafe
 
 # Create virtual environment
@@ -271,13 +271,13 @@ python ml_security_scanner.py test_files/vulnerable.tf
 ## 📸 Screenshots
 
 ### Vulnerable Scan
-![Vulnerable Scan](screenshots/vulnerable_scan.png)
+![Vulnerable Scan](screenshots/vulnerable_output.png)
 
 ### Secure Scan
-![Secure Scan](screenshots/secure_scan.png)
+![Secure Scan](screenshots/secure_output.png)
 
 ### ML Model Training
-![ML Training](screenshots/ml_training.png)
+![ML Training](screenshots/mixed_output.png)
 
 ## 🎓 Academic Information
 
@@ -319,4 +319,4 @@ MIT License - Educational Project
 
 ---
 
-*Developed by [Your Name] - UTFPR Software Engineering*
+*Developed by Gabriel Felipe Guarnieri - UTFPR Software Engineering*

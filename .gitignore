@@ -15,3 +15,8 @@ claude.md
 
 Local scripts
 take_screenshots.sh
+
+# TerraSafe scan artifacts
+scan_results.json
+scan_results_*.json
+scan_history.json

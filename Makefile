@@ -118,7 +118,7 @@ clean:
 	rm -rf .coverage
 	rm -rf .pytest_cache
 	rm -rf models/*.pkl
-	rm -f scan_results.json
+	rm -f scan_results_*.json scan_history.json
 	@echo "✅ Cleanup complete"
 
 # Train model

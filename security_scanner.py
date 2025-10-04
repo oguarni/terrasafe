@@ -8,6 +8,7 @@ import sys
 import json
 import time
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any
 import numpy as np
@@ -626,7 +627,7 @@ def format_results_for_display(results: Dict[str, Any]) -> str:
 
 
 def main():
-    """Main entry point"""
+    """Main entry point with unique output and scan history tracking."""
     if len(sys.argv) != 2:
         print("Usage: python security_scanner.py <terraform_file.tf>")
         print("\nExample:")
@@ -634,33 +635,115 @@ def main():
         sys.exit(1)
 
     filepath = sys.argv[1]
-    
+
     # Dependency Injection
     parser = HCLParser()
     rule_analyzer = SecurityRuleEngine()
     model_manager = ModelManager()
     ml_predictor = MLPredictor(model_manager)
     scanner = IntelligentSecurityScanner(parser, rule_analyzer, ml_predictor)
-    
-    print(f"🔐 TerraSafe - Intelligent Terraform Security Scanner")
-    print(f"🤖 Using hybrid approach: Rules (60%) + ML Anomaly Detection (40%)")
-    
-    results = scanner.scan(filepath)
-    
-    print(format_results_for_display(results))
-    
-    # Save JSON results
-    json_output = Path("scan_results.json")
-    with open(json_output, 'w') as f:
-        json.dump(results, f, indent=2, default=str)
-    print(f"\n📄 Detailed results saved to {json_output}")
 
-    # Exit code based on risk
+    print("🔐 TerraSafe - Intelligent Terraform Security Scanner")
+    print("🤖 Using hybrid approach: Rules (60%) + ML Anomaly Detection (40%)")
+
+    results = scanner.scan(filepath)
+
+    print(format_results_for_display(results))
+
+    # Construct unique output filename (scan_results_<stem>.json)
+    input_stem = Path(filepath).stem
+    json_output = Path(f"scan_results_{input_stem}.json")
+
+    # Persist individual scan result
+    try:
+        with open(json_output, 'w') as f:
+            json.dump(results, f, indent=2, default=str)
+        print(f"\n📄 Scan results saved to {json_output}")
+    except Exception as e:
+        logger.error(f"Failed writing scan output {json_output}: {e}")
+
+    # Append to consolidated history (scan_history.json)
+    history_path = Path("scan_history.json")
+    # Add timestamp (ISO8601) without mutating original dict externally
+    results_with_meta = dict(results)
+    results_with_meta['timestamp'] = datetime.utcnow().isoformat() + 'Z'
+    try:
+        if history_path.exists():
+            with open(history_path, 'r') as hf:
+                history = json.load(hf)
+                if not isinstance(history, dict) or 'scans' not in history:
+                    history = {"scans": []}
+        else:
+            history = {"scans": []}
+        history['scans'].append(results_with_meta)
+        with open(history_path, 'w') as hf:
+            json.dump(history, hf, indent=2, default=str)
+        print(f"📊 History updated in {history_path}")
+    except Exception as e:
+        logger.error(f"Failed updating history file: {e}")
+
+    # Exit code based on risk (unchanged semantics)
     if results['score'] == -1:
         sys.exit(2)  # Error
     elif results['score'] >= 70:
         sys.exit(1)  # High risk
     sys.exit(0)  # Acceptable risk
+
+
+def main_with_args():
+    """Argparse-enabled entry point supporting custom output and history toggle."""
+    import argparse
+
+    parser_cli = argparse.ArgumentParser(description='TerraSafe - Intelligent Terraform Security Scanner')
+    parser_cli.add_argument('file', help='Terraform file to scan')
+    parser_cli.add_argument('-o', '--output', help='Output JSON file (default: scan_results_<filename>.json)')
+    parser_cli.add_argument('--no-history', action='store_true', help='Do not append to scan_history.json')
+    parser_cli.add_argument('--fail-threshold', type=int, default=70, help='Risk threshold to trigger non-zero exit (default: 70)')
+    args = parser_cli.parse_args()
+
+    parser = HCLParser()
+    rule_analyzer = SecurityRuleEngine()
+    model_manager = ModelManager()
+    ml_predictor = MLPredictor(model_manager)
+    scanner = IntelligentSecurityScanner(parser, rule_analyzer, ml_predictor)
+
+    results = scanner.scan(args.file)
+    print(format_results_for_display(results))
+
+    input_stem = Path(args.file).stem
+    json_output = Path(args.output) if args.output else Path(f"scan_results_{input_stem}.json")
+    try:
+        with open(json_output, 'w') as f:
+            json.dump(results, f, indent=2, default=str)
+        print(f"\n📄 Scan results saved to {json_output}")
+    except Exception as e:
+        logger.error(f"Failed writing scan output {json_output}: {e}")
+
+    if not args.no_history:
+        history_path = Path("scan_history.json")
+        results_hist = dict(results)
+        results_hist['timestamp'] = datetime.utcnow().isoformat() + 'Z'
+        try:
+            if history_path.exists():
+                with open(history_path, 'r') as hf:
+                    history = json.load(hf)
+                    if not isinstance(history, dict) or 'scans' not in history:
+                        history = {"scans": []}
+            else:
+                history = {"scans": []}
+            history['scans'].append(results_hist)
+            with open(history_path, 'w') as hf:
+                json.dump(history, hf, indent=2, default=str)
+            print(f"📊 History updated in {history_path}")
+        except Exception as e:
+            logger.error(f"Failed updating history file: {e}")
+
+    # Exit logic with configurable threshold
+    if results['score'] == -1:
+        sys.exit(2)
+    elif results['score'] >= args.fail_threshold:
+        sys.exit(1)
+    sys.exit(0)
 
 
 if __name__ == "__main__":

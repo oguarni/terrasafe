@@ -1,0 +1,32 @@
+{
+  "total_samples": 77,
+  "secure_patterns": 18,
+  "augmented_samples": 59,
+  "feature_ranges": {
+    "open_ports": {
+      "min": 0,
+      "max": 6
+    },
+    "hardcoded_secrets": {
+      "min": 0,
+      "max": 0
+    },
+    "public_access": {
+      "min": 0,
+      "max": 5
+    },
+    "unencrypted_storage": {
+      "min": 0,
+      "max": 3
+    },
+    "total_resources": {
+      "min": 3,
+      "max": 70
+    }
+  },
+  "model_parameters": {
+    "contamination": 0.05,
+    "n_estimators": 150,
+    "random_state": 42
+  }
+}
