@@ -93,5 +93,10 @@ async def api_documentation():
     }
 
 
-if __name__ == "__main__":
+def main():
+    """Run API server"""
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+if __name__ == "__main__":
+    main()
