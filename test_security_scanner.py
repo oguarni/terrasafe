@@ -22,17 +22,12 @@ import shutil
 from pathlib import Path
 from unittest.mock import Mock, MagicMock, patch
 
-# Import from the main security_scanner file
-from security_scanner import (
-    Vulnerability, 
-    Severity,
-    SecurityRuleEngine,
-    IntelligentSecurityScanner,
-    ModelManager,
-    MLPredictor,
-    HCLParser,
-    TerraformParseError
-)
+# Clean Architecture imports - SOLID compliant
+from terrasafe.domain.models import Vulnerability, Severity
+from terrasafe.domain.security_rules import SecurityRuleEngine
+from terrasafe.infrastructure.parser import HCLParser, TerraformParseError
+from terrasafe.infrastructure.ml_model import ModelManager, MLPredictor, ModelNotTrainedError
+from terrasafe.application.scanner import IntelligentSecurityScanner
 
 
 class TestSecurityRuleEngine(unittest.TestCase):

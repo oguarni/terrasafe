@@ -1,0 +1,139 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ main, develop, master, feature ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  security-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    # SAST - Static Application Security Testing
+    - name: Install security tools
+      run: |
+        pip install bandit safety
+
+    - name: Run Bandit (Python SAST)
+      run: |
+        bandit -r terrasafe/ -f json -o bandit-report.json || true
+        bandit -r terrasafe/ -f screen
+      continue-on-error: true
+
+    # Dependency scanning
+    - name: Safety Check (Vulnerable Dependencies)
+      run: |
+        safety check --json || true
+        safety check
+      continue-on-error: true
+
+    # Secret scanning
+    - name: GitLeaks (Secret Detection)
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      continue-on-error: true
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest coverage pytest-cov
+
+    - name: Run tests with coverage
+      run: |
+        coverage run -m pytest test_security_scanner.py -v
+        coverage report
+        coverage xml
+
+    - name: Check coverage threshold
+      run: |
+        coverage report --fail-under=70
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.xml
+        fail_ci_if_error: false
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install TerraSafe
+      run: |
+        pip install -r requirements.txt
+
+    - name: Scan vulnerable configuration
+      run: |
+        python security_scanner.py test_files/vulnerable.tf
+      continue-on-error: true
+
+    - name: Scan secure configuration
+      run: |
+        python security_scanner.py test_files/secure.tf
+
+    - name: Scan mixed configuration
+      run: |
+        python security_scanner.py test_files/mixed.tf
+      continue-on-error: true
+
+    - name: Archive scan results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: scan-results
+        path: |
+          scan_results_*.json
+          scan_history.json
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build Docker image
+      run: |
+        docker build -t terrasafe:latest .
+
+    - name: Test Docker image
+      run: |
+        docker run --rm -v $(pwd)/test_files:/app/test_files terrasafe:latest test_files/secure.tf

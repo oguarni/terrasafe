@@ -1,5 +1,5 @@
 # Makefile for TerraSafe - Terraform Security Scanner
-.PHONY: help install test run-demo clean docker lint coverage api metrics test-api
+.PHONY: help install test run-demo clean docker lint coverage api metrics test-api security-scan security-deps security-sast security-all setup-hooks
 
 # Variables
 PYTHON := python3
@@ -11,19 +11,23 @@ SCANNER := $(VENV)/bin/python security_scanner.py
 # Default target
 help:
 	@echo "TerraSafe - Available commands:"
-	@echo "  make install    - Set up virtual environment and install dependencies"
-	@echo "  make test       - Run all tests (unit + integration)"
-	@echo "  make test-unit  - Run unit tests only"
-	@echo "  make test-int   - Run integration tests only"
-	@echo "  make coverage   - Generate test coverage report"
-	@echo "  make lint       - Run code quality checks"
-	@echo "  make demo       - Run demo on all test files"
+	@echo "  make install       - Set up virtual environment and install dependencies"
+	@echo "  make test          - Run all tests (unit + integration)"
+	@echo "  make test-unit     - Run unit tests only"
+	@echo "  make test-int      - Run integration tests only"
+	@echo "  make coverage      - Generate test coverage report"
+	@echo "  make lint          - Run code quality checks"
+	@echo "  make demo          - Run demo on all test files"
 	@echo "  make scan FILE=<path> - Scan specific Terraform file"
-	@echo "  make docker     - Build and run in Docker container"
-	@echo "  make api        - Start the FastAPI REST API server"
-	@echo "  make metrics    - Display Prometheus metrics"
-	@echo "  make test-api   - Test API endpoints"
-	@echo "  make clean      - Remove generated files and cache"
+	@echo "  make docker        - Build and run in Docker container"
+	@echo "  make api           - Start the FastAPI REST API server"
+	@echo "  make metrics       - Display Prometheus metrics"
+	@echo "  make test-api      - Test API endpoints"
+	@echo "  make security-scan - Run security checks (deps + SAST)"
+	@echo "  make security-deps - Check for vulnerable dependencies"
+	@echo "  make security-sast - Run static security analysis"
+	@echo "  make setup-hooks   - Install pre-commit security hooks"
+	@echo "  make clean         - Remove generated files and cache"
 
 # Install dependencies
 install: requirements-dev.txt
@@ -153,3 +157,31 @@ test-ci:
 	@echo "🔄 Testing GitHub Actions workflow locally..."
 	@which act > /dev/null || (echo "Install 'act' first: https://github.com/nektos/act" && exit 1)
 	act -j security-scan
+
+# Security targets
+security-scan: install
+	@echo "🔒 Running security scans..."
+	$(MAKE) security-deps
+	$(MAKE) security-sast
+
+security-deps: install
+	@echo "🔍 Checking for vulnerable dependencies..."
+	$(VENV)/bin/pip install safety
+	$(VENV)/bin/safety check || true
+
+security-sast: install
+	@echo "🔍 Running SAST with Bandit..."
+	$(VENV)/bin/pip install bandit
+	$(VENV)/bin/bandit -r terrasafe/ -f screen || true
+
+security-all: security-scan
+	@echo "🔒 Running comprehensive security audit..."
+	@echo "Checking for secrets..."
+	@git secrets --scan || echo "Install git-secrets for secret detection"
+
+# Pre-commit setup
+setup-hooks: install
+	@echo "🪝 Setting up pre-commit hooks..."
+	$(VENV)/bin/pip install pre-commit
+	$(VENV)/bin/pre-commit install
+	@echo "✅ Pre-commit hooks installed"
