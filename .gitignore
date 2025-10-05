@@ -1,22 +1,54 @@
-Ignore Python virtual environment and all its packages
+# Python
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual Environment
 venv/
 .venv/
-pycache/
-*.pyc
+env/
+
+# Environment variables
 .env
 
-OS-specific files
+# OS-specific files
 .DS_Store
 Thumbs.db
 
-Claude-specific files
-.claude/
-claude.md
+# IDE
+.vscode/
+.idea/
+*.swp
 
-Local scripts
-take_screenshots.sh
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
 
-# TerraSafe scan artifacts
+# ML Models (auto-generated on first run)
+models/*.pkl
+models/*.joblib
+models/scaler.pkl
+models/isolation_forest.pkl
+
+# TerraSafe scan artifacts (generated)
 scan_results.json
 scan_results_*.json
 scan_history.json
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Claude-specific
+.claude/
+claude.md
+
+# Scripts de screenshot (local only)
+take_screenshots.sh
