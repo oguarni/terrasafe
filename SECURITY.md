@@ -43,7 +43,7 @@ sha256sum terrasafe-1.0.0.tar.gz
 3. **Limit File Access**:
 ```bash
 # Only give read access to Terraform files
-python security_scanner.py --read-only /path/to/terraform/
+python -m terrasafe.main --read-only /path/to/terraform/
 ```
 
 ### Dependencies

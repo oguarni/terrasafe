@@ -6,7 +6,7 @@ PYTHON := python3
 VENV := venv
 PIP := $(VENV)/bin/pip
 PYTEST := $(VENV)/bin/pytest
-CLI := $(VENV)/bin/python -m terrasafe.cli
+CLI := $(VENV)/bin/python -m terrasafe.main
 
 # Default target
 help:
@@ -53,8 +53,8 @@ test: install
 
 # Run all tests including enhanced
 test-all: install
-	@echo "🧪 Running all tests including enhanced..."
-	$(PYTEST) test_security_scanner.py test_enhanced.py -v --cov=terrasafe --cov-report=term --cov-report=html
+	@echo "🧪 Running all tests with coverage..."
+	$(PYTEST) tests/ -v --cov=terrasafe --cov-report=term --cov-report=html
 
 # Run unit tests only
 test-unit: install
@@ -82,7 +82,7 @@ lint: install
 # Format code
 format: install
 	@echo "🎨 Formatting code..."
-	$(VENV)/bin/black terrasafe/ test_*.py
+	$(VENV)/bin/black terrasafe/ tests/
 	@echo "✅ Code formatted"
 
 # Run demo

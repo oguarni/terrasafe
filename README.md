@@ -162,9 +162,9 @@ Partially secure configuration:
 ./run_demo.sh
 
 # Or test individually
-python security_scanner.py test_files/vulnerable.tf
-python security_scanner.py test_files/secure.tf
-python security_scanner.py test_files/mixed.tf
+python -m terrasafe.main test_files/vulnerable.tf
+python -m terrasafe.main test_files/secure.tf
+python -m terrasafe.main test_files/mixed.tf
 ```
 
 ### Actual Test Results
@@ -265,7 +265,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Run scanner
-python security_scanner.py test_files/vulnerable.tf
+python -m terrasafe.main test_files/vulnerable.tf
 ```
 
 ## 🔒 DevSecOps Features

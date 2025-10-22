@@ -26,16 +26,16 @@ services:
     image: terrasafe-api:latest
     container_name: terrasafe-api
     ports:
-      - "8080:8080"
+      - "8000:8000"
     volumes:
       - ./models:/app/models:ro
     environment:
-      - API_PORT=8080
+      - API_PORT=8000
       - WORKERS=4
     networks:
       - terrasafe-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3

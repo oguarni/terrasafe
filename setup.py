@@ -12,7 +12,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "terrasafe=terrasafe.cli:main",
+            "terrasafe=terrasafe.main:main",
         ],
     },
 )
