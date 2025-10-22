@@ -3,6 +3,8 @@ import time
 import logging
 import numpy as np
 from pathlib import Path
+import hashlib
+from functools import lru_cache
 from typing import Dict, Any, List
 
 from ..domain.models import Vulnerability, Severity
@@ -33,11 +35,32 @@ class IntelligentSecurityScanner:
         self.parser = parser
         self.rule_analyzer = rule_analyzer
         self.ml_predictor = ml_predictor
+        self._cache = {}  # Simple in-memory cache
+        self._cache_ttl = 300  # 5 minutes TTL
+
+    def _get_file_hash(self, filepath: str) -> str:
+        """Generate hash of file content for caching"""
+        with open(filepath, 'rb') as f:
+            return hashlib.sha256(f.read()).hexdigest()
 
     @track_metrics
     def scan(self, filepath: str) -> Dict[str, Any]:
         """Main scanning method with performance metrics and improved error handling."""
         start_time = time.time()
+
+        # Check cache first
+        try:
+            file_hash = self._get_file_hash(filepath)
+            cache_key = f"{filepath}:{file_hash}"
+
+            if cache_key in self._cache:
+                cached_result, cached_time = self._cache[cache_key]
+                if time.time() - cached_time < self._cache_ttl:
+                    logger.info(f"Returning cached result for {filepath}")
+                    return cached_result
+        except Exception as e:
+            logger.debug(f"Cache check failed: {e}")
+
         try:
             tf_content, raw_content = self.parser.parse(filepath)
 
@@ -53,7 +76,7 @@ class IntelligentSecurityScanner:
             scan_duration = round(time.time() - start_time, 3)
             file_size_kb = round(Path(filepath).stat().st_size / 1024, 2)
 
-            return {
+            result = {
                 'file': filepath,
                 'score': final_score,
                 'rule_based_score': rule_score,
@@ -67,6 +90,14 @@ class IntelligentSecurityScanner:
                     'file_size_kb': file_size_kb
                 }
             }
+
+            # Cache the result
+            try:
+                self._cache[cache_key] = (result, time.time())
+            except:
+                pass  # Ignore cache errors
+
+            return result
         except (TerraformParseError, FileNotFoundError) as e:
             logger.error(f"Failed to scan {filepath}: {e}")
             return {'score': -1, 'error': str(e)}

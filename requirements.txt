@@ -16,3 +16,4 @@ httpx<0.28
 pytest-cov==7.0.0
 cyclonedx-bom==4.2.0
 pytest-mock==3.12.0
+python-dotenv==1.0.0

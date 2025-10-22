@@ -3,6 +3,7 @@
 TerraSafe - Main CLI entry point
 """
 import sys
+import os
 import json
 import logging
 from datetime import datetime
@@ -55,11 +56,13 @@ def main():
     except Exception as e:
         logger.error(f"Failed writing scan output {json_output}: {e}")
 
-    # Append to consolidated history (scan_history.json)
+    # Append to consolidated history with rotation
     history_path = Path("scan_history.json")
-    # Add timestamp (ISO8601) without mutating original dict externally
+    MAX_HISTORY_SIZE = int(os.getenv("MAX_HISTORY_SIZE", "100"))
+
     results_with_meta = dict(results)
     results_with_meta['timestamp'] = datetime.utcnow().isoformat() + 'Z'
+
     try:
         if history_path.exists():
             with open(history_path, 'r') as hf:
@@ -68,7 +71,15 @@ def main():
                     history = {"scans": []}
         else:
             history = {"scans": []}
+
+        # Add new scan and rotate if needed
         history['scans'].append(results_with_meta)
+
+        # Keep only last MAX_HISTORY_SIZE scans
+        if len(history['scans']) > MAX_HISTORY_SIZE:
+            history['scans'] = history['scans'][-MAX_HISTORY_SIZE:]
+            logger.info(f"Rotated scan history to keep last {MAX_HISTORY_SIZE} entries")
+
         with open(history_path, 'w') as hf:
             json.dump(history, hf, indent=2, default=str)
         print(f"📊 History updated in {history_path}")

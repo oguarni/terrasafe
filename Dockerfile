@@ -46,7 +46,7 @@ VOLUME ["/app/models", "/tmp/terrasafe"]
 # Switch to non-root user
 USER scanner
 
-# Health check
+# Health check with timeout
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import sys; from terrasafe import __version__; sys.exit(0)" || exit 1
 

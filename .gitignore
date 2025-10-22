@@ -26,6 +26,7 @@ venv.bak/
 .env
 .env.local
 .env.*.local
+.env.production
 
 # ===================================
 # OS-specific Files
@@ -166,3 +167,15 @@ CLAUDE.MD.bak
 # ===================================
 take_screenshots.sh
 run_local.sh
+
+# ===================================
+# Cache
+# ===================================
+*.cache
+.cache/
+
+# ===================================
+# Production Configs
+# ===================================
+config/production.yaml
+config/local.yaml

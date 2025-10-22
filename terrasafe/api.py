@@ -2,6 +2,7 @@
 """FastAPI REST API for TerraSafe with rate limiting and async support"""
 import tempfile
 import asyncio
+import os
 from pathlib import Path
 from typing import Dict, Any
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request
@@ -58,18 +59,20 @@ app = FastAPI(
 )
 
 # Add security middleware
+allowed_hosts = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["*"]  # Configure for production
+    allowed_hosts=allowed_hosts
 )
 
-# Add CORS middleware
+# Add CORS middleware with proper production config
+allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure for production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,  # Configure for production
+    allow_credentials=False,  # Disable credentials for security
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 # Add rate limiting if available
