@@ -4,9 +4,14 @@ import tempfile
 import asyncio
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 from typing import Dict, Any
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Security, Depends
 from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import uvicorn
@@ -20,6 +25,35 @@ from terrasafe.application.scanner import IntelligentSecurityScanner
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# API Key Authentication
+API_KEY = os.getenv("TERRASAFE_API_KEY", "change-me-in-production")
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+async def verify_api_key(api_key: str = Security(api_key_header)):
+    """
+    Verify API key from request header
+
+    Args:
+        api_key: API key from X-API-Key header
+
+    Returns:
+        The API key if valid
+
+    Raises:
+        HTTPException: 403 if API key is invalid or missing
+    """
+    if not api_key:
+        raise HTTPException(
+            status_code=403,
+            detail="Missing API Key. Include X-API-Key header in your request."
+        )
+    if api_key != API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid API Key"
+        )
+    return api_key
 
 # Optional dependencies
 try:
@@ -105,7 +139,7 @@ async def health_check() -> Dict[str, Any]:
     }
 
 
-@app.post("/scan")
+@app.post("/scan", dependencies=[Depends(verify_api_key)])
 @rate_limit("10/minute")
 async def scan_terraform(
     request: Request,
@@ -202,10 +236,11 @@ async def api_documentation() -> Dict[str, Any]:
             },
             "/scan": {
                 "method": "POST",
-                "description": "Upload and scan Terraform file",
+                "description": "Upload and scan Terraform file (requires API key)",
+                "authentication": "X-API-Key header required",
                 "rate_limit": "10 requests/minute per IP" if RATE_LIMITING_AVAILABLE else "Unlimited",
                 "max_file_size": "10MB",
-                "example": "curl -X POST -F 'file=@terraform.tf' http://localhost:8000/scan"
+                "example": "curl -X POST -H 'X-API-Key: your-api-key-here' -F 'file=@terraform.tf' http://localhost:8000/scan"
             },
             "/metrics": {
                 "method": "GET",

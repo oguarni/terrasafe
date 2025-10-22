@@ -171,14 +171,15 @@ class TestIntelligentSecurityScanner(unittest.TestCase):
         # Arrange
         test_file = "test.tf"
         self.mock_parser.parse.side_effect = Exception("Unexpected error")
-        
+
         # Act
         results = self.scanner.scan(test_file)
-        
+
         # Assert
         self.assertEqual(results['score'], -1)
         self.assertIn('error', results)
-        self.assertIn('An unexpected error occurred', results['error'])
+        # Updated to match new error message format
+        self.assertIn('Unexpected Exception error during scan', results['error'])
     
     def test_feature_extraction(self):
         """Test feature extraction isolation"""

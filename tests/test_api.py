@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """API integration tests"""
 import pytest
+import os
 from fastapi.testclient import TestClient
 from pathlib import Path
+
+# Set test environment variables before importing app
+os.environ["TERRASAFE_API_KEY"] = "test-api-key-for-testing"
+os.environ["ALLOWED_HOSTS"] = "*"  # Allow all hosts in testing
 
 from terrasafe.api import app
 
@@ -13,6 +18,12 @@ def client():
     return TestClient(app)
 
 
+@pytest.fixture
+def api_headers():
+    """Return headers with API key for authenticated requests"""
+    return {"X-API-Key": "test-api-key-for-testing"}
+
+
 def test_health_endpoint(client):
     """Test health check endpoint"""
     response = client.get("/health")
@@ -20,14 +31,15 @@ def test_health_endpoint(client):
     assert response.json()["status"] == "healthy"
 
 
-def test_scan_vulnerable_file(client):
+def test_scan_vulnerable_file(client, api_headers):
     """Test scanning a vulnerable Terraform file"""
     file_path = Path("test_files/vulnerable.tf")
     if file_path.exists():
         with open(file_path, "rb") as f:
             response = client.post(
                 "/scan",
-                files={"file": ("vulnerable.tf", f, "text/plain")}
+                files={"file": ("vulnerable.tf", f, "text/plain")},
+                headers=api_headers
             )
         assert response.status_code == 200
         data = response.json()
@@ -38,14 +50,15 @@ def test_scan_vulnerable_file(client):
         pytest.skip("test_files/vulnerable.tf not found")
 
 
-def test_scan_secure_file(client):
+def test_scan_secure_file(client, api_headers):
     """Test scanning a secure Terraform file"""
     file_path = Path("test_files/secure.tf")
     if file_path.exists():
         with open(file_path, "rb") as f:
             response = client.post(
                 "/scan",
-                files={"file": ("secure.tf", f, "text/plain")}
+                files={"file": ("secure.tf", f, "text/plain")},
+                headers=api_headers
             )
         assert response.status_code == 200
         data = response.json()
@@ -74,24 +87,26 @@ def test_api_docs_endpoint(client):
     assert "/metrics" in data["endpoints"]
 
 
-def test_invalid_file_type(client):
+def test_invalid_file_type(client, api_headers):
     """Test uploading invalid file type"""
     response = client.post(
         "/scan",
-        files={"file": ("test.txt", b"not terraform", "text/plain")}
+        files={"file": ("test.txt", b"not terraform", "text/plain")},
+        headers=api_headers
     )
     assert response.status_code == 400
     assert "Terraform file" in response.json()["detail"]
 
 
-def test_scan_response_structure(client):
+def test_scan_response_structure(client, api_headers):
     """Test that scan response has expected structure"""
     file_path = Path("test_files/vulnerable.tf")
     if file_path.exists():
         with open(file_path, "rb") as f:
             response = client.post(
                 "/scan",
-                files={"file": ("vulnerable.tf", f, "text/plain")}
+                files={"file": ("vulnerable.tf", f, "text/plain")},
+                headers=api_headers
             )
         assert response.status_code == 200
         data = response.json()

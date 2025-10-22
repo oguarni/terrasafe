@@ -50,7 +50,8 @@ class TestHCLParser:
         parser = HCLParser()
         with pytest.raises(TerraformParseError) as exc_info:
             parser.parse("invalid.tf")
-        assert "Invalid HCL or JSON syntax" in str(exc_info.value)
+        # Check for enhanced error message
+        assert "Invalid HCL/JSON syntax" in str(exc_info.value)
 
     @patch('builtins.open', new_callable=mock_open, read_data='{"resource": {"aws_s3_bucket": {"test": {"bucket": "example"}}}}')
     @patch('pathlib.Path.exists', return_value=True)
@@ -70,7 +71,9 @@ class TestHCLParser:
         parser = HCLParser()
         with pytest.raises(TerraformParseError) as exc_info:
             parser.parse("invalid.tf")
-        assert "Invalid HCL or JSON syntax" in str(exc_info.value)
+        # Check for the enhanced error message
+        assert "Invalid HCL/JSON syntax" in str(exc_info.value)
+        assert "File appears to be neither valid HCL nor JSON" in str(exc_info.value)
 
     def test_parse_returns_raw_content(self):
         """Test that parser returns both parsed and raw content"""

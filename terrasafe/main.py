@@ -8,6 +8,10 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from terrasafe.infrastructure.parser import HCLParser
 from terrasafe.infrastructure.ml_model import ModelManager, MLPredictor

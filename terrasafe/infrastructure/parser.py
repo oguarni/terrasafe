@@ -28,8 +28,12 @@ class HCLParser:
         try:
             with open(path, 'r', encoding='utf-8') as f:
                 raw_content = f.read()
+        except PermissionError as e:
+            raise TerraformParseError(f"Permission denied reading file {filepath}: {e}")
+        except UnicodeDecodeError as e:
+            raise TerraformParseError(f"File encoding error in {filepath}: Not a valid UTF-8 text file")
         except Exception as e:
-            raise TerraformParseError(f"Cannot read file: {e}")
+            raise TerraformParseError(f"Cannot read file {filepath}: {type(e).__name__} - {e}")
 
         try:
             tf_content = hcl2.loads(raw_content)
@@ -40,5 +44,16 @@ class HCLParser:
             try:
                 tf_content = json.loads(raw_content)
                 return tf_content, raw_content
-            except json.JSONDecodeError:
-                raise TerraformParseError(f"Invalid HCL or JSON syntax in {filepath}") from hcl_error
+            except json.JSONDecodeError as json_error:
+                # Provide context from the file content
+                content_preview = raw_content[:200].strip() if raw_content else "(empty file)"
+                if len(content_preview) == 200:
+                    content_preview += "..."
+                error_msg = (
+                    f"Invalid HCL/JSON syntax in {filepath}. "
+                    f"File appears to be neither valid HCL nor JSON. "
+                    f"HCL error: {str(hcl_error)[:100]}. "
+                    f"JSON error: {str(json_error)[:100]}. "
+                    f"File starts with: {content_preview}"
+                )
+                raise TerraformParseError(error_msg) from hcl_error

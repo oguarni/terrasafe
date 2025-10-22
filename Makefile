@@ -16,6 +16,7 @@ help:
 	@echo "  make test-unit     - Run unit tests only"
 	@echo "  make test-int      - Run integration tests only"
 	@echo "  make coverage      - Generate test coverage report"
+	@echo "  make coverage-html - Generate HTML coverage with missing lines"
 	@echo "  make lint          - Run code quality checks"
 	@echo "  make demo          - Run demo on all test files"
 	@echo "  make scan FILE=<path> - Scan specific Terraform file"
@@ -71,6 +72,12 @@ coverage: install
 	@echo "📊 Generating coverage report..."
 	$(PYTEST) --cov=terrasafe --cov-report=term --cov-report=html
 	@echo "✅ Coverage report saved to htmlcov/index.html"
+
+# Generate HTML coverage report with detailed missing lines
+coverage-html: install
+	@echo "📊 Generating HTML coverage report..."
+	$(PYTEST) --cov=terrasafe --cov-report=html --cov-report=term-missing
+	@echo "✅ Report available at htmlcov/index.html"
 
 # Run linting
 lint: install

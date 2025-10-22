@@ -98,12 +98,38 @@ class IntelligentSecurityScanner:
                 pass  # Ignore cache errors
 
             return result
-        except (TerraformParseError, FileNotFoundError) as e:
-            logger.error(f"Failed to scan {filepath}: {e}")
-            return {'score': -1, 'error': str(e)}
+        except TerraformParseError as e:
+            logger.error(f"Parse error scanning {filepath}: {e}")
+            return {
+                'score': -1,
+                'error': f"Parse error: {str(e)}",
+                'error_type': 'TerraformParseError',
+                'file': filepath
+            }
+        except FileNotFoundError as e:
+            logger.error(f"File not found: {filepath}")
+            return {
+                'score': -1,
+                'error': f"File not found: {filepath}. Please verify the file path exists.",
+                'error_type': 'FileNotFoundError',
+                'file': filepath
+            }
+        except PermissionError as e:
+            logger.error(f"Permission denied accessing {filepath}: {e}")
+            return {
+                'score': -1,
+                'error': f"Permission denied: Cannot access {filepath}. Check file permissions.",
+                'error_type': 'PermissionError',
+                'file': filepath
+            }
         except Exception as e:
-            logger.error(f"An unexpected error occurred during scan: {e}", exc_info=True)
-            return {'score': -1, 'error': f"An unexpected error occurred: {e}"}
+            logger.error(f"Unexpected error scanning {filepath}: {type(e).__name__} - {e}", exc_info=True)
+            return {
+                'score': -1,
+                'error': f"Unexpected {type(e).__name__} error during scan: {str(e)}",
+                'error_type': type(e).__name__,
+                'file': filepath
+            }
 
     def _extract_features(self, vulnerabilities: List[Vulnerability]) -> np.ndarray:
         """Extract feature vector from vulnerabilities for ML model."""
