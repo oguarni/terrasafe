@@ -83,7 +83,10 @@ models/*.pkl
 models/*.joblib
 models/scaler.pkl
 models/isolation_forest.pkl
+models/*.json
 models/metadata.json
+models/training_metadata.json
+models/baseline_data.npy
 
 # ===================================
 # TerraSafe Scan Artifacts (generated)
@@ -100,6 +103,8 @@ scan_history.json
 screenshots/*.txt
 screenshots/*.png
 screenshots/*.jpg
+screenshots/*.jpeg
+screenshots/*.gif
 
 # ===================================
 # Build & Distribution
