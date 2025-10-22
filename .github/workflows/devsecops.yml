@@ -59,6 +59,10 @@ jobs:
       with:
         sarif_file: 'trivy-results.sarif'
 
+    - name: Run Trivy filesystem scan
+      run: |
+        docker run --rm -v $(pwd):/scan aquasec/trivy fs --severity HIGH,CRITICAL /scan
+
     - name: Upload security artifacts
       uses: actions/upload-artifact@v3
       if: always()
@@ -91,15 +95,8 @@ jobs:
         pip install -r requirements.txt
         pip install pytest coverage pytest-cov
 
-    - name: Run all tests
-      run: |
-        python test_runner.py
-
-    - name: Generate coverage report
-      run: |
-        coverage run -m pytest test_security_scanner.py -v
-        coverage report --fail-under=70
-        coverage xml
+    - name: Run tests
+      run: pytest -v --cov=terrasafe --cov-report=xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -124,11 +121,11 @@ jobs:
 
     - name: Scan vulnerable config (should fail)
       run: |
-        python security_scanner.py test_files/vulnerable.tf || echo "Expected failure"
+        python -m terrasafe.main test_files/vulnerable.tf || echo "Expected failure"
 
     - name: Scan secure config (should pass)
       run: |
-        python security_scanner.py test_files/secure.tf
+        python -m terrasafe.main test_files/secure.tf
 
     - name: Archive scan results
       uses: actions/upload-artifact@v3

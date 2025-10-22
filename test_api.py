@@ -6,17 +6,21 @@ from pathlib import Path
 
 from terrasafe.api import app
 
-client = TestClient(app)
+
+@pytest.fixture
+def client():
+    """Create test client"""
+    return TestClient(app)
 
 
-def test_health_endpoint():
+def test_health_endpoint(client):
     """Test health check endpoint"""
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "healthy"
 
 
-def test_scan_vulnerable_file():
+def test_scan_vulnerable_file(client):
     """Test scanning a vulnerable Terraform file"""
     file_path = Path("test_files/vulnerable.tf")
     if file_path.exists():
@@ -34,7 +38,7 @@ def test_scan_vulnerable_file():
         pytest.skip("test_files/vulnerable.tf not found")
 
 
-def test_scan_secure_file():
+def test_scan_secure_file(client):
     """Test scanning a secure Terraform file"""
     file_path = Path("test_files/secure.tf")
     if file_path.exists():
@@ -50,7 +54,7 @@ def test_scan_secure_file():
         pytest.skip("test_files/secure.tf not found")
 
 
-def test_metrics_endpoint():
+def test_metrics_endpoint(client):
     """Test Prometheus metrics endpoint"""
     response = client.get("/metrics")
     # Metrics may not be available if prometheus_client is not installed
@@ -59,7 +63,7 @@ def test_metrics_endpoint():
         assert "terrasafe_scans_total" in response.text
 
 
-def test_api_docs_endpoint():
+def test_api_docs_endpoint(client):
     """Test API documentation endpoint"""
     response = client.get("/api/docs")
     assert response.status_code == 200
@@ -70,7 +74,7 @@ def test_api_docs_endpoint():
     assert "/metrics" in data["endpoints"]
 
 
-def test_invalid_file_type():
+def test_invalid_file_type(client):
     """Test uploading invalid file type"""
     response = client.post(
         "/scan",
@@ -80,7 +84,7 @@ def test_invalid_file_type():
     assert "must be a .tf Terraform file" in response.json()["detail"]
 
 
-def test_scan_response_structure():
+def test_scan_response_structure(client):
     """Test that scan response has expected structure"""
     file_path = Path("test_files/vulnerable.tf")
     if file_path.exists():

@@ -76,8 +76,8 @@ class IntelligentSecurityScanner:
 
     def _extract_features(self, vulnerabilities: List[Vulnerability]) -> np.ndarray:
         """Extract feature vector from vulnerabilities for ML model."""
-        # Count unique resources from vulnerabilities, default to 5 if empty
-        unique_resources = len(set(v.resource for v in vulnerabilities)) if vulnerabilities else 5
+        # Count unique resources from vulnerabilities, default to 1 if empty
+        unique_resources = len(set(v.resource for v in vulnerabilities)) if vulnerabilities else 1
 
         features = {
             'open_ports': 0,

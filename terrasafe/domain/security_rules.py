@@ -3,11 +3,16 @@ import re
 from typing import List, Dict, Any
 from .models import Vulnerability, Severity
 
-class SecurityRuleEngine:
-    """Rule-based security detection engine"""
 
-    def __init__(self):
-        self.vulnerabilities = []
+# Constants for severity points (Clean Code: No magic numbers)
+POINTS_CRITICAL = 30
+POINTS_HIGH = 20
+POINTS_MEDIUM = 10
+POINTS_LOW = 5
+
+
+class SecurityRuleEngine:
+    """Rule-based security detection engine following SRP"""
 
     def check_open_security_groups(self, tf_content: Dict) -> List[Vulnerability]:
         """Check for security groups with open access (0.0.0.0/0)"""
@@ -37,7 +42,7 @@ class SecurityRuleEngine:
                                     if from_port == 22:
                                         vulns.append(Vulnerability(
                                             severity=Severity.CRITICAL,
-                                            points=30,
+                                            points=POINTS_CRITICAL,
                                             message=f"[CRITICAL] Open security group - SSH port 22 exposed to internet",
                                             resource=sg_name,
                                             remediation="Restrict SSH access to specific IP ranges"
@@ -45,7 +50,7 @@ class SecurityRuleEngine:
                                     elif from_port == 3389:
                                         vulns.append(Vulnerability(
                                             severity=Severity.CRITICAL,
-                                            points=30,
+                                            points=POINTS_CRITICAL,
                                             message=f"[CRITICAL] Open security group - RDP port 3389 exposed to internet",
                                             resource=sg_name,
                                             remediation="Restrict RDP access to specific IP ranges"
@@ -53,7 +58,7 @@ class SecurityRuleEngine:
                                     elif from_port == 80 or from_port == 443:
                                         vulns.append(Vulnerability(
                                             severity=Severity.MEDIUM,
-                                            points=10,
+                                            points=POINTS_MEDIUM,
                                             message=f"[MEDIUM] HTTP/HTTPS port {from_port} open to internet",
                                             resource=sg_name,
                                             remediation="Consider using a CDN or WAF for public web services"
@@ -61,7 +66,7 @@ class SecurityRuleEngine:
                                     else:
                                         vulns.append(Vulnerability(
                                             severity=Severity.HIGH,
-                                            points=20,
+                                            points=POINTS_HIGH,
                                             message=f"[HIGH] Port {from_port} exposed to internet",
                                             resource=sg_name,
                                             remediation="Restrict access to specific IP ranges"
@@ -83,7 +88,7 @@ class SecurityRuleEngine:
             if not password_value.startswith('var.') and not password_value.startswith('${'):
                 vulns.append(Vulnerability(
                     severity=Severity.CRITICAL,
-                    points=30,
+                    points=POINTS_CRITICAL,
                     message=f"[CRITICAL] Hardcoded password detected",
                     resource="Database/Instance",
                     remediation="Use variables or secrets manager for sensitive data"
@@ -103,7 +108,7 @@ class SecurityRuleEngine:
                 if not value.startswith('var.') and not value.startswith('${'):
                     vulns.append(Vulnerability(
                         severity=Severity.CRITICAL,
-                        points=30,
+                        points=POINTS_CRITICAL,
                         message=f"[CRITICAL] Hardcoded {secret_type} detected",
                         resource="Configuration",
                         remediation="Use environment variables or secrets manager"
@@ -133,7 +138,7 @@ class SecurityRuleEngine:
                             if not db_config.get('storage_encrypted', False):
                                 vulns.append(Vulnerability(
                                     severity=Severity.HIGH,
-                                    points=20,
+                                    points=POINTS_HIGH,
                                     message=f"[HIGH] Unencrypted RDS instance",
                                     resource=db_name,
                                     remediation="Enable storage_encrypted = true"
@@ -153,7 +158,7 @@ class SecurityRuleEngine:
                             if not vol_config.get('encrypted', False):
                                 vulns.append(Vulnerability(
                                     severity=Severity.HIGH,
-                                    points=20,
+                                    points=POINTS_HIGH,
                                     message=f"[HIGH] Unencrypted EBS volume",
                                     resource=vol_name,
                                     remediation="Enable encrypted = true"
@@ -191,7 +196,7 @@ class SecurityRuleEngine:
                             if public_count >= 3:
                                 vulns.append(Vulnerability(
                                     severity=Severity.HIGH,
-                                    points=20,
+                                    points=POINTS_HIGH,
                                     message=f"[HIGH] S3 bucket with public access enabled",
                                     resource=bucket_name,
                                     remediation="Enable all public access blocks"
@@ -199,7 +204,7 @@ class SecurityRuleEngine:
                             elif public_count > 0:
                                 vulns.append(Vulnerability(
                                     severity=Severity.MEDIUM,
-                                    points=10,
+                                    points=POINTS_MEDIUM,
                                     message=f"[MEDIUM] S3 bucket with partial public access",
                                     resource=bucket_name,
                                     remediation="Review and restrict public access settings"
@@ -232,7 +237,7 @@ class SecurityRuleEngine:
                             if '"Action": "*"' in policy_doc or '"Action":"*"' in policy_doc:
                                 vulns.append(Vulnerability(
                                     severity=Severity.CRITICAL,
-                                    points=30,
+                                    points=POINTS_CRITICAL,
                                     message=f"[CRITICAL] IAM policy with wildcard actions (*)",
                                     resource=policy_name,
                                     remediation="Restrict IAM actions to specific permissions"
@@ -243,7 +248,7 @@ class SecurityRuleEngine:
                                 if '"Action": "*"' in policy_doc or '"Action":"*"' in policy_doc:
                                     vulns.append(Vulnerability(
                                         severity=Severity.CRITICAL,
-                                        points=30,
+                                        points=POINTS_CRITICAL,
                                         message=f"[CRITICAL] IAM policy with full admin access",
                                         resource=policy_name,
                                         remediation="Apply principle of least privilege"

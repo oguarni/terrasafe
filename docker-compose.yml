@@ -1,0 +1,45 @@
+# docker-compose.yml - Multi-stage setup for TerraSafe
+version: '3.8'
+
+services:
+  terrasafe:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: terrasafe:latest
+    container_name: terrasafe-scanner
+    volumes:
+      - ./test_files:/app/test_files:ro
+      # Optional output directory to collect all per-scan JSON artifacts
+      - ./scan_results:/app/results
+    environment:
+      - LOG_LEVEL=INFO
+      - ML_CONFIDENCE_THRESHOLD=0.7
+    command: ["test_files/vulnerable.tf"]
+    networks:
+      - terrasafe-network
+
+  terrasafe-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: terrasafe-api:latest
+    container_name: terrasafe-api
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./models:/app/models:ro
+    environment:
+      - API_PORT=8080
+      - WORKERS=4
+    networks:
+      - terrasafe-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  terrasafe-network:
+    driver: bridge

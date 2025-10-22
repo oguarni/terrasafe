@@ -191,8 +191,8 @@ class TestIntelligentSecurityScanner(unittest.TestCase):
         
         features = self.scanner._extract_features(vulnerabilities)
         
-        # Expected: [1 open_port, 1 secret, 1 public_access, 1 unencrypted, 5 resources]
-        expected = np.array([[1, 1, 1, 1, 5]])
+        # Expected: [1 open_port, 1 secret, 1 public_access, 1 unencrypted, 4 resources]
+        expected = np.array([[1, 1, 1, 1, 4]])
         np.testing.assert_array_equal(features, expected)
         
     def test_vulnerability_summarization(self):

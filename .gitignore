@@ -1,54 +1,168 @@
+# ===================================
 # Python
+# ===================================
 __pycache__/
-*/__pycache__/
+**/__pycache__/
 *.py[cod]
 *.pyc
 *.pyo
 *.pyd
 .Python
+*.so
 
+# ===================================
 # Virtual Environment
+# ===================================
 venv/
 .venv/
 env/
+ENV/
+env.bak/
+venv.bak/
 
-# Environment variables
+# ===================================
+# Environment Variables
+# ===================================
 .env
+.env.local
+.env.*.local
 
-# OS-specific files
+# ===================================
+# OS-specific Files
+# ===================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+*~
 
-# IDE
+# ===================================
+# IDE & Editor
+# ===================================
 .vscode/
 .idea/
 *.swp
+*.swo
+*.swn
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
 
-# Testing
+# ===================================
+# Testing & Coverage
+# ===================================
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
 *.cover
+.hypothesis/
+.tox/
+nosetests.xml
+coverage.xml
+*.coveragerc
 
-# ML Models (auto-generated on first run)
+# ===================================
+# Type Checking
+# ===================================
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# ===================================
+# ML Models (auto-generated)
+# ===================================
 models/*.pkl
 models/*.joblib
 models/scaler.pkl
 models/isolation_forest.pkl
+models/metadata.json
 
-# TerraSafe scan artifacts (generated)
+# ===================================
+# TerraSafe Scan Artifacts (generated)
+# ===================================
+scan_results.txt
 scan_results.json
 scan_results_*.json
 scan_history.json
+*.sarif
 
-# Build artifacts
+# ===================================
+# Documentation Artifacts
+# ===================================
+screenshots/*.txt
+screenshots/*.png
+screenshots/*.jpg
+
+# ===================================
+# Build & Distribution
+# ===================================
 build/
 dist/
 *.egg-info/
+.eggs/
+*.egg
+*.whl
+pip-wheel-metadata/
 
-# Claude-specific
+# ===================================
+# Security & CI/CD Reports
+# ===================================
+bandit.json
+safety-report.txt
+trivy-report.json
+sbom.json
+sbom.xml
+
+# ===================================
+# Logs
+# ===================================
+*.log
+logs/
+*.log.*
+
+# ===================================
+# Jupyter Notebook
+# ===================================
+.ipynb_checkpoints
+*.ipynb
+
+# ===================================
+# Database
+# ===================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ===================================
+# Temporary Files
+# ===================================
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+# ===================================
+# Docker
+# ===================================
+.dockerignore
+
+# ===================================
+# Claude AI
+# ===================================
 .claude/
-claude.md
+CLAUDE.MD.bak
 
-# Scripts de screenshot (local only)
+# ===================================
+# Local Scripts
+# ===================================
 take_screenshots.sh
+run_local.sh

@@ -32,7 +32,6 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy application code
 COPY --chown=scanner:scanner terrasafe/ ./terrasafe/
 COPY --chown=scanner:scanner models/ ./models/
-COPY --chown=scanner:scanner security_scanner.py .
 
 # Security: Create temp directory
 RUN mkdir -p /tmp/terrasafe && chown scanner:scanner /tmp/terrasafe
@@ -44,8 +43,8 @@ USER scanner
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
     CMD python -c "import terrasafe; print('ok')" || exit 1
 
-# Default command
-ENTRYPOINT ["python", "security_scanner.py"]
+# Default command - use module CLI
+ENTRYPOINT ["python", "-m", "terrasafe.main"]
 
 # Labels for metadata
 LABEL maintainer="terrasafe@utfpr.edu.br" \
