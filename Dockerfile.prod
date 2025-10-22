@@ -1,39 +1,77 @@
-# Dockerfile.prod - Production optimized image
-FROM python:3.9-slim as builder
+# Dockerfile.prod - Production optimized image with enhanced security
+# Stage 1: Builder
+FROM python:3.10-slim as builder
+
+WORKDIR /build
 
 # Install build dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
+    make \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install Python dependencies
+# Copy only requirements first (layer caching)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Production stage
-FROM python:3.9-slim
+# Install Python dependencies with security flags
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Stage 2: Production runtime
+FROM python:3.10-slim
+
+# Security hardening
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    dumb-init \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -r scanner --gid=1000 \
+    && useradd -r -g scanner --uid=1000 --no-log-init --create-home scanner
+
+# Set working directory
+WORKDIR /app
 
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Set working directory
-WORKDIR /app
+# Copy application files with proper ownership
+COPY --chown=scanner:scanner terrasafe/ ./terrasafe/
+COPY --chown=scanner:scanner models/ ./models/
 
-# Copy application files
-COPY terrasafe/ ./terrasafe/
-COPY models/ ./models/
+# Create necessary directories
+RUN mkdir -p /app/models /tmp/terrasafe && \
+    chown -R scanner:scanner /app /tmp/terrasafe
 
-# Create non-root user
-RUN useradd -m -u 1000 scanner && \
-    chown -R scanner:scanner /app
+# Security: Read-only root filesystem compatible
+VOLUME ["/app/models", "/tmp/terrasafe"]
 
+# Switch to non-root user
 USER scanner
 
-# Set entrypoint
-ENTRYPOINT ["python", "-m", "terrasafe.main"]
+# Health check for production monitoring
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import sys; from terrasafe.infrastructure.parser import HCLParser; sys.exit(0 if HCLParser() else 1)" || exit 1
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "python", "-m", "terrasafe.main"]
+
+# OCI-compliant labels for container registry
+LABEL maintainer="terrasafe@utfpr.edu.br" \
+      version="1.0.0" \
+      description="Production-grade Terraform security scanner" \
+      org.opencontainers.image.title="TerraSafe Production" \
+      org.opencontainers.image.description="Terraform security scanner with 60% rule-based + 40% ML anomaly detection" \
+      org.opencontainers.image.version="1.0.0" \
+      org.opencontainers.image.authors="UTFPR Engineering Team" \
+      org.opencontainers.image.url="https://github.com/yourusername/terrasafe" \
+      org.opencontainers.image.source="https://github.com/yourusername/terrasafe" \
+      org.opencontainers.image.vendor="UTFPR" \
+      org.opencontainers.image.licenses="MIT" \
+      security.scan.trivy="enabled" \
+      security.scan.bandit="enabled"

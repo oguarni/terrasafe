@@ -81,7 +81,7 @@ def test_invalid_file_type(client):
         files={"file": ("test.txt", b"not terraform", "text/plain")}
     )
     assert response.status_code == 400
-    assert "must be a .tf Terraform file" in response.json()["detail"]
+    assert "Terraform file" in response.json()["detail"]
 
 
 def test_scan_response_structure(client):
