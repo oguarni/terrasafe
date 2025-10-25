@@ -3,36 +3,79 @@
 import tempfile
 import asyncio
 import os
+import hashlib
 from pathlib import Path
+from typing import Dict, Any
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
-from typing import Dict, Any
+
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Security, Depends
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import uvicorn
-import logging
+import bcrypt
+import aiofiles
+import aiofiles.os
 
 from terrasafe.infrastructure.parser import HCLParser
 from terrasafe.infrastructure.ml_model import ModelManager, MLPredictor
 from terrasafe.domain.security_rules import SecurityRuleEngine
 from terrasafe.application.scanner import IntelligentSecurityScanner
+from terrasafe.config.settings import get_settings
+from terrasafe.config.logging import setup_logging, get_logger, set_correlation_id, clear_correlation_id
+from terrasafe.infrastructure.database import get_db_manager
+from terrasafe.infrastructure.repositories import ScanRepository
+
+# Get settings
+settings = get_settings()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+setup_logging(
+    log_level=settings.log_level,
+    log_format=settings.log_format,
+    log_file=settings.log_file
+)
+logger = get_logger(__name__)
 
-# API Key Authentication
-API_KEY = os.getenv("TERRASAFE_API_KEY", "change-me-in-production")
+# API Key Authentication with bcrypt
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+def hash_api_key(api_key: str) -> str:
+    """
+    Hash an API key using bcrypt.
+
+    Args:
+        api_key: Plain text API key
+
+    Returns:
+        Bcrypt hashed API key
+    """
+    return bcrypt.hashpw(api_key.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_api_key_hash(api_key: str, hashed_key: str) -> bool:
+    """
+    Verify an API key against its bcrypt hash.
+
+    Args:
+        api_key: Plain text API key to verify
+        hashed_key: Bcrypt hash to verify against
+
+    Returns:
+        True if key matches, False otherwise
+    """
+    try:
+        return bcrypt.checkpw(api_key.encode('utf-8'), hashed_key.encode('utf-8'))
+    except Exception as e:
+        logger.error(f"Error verifying API key: {e}")
+        return False
 
 async def verify_api_key(api_key: str = Security(api_key_header)):
     """
-    Verify API key from request header
+    Verify API key from request header using bcrypt.
 
     Args:
         api_key: API key from X-API-Key header
@@ -44,15 +87,21 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
         HTTPException: 403 if API key is invalid or missing
     """
     if not api_key:
+        logger.warning("API request with missing API key")
         raise HTTPException(
             status_code=403,
             detail="Missing API Key. Include X-API-Key header in your request."
         )
-    if api_key != API_KEY:
+
+    # Verify against hashed key from settings
+    if not verify_api_key_hash(api_key, settings.api_key_hash):
+        logger.warning(f"API request with invalid API key")
         raise HTTPException(
             status_code=403,
             detail="Invalid API Key"
         )
+
+    logger.debug("API key verified successfully")
     return api_key
 
 # Optional dependencies
@@ -68,8 +117,14 @@ try:
     from slowapi.util import get_remote_address
     from slowapi.errors import RateLimitExceeded
 
-    limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
+    # Use Redis for distributed rate limiting in production
+    limiter = Limiter(
+        key_func=get_remote_address,
+        storage_uri=settings.redis_url if not settings.is_development() else None,
+        default_limits=[f"{settings.rate_limit_requests}/{settings.rate_limit_window_seconds}seconds"]
+    )
     RATE_LIMITING_AVAILABLE = True
+    logger.info(f"Rate limiting enabled: {settings.rate_limit_requests} requests per {settings.rate_limit_window_seconds}s")
 except ImportError:
     RATE_LIMITING_AVAILABLE = False
     limiter = None
@@ -88,25 +143,24 @@ app = FastAPI(
     title="TerraSafe API",
     description="Intelligent Terraform Security Scanner with hybrid 60% rules + 40% ML approach",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if not settings.is_production() else None,
+    redoc_url="/redoc" if not settings.is_production() else None,
+    debug=settings.debug
 )
 
-# Add security middleware
-allowed_hosts = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+# Add security middleware - use settings for allowed hosts
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=allowed_hosts
+    allowed_hosts=["*"] if settings.is_development() else ["localhost", "127.0.0.1"]
 )
 
 # Add CORS middleware with proper production config
-allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,  # Configure for production
+    allow_origins=settings.api_cors_origins,
     allow_credentials=False,  # Disable credentials for security
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "X-API-Key", "X-Correlation-ID"],
 )
 
 # Add rate limiting if available
@@ -114,12 +168,55 @@ if RATE_LIMITING_AVAILABLE:
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Middleware for correlation IDs
+@app.middleware("http")
+async def add_correlation_id(request: Request, call_next):
+    """Add correlation ID to requests for tracing"""
+    # Get correlation ID from header or generate new one
+    correlation_id = request.headers.get("X-Correlation-ID")
+    cid = set_correlation_id(correlation_id)
+
+    try:
+        response = await call_next(request)
+        response.headers["X-Correlation-ID"] = cid
+        return response
+    finally:
+        clear_correlation_id()
+
 # Initialize scanner components (singleton pattern)
 parser = HCLParser()
 rule_analyzer = SecurityRuleEngine()
 model_manager = ModelManager()
 ml_predictor = MLPredictor(model_manager)
 scanner = IntelligentSecurityScanner(parser, rule_analyzer, ml_predictor)
+
+# Initialize database manager
+db_manager = get_db_manager()
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database connection on startup."""
+    try:
+        if settings.database_url:
+            await db_manager.connect()
+            logger.info("Database connection established")
+        else:
+            logger.warning("No database URL configured - database features disabled")
+    except Exception as e:
+        logger.error(f"Failed to connect to database: {e}")
+        # Don't fail startup if database is unavailable
+        logger.warning("Continuing without database persistence")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Close database connection on shutdown."""
+    try:
+        await db_manager.disconnect()
+        logger.info("Database connection closed")
+    except Exception as e:
+        logger.error(f"Error closing database connection: {e}")
 
 
 @app.get("/health")
@@ -130,12 +227,19 @@ async def health_check() -> Dict[str, Any]:
     Returns:
         Dict with status and service information
     """
+    # Check database health
+    db_healthy = await db_manager.health_check() if db_manager.is_connected else None
+
     return {
         "status": "healthy",
         "service": "TerraSafe",
         "version": "1.0.0",
         "rate_limiting": RATE_LIMITING_AVAILABLE,
-        "metrics": METRICS_AVAILABLE
+        "metrics": METRICS_AVAILABLE,
+        "database": {
+            "connected": db_manager.is_connected,
+            "healthy": db_healthy
+        }
     }
 
 
@@ -165,50 +269,115 @@ async def scan_terraform(
 
     # Validate file extension
     if not file.filename.endswith(('.tf', '.tf.json')):
+        logger.warning(f"Invalid file extension: {file.filename}")
         raise HTTPException(
             status_code=400,
             detail="File must be a Terraform file (.tf or .tf.json)"
         )
 
-    # Validate file size (max 10MB)
-    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    # Validate file size using settings
     content = await file.read()
-    if len(content) > MAX_FILE_SIZE:
+    if len(content) > settings.max_file_size_bytes:
+        logger.warning(f"File too large: {len(content)} bytes (max: {settings.max_file_size_bytes})")
         raise HTTPException(
             status_code=413,
-            detail=f"File too large. Maximum size is {MAX_FILE_SIZE / (1024*1024)}MB"
+            detail=f"File too large. Maximum size is {settings.max_file_size_mb}MB"
         )
 
-    # Create temp file
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.tf', mode='wb') as tmp_file:
-        tmp_file.write(content)
-        tmp_path = tmp_file.name
+    # Validate file content is not empty
+    if len(content) == 0:
+        logger.warning(f"Empty file uploaded: {file.filename}")
+        raise HTTPException(
+            status_code=400,
+            detail="File is empty"
+        )
 
+    # Create temp file using async operations
+    tmp_path = None
     try:
-        # Run scan in thread pool to avoid blocking event loop
+        # Create temp file
+        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.tf', mode='wb')
+        tmp_path = tmp_file.name
+        tmp_file.close()
+
+        # Write content asynchronously
+        async with aiofiles.open(tmp_path, 'wb') as f:
+            await f.write(content)
+
+        # Run scan in thread pool with timeout to avoid blocking event loop
         loop = asyncio.get_event_loop()
-        results = await loop.run_in_executor(None, scanner.scan, tmp_path)
+        try:
+            results = await asyncio.wait_for(
+                loop.run_in_executor(None, scanner.scan, tmp_path),
+                timeout=settings.scan_timeout_seconds
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"Scan timeout for file '{file.filename}' after {settings.scan_timeout_seconds}s")
+            raise HTTPException(
+                status_code=504,
+                detail=f"Scan timeout after {settings.scan_timeout_seconds} seconds"
+            )
 
         if results['score'] == -1:
+            logger.error(f"Scan failed for file '{file.filename}': {results.get('error')}")
             raise HTTPException(
                 status_code=422,
                 detail=results.get('error', 'Terraform scan failed')
             )
 
-        logger.info(f"Scanned file '{file.filename}' - Score: {results['score']}/100")
+        logger.info(f"Successfully scanned file '{file.filename}' - Score: {results['score']}/100")
+
+        # Save scan results to database if available
+        if db_manager.is_connected:
+            try:
+                async with db_manager.session() as session:
+                    scan_repo = ScanRepository(session)
+
+                    # Calculate file hash for database record
+                    file_hash = hashlib.sha256(content).hexdigest()
+
+                    # Get correlation ID from context
+                    correlation_id_value = request.headers.get("X-Correlation-ID")
+
+                    # Save scan to database
+                    await scan_repo.create(
+                        filename=file.filename,
+                        file_hash=file_hash,
+                        file_size_bytes=len(content),
+                        score=results['score'],
+                        rule_based_score=results['rule_based_score'],
+                        ml_score=results['ml_score'],
+                        confidence=results['confidence'],
+                        scan_duration_seconds=results['performance']['scan_time_seconds'],
+                        from_cache=results['performance']['from_cache'],
+                        features_analyzed=results['features_analyzed'],
+                        vulnerability_summary=results['summary'],
+                        vulnerabilities=results['vulnerabilities'],
+                        correlation_id=correlation_id_value,
+                        environment=settings.environment
+                    )
+                    logger.debug(f"Scan results saved to database for file '{file.filename}'")
+            except Exception as db_error:
+                # Log but don't fail the request if database save fails
+                logger.error(f"Failed to save scan to database: {db_error}", exc_info=True)
+
         return JSONResponse(content=results, status_code=200)
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error scanning file: {e}")
+        logger.error(f"Unexpected error scanning file '{file.filename}': {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Internal server error during scan: {str(e)}"
         )
     finally:
-        # Cleanup temp file
-        Path(tmp_path).unlink(missing_ok=True)
+        # Cleanup temp file asynchronously
+        if tmp_path:
+            try:
+                await aiofiles.os.remove(tmp_path)
+            except Exception as e:
+                logger.warning(f"Failed to cleanup temp file {tmp_path}: {e}")
 
 
 @app.get("/metrics")
@@ -267,11 +436,15 @@ def main():
     - Reverse proxy (nginx/traefik)
     - HTTPS/TLS termination
     """
+    logger.info(f"Starting TerraSafe API server on {settings.api_host}:{settings.api_port}")
+    logger.info(f"Environment: {settings.environment}")
+    logger.info(f"Debug mode: {settings.debug}")
+
     uvicorn.run(
         app,
-        host="0.0.0.0",
-        port=8000,
-        log_level="info",
+        host=settings.api_host,
+        port=settings.api_port,
+        log_level=settings.log_level.lower(),
         access_log=True
     )
 

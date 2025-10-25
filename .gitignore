@@ -184,3 +184,20 @@ run_local.sh
 # ===================================
 config/production.yaml
 config/local.yaml
+
+# ===================================
+# Alembic
+# ===================================
+alembic/versions/__pycache__/
+alembic/__pycache__/
+
+# ===================================
+# Scan Results Directory
+# ===================================
+scan_results/
+scan_results_vulnerable.json
+
+# ===================================
+# Weird files
+# ===================================
+=*

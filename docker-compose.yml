@@ -1,45 +1,213 @@
-# docker-compose.yml - Multi-stage setup for TerraSafe
-version: '3.8'
+# docker-compose.yml - Production-ready multi-service setup for TerraSafe
+version: '3.9'
 
 services:
+  # Redis for caching and rate limiting
+  redis:
+    image: redis:7-alpine
+    container_name: terrasafe-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - terrasafe-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # PostgreSQL for persistent storage (optional, for future use)
+  postgres:
+    image: postgres:15-alpine
+    container_name: terrasafe-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=terrasafe
+      - POSTGRES_USER=terrasafe_user
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-CHANGE_ME_IN_PRODUCTION}
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - terrasafe-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U terrasafe_user -d terrasafe"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # CLI Scanner
   terrasafe:
     build:
       context: .
       dockerfile: Dockerfile.prod
     image: terrasafe:latest
     container_name: terrasafe-scanner
+    restart: "no"
     volumes:
       - ./test_files:/app/test_files:ro
-      # Optional output directory to collect all per-scan JSON artifacts
       - ./scan_results:/app/results
     environment:
-      - LOG_LEVEL=INFO
-      - ML_CONFIDENCE_THRESHOLD=0.7
+      - TERRASAFE_LOG_LEVEL=INFO
+      - TERRASAFE_MODEL_CONFIDENCE_THRESHOLD=0.7
+      - TERRASAFE_ENVIRONMENT=production
     command: ["test_files/vulnerable.tf"]
     networks:
       - terrasafe-network
+    depends_on:
+      redis:
+        condition: service_healthy
 
+  # API Server
   terrasafe-api:
     build:
       context: .
       dockerfile: Dockerfile.api
     image: terrasafe-api:latest
     container_name: terrasafe-api
+    restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
       - ./models:/app/models:ro
     environment:
-      - API_PORT=8000
-      - WORKERS=4
+      # API Configuration
+      - TERRASAFE_API_HOST=0.0.0.0
+      - TERRASAFE_API_PORT=8000
+      - TERRASAFE_API_KEY_HASH=${TERRASAFE_API_KEY_HASH:?Please set TERRASAFE_API_KEY_HASH environment variable}
+
+      # Redis Configuration
+      - TERRASAFE_REDIS_URL=redis://redis:6379
+      - TERRASAFE_REDIS_MAX_CONNECTIONS=50
+
+      # Database Configuration (optional)
+      - TERRASAFE_DATABASE_URL=postgresql+asyncpg://terrasafe_user:${POSTGRES_PASSWORD:-CHANGE_ME_IN_PRODUCTION}@postgres:5432/terrasafe
+
+      # Security Configuration
+      - TERRASAFE_MAX_FILE_SIZE_MB=10
+      - TERRASAFE_SCAN_TIMEOUT_SECONDS=30
+      - TERRASAFE_RATE_LIMIT_REQUESTS=100
+      - TERRASAFE_RATE_LIMIT_WINDOW_SECONDS=60
+
+      # Environment
+      - TERRASAFE_ENVIRONMENT=production
+      - TERRASAFE_LOG_LEVEL=INFO
+      - TERRASAFE_LOG_FORMAT=json
+      - TERRASAFE_DEBUG=false
+
+      # CORS (JSON array format for Pydantic)
+      - TERRASAFE_API_CORS_ORIGINS=["http://localhost:3000","https://yourdomain.com"]
     networks:
       - terrasafe-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: terrasafe-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - terrasafe-network
+    depends_on:
+      - terrasafe-api
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: terrasafe-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=
+    networks:
+      - terrasafe-network
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   terrasafe-network:
     driver: bridge
+    name: terrasafe-network
+
+volumes:
+  redis_data:
+    name: terrasafe-redis-data
+  postgres_data:
+    name: terrasafe-postgres-data
+  prometheus_data:
+    name: terrasafe-prometheus-data
+  grafana_data:
+    name: terrasafe-grafana-data
