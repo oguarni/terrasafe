@@ -35,20 +35,20 @@ Traditional rule-based scanners miss complex patterns and novel attack vectors. 
 
 ```mermaid
 graph TD
-    A[Terraform File] --> B[Parser (HCL2)];
-    B --> C{Feature Extraction Engine};
-    subgraph C
-        direction LR
-        D[Rule-based Detection]
-        E[ML Features Extraction]
-    end
-    C --> D;
-    C --> E;
-    D --> F[Pattern Matching];
-    E --> G[Isolation Forest];
-    F --> H[Risk Score Aggregator <br> (0.6*rules + 0.4*ML)];
-    G --> H;
-    H --> I[Report];
+    A[Terraform File] --> B[Parser HCL2]
+    B --> C{Feature Extraction Engine}
+    
+    C --> D[Rule-based Detection]
+    C --> E[ML Features Extraction]
+    
+    D --> F[Pattern Matching]
+    E --> G[Isolation Forest]
+    
+    F --> H[Risk Score Aggregator <br> 0.6*rules + 0.4*ML]
+    G --> H
+    
+    H --> I[Report]
+
     style C fill:#f9f,stroke:#333,stroke-width:2px
 ```
 
