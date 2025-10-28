@@ -96,7 +96,10 @@ jobs:
         pip install pytest coverage pytest-cov
 
     - name: Run tests
-      run: pytest tests/ -v --cov=terrasafe --cov-report=xml
+      # No env needed here, run_tests.sh handles it
+      run: |
+        chmod +x run_tests.sh
+        ./run_tests.sh -v --cov=terrasafe --cov-report=xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
