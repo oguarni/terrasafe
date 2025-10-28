@@ -240,7 +240,7 @@ def _record_scan_result(result: dict, duration: float) -> None:
     # Count by severity from summary
     if 'summary' in result:
         for severity, count in result['summary'].items():
-            vulnerability_counter.labels(severity=severity).inc(count)
+            vulnerability_counter.labels(severity=severity, category='unknown').inc(count)
 
     # Record cache metrics
     if from_cache:
