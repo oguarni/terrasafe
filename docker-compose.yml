@@ -87,11 +87,12 @@ services:
       - "8000:8000"
     volumes:
       - ./models:/app/models:ro
+    env_file:
+      - .env
     environment:
       # API Configuration
       - TERRASAFE_API_HOST=0.0.0.0
       - TERRASAFE_API_PORT=8000
-      - TERRASAFE_API_KEY_HASH=${TERRASAFE_API_KEY_HASH:?Please set TERRASAFE_API_KEY_HASH environment variable}
 
       # Redis Configuration
       - TERRASAFE_REDIS_URL=redis://redis:6379

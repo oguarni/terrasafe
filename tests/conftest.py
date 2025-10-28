@@ -25,3 +25,28 @@ def setup_test_environment():
     # Environment is already set up above
     yield
     # Teardown (if needed)
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """
+    Reset the rate limiter state before each test.
+    This prevents rate limit errors when running the full test suite.
+    """
+    # Import here to avoid circular dependencies
+    from terrasafe.api import app
+
+    # Reset rate limiter if it exists
+    if hasattr(app.state, 'limiter'):
+        try:
+            # Clear the in-memory storage for the rate limiter
+            app.state.limiter.reset()
+        except (AttributeError, Exception):
+            # If reset method doesn't exist or fails, try clearing storage directly
+            try:
+                if hasattr(app.state.limiter, '_storage'):
+                    app.state.limiter._storage.storage.clear()
+            except (AttributeError, Exception):
+                pass  # Rate limiter might not be configured
+
+    yield
