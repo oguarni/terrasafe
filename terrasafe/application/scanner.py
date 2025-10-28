@@ -25,6 +25,11 @@ except ImportError:
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
+# Scoring weights for combining rule-based and ML-based scores
+# These are exported for use in tests to avoid hardcoding magic numbers
+RULE_WEIGHT = 0.6  # 60% weight for rule-based analysis
+ML_WEIGHT = 0.4    # 40% weight for ML-based analysis
+
 
 class IntelligentSecurityScanner:
     """
@@ -111,7 +116,7 @@ class IntelligentSecurityScanner:
         features = self._extract_features(vulnerabilities)
         ml_score, confidence = self.ml_predictor.predict_risk(features)
 
-        final_score = int(0.6 * rule_score + 0.4 * ml_score)
+        final_score = int(RULE_WEIGHT * rule_score + ML_WEIGHT * ml_score)
 
         scan_duration = round(time.time() - start_time, 3)
 
