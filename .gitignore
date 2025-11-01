@@ -1,22 +1,204 @@
-Ignore Python virtual environment and all its packages
+# ===================================
+# Python
+# ===================================
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# ===================================
+# Virtual Environment
+# ===================================
 venv/
 .venv/
-pycache/
-*.pyc
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ===================================
+# Environment Variables
+# ===================================
 .env
+.env.local
+.env.*.local
+.env.production
 
-OS-specific files
+# ===================================
+# OS-specific Files
+# ===================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+*~
 
-Claude-specific files
-.claude/
-claude.md
+# ===================================
+# IDE & Editor
+# ===================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
 
-Local scripts
-take_screenshots.sh
+# ===================================
+# Testing & Coverage
+# ===================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.cover
+.hypothesis/
+.tox/
+nosetests.xml
+coverage.xml
+*.coveragerc
 
-# TerraSafe scan artifacts
+# ===================================
+# Type Checking
+# ===================================
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# ===================================
+# ML Models (auto-generated)
+# ===================================
+models/*.pkl
+models/*.joblib
+models/scaler.pkl
+models/isolation_forest.pkl
+models/*.json
+models/metadata.json
+models/training_metadata.json
+models/baseline_data.npy
+
+# ===================================
+# TerraSafe Scan Artifacts (generated)
+# ===================================
+scan_results.txt
 scan_results.json
 scan_results_*.json
 scan_history.json
+*.sarif
+
+# ===================================
+# Documentation Artifacts
+# ===================================
+screenshots/*.txt
+screenshots/*.png
+screenshots/*.jpg
+screenshots/*.jpeg
+screenshots/*.gif
+docs/*
+
+# ===================================
+# Build & Distribution
+# ===================================
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+*.whl
+pip-wheel-metadata/
+
+# ===================================
+# Security & CI/CD Reports
+# ===================================
+bandit.json
+safety-report.txt
+trivy-report.json
+sbom.json
+sbom.xml
+
+# ===================================
+# Logs
+# ===================================
+*.log
+logs/
+*.log.*
+
+# ===================================
+# Jupyter Notebook
+# ===================================
+.ipynb_checkpoints
+*.ipynb
+
+# ===================================
+# Database
+# ===================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ===================================
+# Temporary Files
+# ===================================
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+# ===================================
+# Docker
+# ===================================
+.dockerignore
+
+# ===================================
+# Claude AI
+# ===================================
+.claude/
+CLAUDE.MD.bak
+
+# ===================================
+# Local Scripts
+# ===================================
+take_screenshots.sh
+run_local.sh
+
+# ===================================
+# Cache
+# ===================================
+*.cache
+.cache/
+
+# ===================================
+# Production Configs
+# ===================================
+config/production.yaml
+config/local.yaml
+
+# ===================================
+# Alembic
+# ===================================
+alembic/versions/__pycache__/
+alembic/__pycache__/
+
+# ===================================
+# Scan Results Directory
+# ===================================
+scan_results/
+scan_results_vulnerable.json
+
+# ===================================
+# Weird files
+# ===================================
+terrasafe-architecture.svg
