@@ -17,23 +17,57 @@ class ModelNotTrainedError(Exception):
 
 
 class ModelManager:
-    """Manages ML model persistence and loading"""
+    """Manages ML model persistence, loading, and versioning with rollback support"""
 
     def __init__(self, model_dir: str = "models"):
         self.model_dir = Path(model_dir)
         self.model_dir.mkdir(exist_ok=True)
+        self.versions_dir = self.model_dir / "versions"
+        self.versions_dir.mkdir(exist_ok=True)
         self.model_path = self.model_dir / "isolation_forest.pkl"
         self.scaler_path = self.model_dir / "scaler.pkl"
         self.metadata_path = self.model_dir / "training_metadata.json"
+        self.current_version_file = self.model_dir / "current_version.txt"
 
-    def save_model(self, model: IsolationForest, scaler: StandardScaler, metadata: dict):
-        """Save trained model, scaler, and metadata."""
+    def save_model(self, model: IsolationForest, scaler: StandardScaler, metadata: dict, version: Optional[str] = None):
+        """
+        Save trained model, scaler, and metadata with versioning support.
+
+        Args:
+            model: Trained IsolationForest model
+            scaler: Fitted StandardScaler
+            metadata: Training metadata dictionary
+            version: Optional version string (auto-generated if None)
+        """
         try:
+            # Generate version if not provided
+            if version is None:
+                import time
+                version = f"v{time.strftime('%Y%m%d_%H%M%S')}"
+
+            # Add version to metadata
+            metadata['version'] = version
+            metadata['saved_at'] = time.strftime('%Y-%m-%d %H:%M:%S')
+
+            # Save current model
             joblib.dump(model, self.model_path)
             joblib.dump(scaler, self.scaler_path)
             with open(self.metadata_path, 'w') as f:
                 json.dump(metadata, f, indent=2)
-            logger.info(f"Model and metadata saved to {self.model_dir}")
+
+            # Save versioned backup for rollback capability
+            version_dir = self.versions_dir / version
+            version_dir.mkdir(exist_ok=True)
+            joblib.dump(model, version_dir / "model.pkl")
+            joblib.dump(scaler, version_dir / "scaler.pkl")
+            with open(version_dir / "metadata.json", 'w') as f:
+                json.dump(metadata, f, indent=2)
+
+            # Update current version file
+            with open(self.current_version_file, 'w') as f:
+                f.write(version)
+
+            logger.info(f"Model version {version} saved to {self.model_dir}")
         except Exception as e:
             logger.error(f"Error saving model: {e}")
 
@@ -52,6 +86,91 @@ class ModelManager:
     def model_exists(self) -> bool:
         """Check if saved model exists"""
         return self.model_path.exists() and self.scaler_path.exists()
+
+    def get_current_version(self) -> Optional[str]:
+        """
+        Get the current model version.
+
+        Returns:
+            Current version string or None if not available
+        """
+        try:
+            if self.current_version_file.exists():
+                with open(self.current_version_file, 'r') as f:
+                    return f.read().strip()
+            return None
+        except Exception as e:
+            logger.error(f"Error reading current version: {e}")
+            return None
+
+    def list_versions(self) -> list[str]:
+        """
+        List all available model versions.
+
+        Returns:
+            List of version strings sorted by creation time (newest first)
+        """
+        try:
+            versions = []
+            if self.versions_dir.exists():
+                for version_dir in self.versions_dir.iterdir():
+                    if version_dir.is_dir() and (version_dir / "model.pkl").exists():
+                        versions.append(version_dir.name)
+            return sorted(versions, reverse=True)
+        except Exception as e:
+            logger.error(f"Error listing versions: {e}")
+            return []
+
+    def rollback_to_version(self, version: str) -> Tuple[IsolationForest, StandardScaler]:
+        """
+        Rollback to a specific model version.
+
+        Args:
+            version: Version string to rollback to
+
+        Returns:
+            Tuple of (model, scaler) from the specified version
+
+        Raises:
+            ModelNotTrainedError: If version not found
+        """
+        version_dir = self.versions_dir / version
+        version_model_path = version_dir / "model.pkl"
+        version_scaler_path = version_dir / "scaler.pkl"
+        version_metadata_path = version_dir / "metadata.json"
+
+        if not version_dir.exists() or not version_model_path.exists():
+            available_versions = self.list_versions()
+            raise ModelNotTrainedError(
+                f"Version '{version}' not found. Available versions: {available_versions}"
+            )
+
+        try:
+            # Load versioned model and scaler
+            model = joblib.load(version_model_path)
+            scaler = joblib.load(version_scaler_path)
+
+            # Load metadata if available
+            metadata = {}
+            if version_metadata_path.exists():
+                with open(version_metadata_path, 'r') as f:
+                    metadata = json.load(f)
+
+            # Copy versioned files to current
+            joblib.dump(model, self.model_path)
+            joblib.dump(scaler, self.scaler_path)
+            with open(self.metadata_path, 'w') as f:
+                json.dump(metadata, f, indent=2)
+
+            # Update current version
+            with open(self.current_version_file, 'w') as f:
+                f.write(version)
+
+            logger.info(f"Successfully rolled back to version {version}")
+            return model, scaler
+
+        except Exception as e:
+            raise ModelNotTrainedError(f"Error rolling back to version {version}: {e}") from e
 
     def update_model_with_feedback(self, model: IsolationForest, scaler: StandardScaler,
                                    new_data: np.ndarray, metadata: dict):
@@ -194,7 +313,7 @@ class MLPredictor:
 
         # Configure Isolation Forest with optimized parameters
         self.model = IsolationForest(
-            contamination=0.05,  # Expect 5% anomalies
+            contamination=0.1,  # Expect 10% anomalies (as per requirements)
             random_state=42,
             n_estimators=150,
             max_samples='auto',
@@ -218,7 +337,7 @@ class MLPredictor:
                 'total_resources': {'min': int(augmented_data[:, 4].min()), 'max': int(augmented_data[:, 4].max())},
             },
             'model_parameters': {
-                'contamination': 0.05,
+                'contamination': 0.1,
                 'n_estimators': 150,
                 'random_state': 42
             }

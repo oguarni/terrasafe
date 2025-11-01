@@ -6,6 +6,7 @@ import os
 import hashlib
 from pathlib import Path
 from typing import Dict, Any
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -139,13 +140,53 @@ def rate_limit(limit_string: str):
         return func
     return decorator
 
+# Initialize scanner components (singleton pattern) - before app initialization
+parser = HCLParser()
+rule_analyzer = SecurityRuleEngine()
+model_manager = ModelManager()
+ml_predictor = MLPredictor(model_manager)
+scanner = IntelligentSecurityScanner(parser, rule_analyzer, ml_predictor)
+
+# Initialize database manager
+db_manager = get_db_manager()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan event handler for FastAPI application.
+    Manages startup and shutdown operations.
+    """
+    # Startup
+    try:
+        if settings.database_url:
+            await db_manager.connect()
+            logger.info("Database connection established")
+        else:
+            logger.warning("No database URL configured - database features disabled")
+    except Exception as e:
+        logger.error(f"Failed to connect to database: {e}")
+        # Don't fail startup if database is unavailable
+        logger.warning("Continuing without database persistence")
+
+    yield  # Application runs here
+
+    # Shutdown
+    try:
+        await db_manager.disconnect()
+        logger.info("Database connection closed")
+    except Exception as e:
+        logger.error(f"Error closing database connection: {e}")
+
+
 app = FastAPI(
     title="TerraSafe API",
     description="Intelligent Terraform Security Scanner with hybrid 60% rules + 40% ML approach",
     version="1.0.0",
     docs_url="/docs" if not settings.is_production() else None,
     redoc_url="/redoc" if not settings.is_production() else None,
-    debug=settings.debug
+    debug=settings.debug,
+    lifespan=lifespan
 )
 
 # Add security middleware - use settings for allowed hosts
@@ -182,41 +223,6 @@ async def add_correlation_id(request: Request, call_next):
         return response
     finally:
         clear_correlation_id()
-
-# Initialize scanner components (singleton pattern)
-parser = HCLParser()
-rule_analyzer = SecurityRuleEngine()
-model_manager = ModelManager()
-ml_predictor = MLPredictor(model_manager)
-scanner = IntelligentSecurityScanner(parser, rule_analyzer, ml_predictor)
-
-# Initialize database manager
-db_manager = get_db_manager()
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database connection on startup."""
-    try:
-        if settings.database_url:
-            await db_manager.connect()
-            logger.info("Database connection established")
-        else:
-            logger.warning("No database URL configured - database features disabled")
-    except Exception as e:
-        logger.error(f"Failed to connect to database: {e}")
-        # Don't fail startup if database is unavailable
-        logger.warning("Continuing without database persistence")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Close database connection on shutdown."""
-    try:
-        await db_manager.disconnect()
-        logger.info("Database connection closed")
-    except Exception as e:
-        logger.error(f"Error closing database connection: {e}")
 
 
 @app.get("/health")

@@ -105,6 +105,7 @@ screenshots/*.png
 screenshots/*.jpg
 screenshots/*.jpeg
 screenshots/*.gif
+docs/*
 
 # ===================================
 # Build & Distribution
