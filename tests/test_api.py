@@ -48,7 +48,7 @@ resource "aws_db_instance" "main_db" {{
   instance_class         = "db.t3.micro"
   db_name                = "mydb"
   username               = "{os.environ.get('API_USERNAME', 'admin')}"
-  password               = "{os.environ.get('API_PASSWORD', 'default_test_password')}"  # CRITICAL: Hardcoded password
+  password               = "{os.environ.get('API_PASSWORD', 'placeholder_for_test')}"  # Placeholder for testing
   storage_encrypted      = false           # HIGH: Unencrypted RDS instance
   backup_retention_period = 0
   skip_final_snapshot    = true
