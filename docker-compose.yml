@@ -25,7 +25,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # PostgreSQL for persistent storage (optional, for future use)
+  # PostgreSQL for persistent storage
   postgres:
     image: postgres:15-alpine
     container_name: terrasafe-postgres
@@ -53,33 +53,11 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # CLI Scanner
-  terrasafe:
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
-    image: terrasafe:latest
-    container_name: terrasafe-scanner
-    restart: "no"
-    volumes:
-      - ./test_files:/app/test_files:ro
-      - ./scan_results:/app/results
-    environment:
-      - TERRASAFE_LOG_LEVEL=INFO
-      - TERRASAFE_MODEL_CONFIDENCE_THRESHOLD=0.7
-      - TERRASAFE_ENVIRONMENT=production
-    command: ["test_files/vulnerable.tf"]
-    networks:
-      - terrasafe-network
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  # API Server
+  # API Server (Main Application)
   terrasafe-api:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: Dockerfile  # <-- MUDANÇA APLICADA
     image: terrasafe-api:latest
     container_name: terrasafe-api
     restart: unless-stopped
@@ -98,7 +76,7 @@ services:
       - TERRASAFE_REDIS_URL=redis://redis:6379
       - TERRASAFE_REDIS_MAX_CONNECTIONS=50
 
-      # Database Configuration (optional)
+      # Database Configuration
       - TERRASAFE_DATABASE_URL=postgresql+asyncpg://terrasafe_user:${POSTGRES_PASSWORD:-CHANGE_ME_IN_PRODUCTION}@postgres:5432/terrasafe
 
       # Security Configuration
