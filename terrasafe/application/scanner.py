@@ -114,7 +114,9 @@ class IntelligentSecurityScanner:
         rule_score = min(100, sum(v.points for v in vulnerabilities))
 
         features = self._extract_features(vulnerabilities)
-        ml_score, confidence = self.ml_predictor.predict_risk(features)
+        # Validate features to prevent model poisoning
+        validated_features = self._validate_features(features)
+        ml_score, confidence = self.ml_predictor.predict_risk(validated_features)
 
         final_score = int(RULE_WEIGHT * rule_score + ML_WEIGHT * ml_score)
 
@@ -128,7 +130,7 @@ class IntelligentSecurityScanner:
             'confidence': confidence,
             'vulnerabilities': [self._vulnerability_to_dict(v) for v in vulnerabilities],
             'summary': self._summarize_vulns(vulnerabilities),
-            'features_analyzed': self._format_features(features),
+            'features_analyzed': self._format_features(validated_features),
         }
 
         return result, scan_duration
@@ -211,6 +213,33 @@ class IntelligentSecurityScanner:
                 'error_type': type(e).__name__,
                 'file': filepath
             }
+
+    def _validate_features(self, features: np.ndarray) -> np.ndarray:
+        """
+        Validate and sanitize ML features to prevent model poisoning.
+
+        Args:
+            features: Feature array to validate
+
+        Returns:
+            Validated feature array with values clipped to acceptable bounds
+        """
+        # Define acceptable bounds for each feature
+        # [open_ports, hardcoded_secrets, public_access, unencrypted_storage, total_resources]
+        min_bounds = np.array([0, 0, 0, 0, 0], dtype=np.int32)
+        max_bounds = np.array([100, 100, 100, 100, 10000], dtype=np.int32)
+
+        # Clip features to acceptable ranges
+        validated = np.clip(features, min_bounds, max_bounds)
+
+        # Log if any features were out of bounds
+        if not np.array_equal(features, validated):
+            logger.warning(
+                f"Features out of bounds detected - Original: {features[0]}, "
+                f"Validated: {validated[0]}"
+            )
+
+        return validated
 
     def _extract_features(self, vulnerabilities: List[Vulnerability]) -> np.ndarray:
         """

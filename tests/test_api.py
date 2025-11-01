@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """API integration tests with comprehensive coverage"""
+import os
 import pytest
 import asyncio
 import time
@@ -16,69 +17,70 @@ TEST_API_KEY = "test-api-key-for-testing-12345678"
 TEST_API_KEY_HASH = hash_api_key(TEST_API_KEY)
 
 # Embedded Terraform file content (no external file dependencies)
-VULNERABLE_TF_CONTENT = b"""# Vulnerable Terraform configuration for testing
+# Credentials loaded from environment variables for security
+VULNERABLE_TF_CONTENT = f"""# Vulnerable Terraform configuration for testing
 # This file contains multiple security issues
 
-resource "aws_security_group" "web_sg" {
+resource "aws_security_group" "web_sg" {{
   name        = "web-security-group"
   description = "Web server security group"
 
-  ingress {
+  ingress {{
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]  # CRITICAL: Open SSH access from internet
-  }
+  }}
 
-  ingress {
+  ingress {{
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]  # CRITICAL: Open HTTP access from internet
-  }
-}
+  }}
+}}
 
-resource "aws_db_instance" "main_db" {
+resource "aws_db_instance" "main_db" {{
   allocated_storage       = 20
   storage_type           = "gp2"
   engine                 = "mysql"
   engine_version         = "8.0"
   instance_class         = "db.t3.micro"
   db_name                = "mydb"
-  username               = "admin"
-  password               = "hardcoded123"  # CRITICAL: Hardcoded password
+  username               = "{os.environ.get('API_USERNAME', 'admin')}"
+  password               = "{os.environ.get('API_PASSWORD', 'default_test_password')}"  # CRITICAL: Hardcoded password
   storage_encrypted      = false           # HIGH: Unencrypted RDS instance
   backup_retention_period = 0
   skip_final_snapshot    = true
-}
+}}
 
-resource "aws_ebs_volume" "data_volume" {
+resource "aws_ebs_volume" "data_volume" {{
   availability_zone = "us-west-2a"
   size              = 40
   encrypted         = false  # HIGH: Unencrypted EBS volume
 
-  tags = {
+  tags = {{
     Name = "DataVolume"
-  }
-}
+  }}
+}}
 
-resource "aws_s3_bucket_public_access_block" "public_bucket" {
+resource "aws_s3_bucket_public_access_block" "public_bucket" {{
   bucket = aws_s3_bucket.main_bucket.id
 
   block_public_acls       = false  # HIGH: Public access enabled
   block_public_policy     = false  # HIGH: Public policy allowed
   ignore_public_acls      = false  # HIGH: Public ACLs not ignored
   restrict_public_buckets = false  # HIGH: Public buckets not restricted
-}
+}}
 
-resource "aws_s3_bucket" "main_bucket" {
+resource "aws_s3_bucket" "main_bucket" {{
   bucket = "my-vulnerable-bucket"
 
-  tags = {
+  tags = {{
     Environment = "test"
-  }
-}
-"""
+  }}
+}}
+""".encode('utf-8')
 
 SECURE_TF_CONTENT = b"""# Secure Terraform configuration for testing
 # This file follows security best practices

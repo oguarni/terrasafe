@@ -30,6 +30,7 @@ from terrasafe.config.settings import get_settings
 from terrasafe.config.logging import setup_logging, get_logger, set_correlation_id, clear_correlation_id
 from terrasafe.infrastructure.database import get_db_manager
 from terrasafe.infrastructure.repositories import ScanRepository
+from terrasafe.infrastructure.rate_limiter import FallbackRateLimiter
 
 # Get settings
 settings = get_settings()
@@ -119,17 +120,40 @@ try:
     from slowapi.errors import RateLimitExceeded
 
     # Use Redis for distributed rate limiting in production
-    limiter = Limiter(
-        key_func=get_remote_address,
-        storage_uri=settings.redis_url if not settings.is_development() else None,
-        default_limits=[f"{settings.rate_limit_requests}/{settings.rate_limit_window_seconds}seconds"]
-    )
-    RATE_LIMITING_AVAILABLE = True
-    logger.info(f"Rate limiting enabled: {settings.rate_limit_requests} requests per {settings.rate_limit_window_seconds}s")
+    try:
+        limiter = Limiter(
+            key_func=get_remote_address,
+            storage_uri=settings.redis_url if not settings.is_development() else None,
+            default_limits=[f"{settings.rate_limit_requests}/{settings.rate_limit_window_seconds}seconds"]
+        )
+        RATE_LIMITING_AVAILABLE = True
+        logger.info(f"Rate limiting enabled: {settings.rate_limit_requests} requests per {settings.rate_limit_window_seconds}s")
+    except Exception as redis_error:
+        # Redis connection failed, use fallback
+        logger.warning(f"Redis connection failed: {redis_error}. Using fallback rate limiter.")
+        RATE_LIMITING_AVAILABLE = False
+        limiter = None
 except ImportError:
     RATE_LIMITING_AVAILABLE = False
     limiter = None
-    logger.warning("slowapi not installed, rate limiting disabled")
+    logger.warning("slowapi not installed, using fallback rate limiter")
+
+# Initialize fallback rate limiter (always available)
+fallback_limiter = FallbackRateLimiter(
+    max_requests=settings.rate_limit_requests,
+    window_seconds=settings.rate_limit_window_seconds
+)
+
+# Middleware for fallback rate limiting
+async def check_fallback_rate_limit(request: Request):
+    """Check rate limit using fallback limiter if needed"""
+    if not RATE_LIMITING_AVAILABLE:
+        client_ip = request.client.host if request.client else "unknown"
+        if not fallback_limiter.check_rate_limit(client_ip):
+            raise HTTPException(
+                status_code=429,
+                detail=f"Rate limit exceeded: {settings.rate_limit_requests} requests per {settings.rate_limit_window_seconds}s"
+            )
 
 # Create conditional rate limit decorator
 def rate_limit(limit_string: str):
@@ -240,7 +264,11 @@ async def health_check() -> Dict[str, Any]:
         "status": "healthy",
         "service": "TerraSafe",
         "version": "1.0.0",
-        "rate_limiting": RATE_LIMITING_AVAILABLE,
+        "rate_limiting": {
+            "enabled": True,  # Always enabled (fallback or Redis)
+            "using_redis": RATE_LIMITING_AVAILABLE,
+            "using_fallback": not RATE_LIMITING_AVAILABLE
+        },
         "metrics": METRICS_AVAILABLE,
         "database": {
             "connected": db_manager.is_connected,
@@ -249,7 +277,7 @@ async def health_check() -> Dict[str, Any]:
     }
 
 
-@app.post("/scan", dependencies=[Depends(verify_api_key)])
+@app.post("/scan", dependencies=[Depends(verify_api_key), Depends(check_fallback_rate_limit)])
 @rate_limit("10/minute")
 async def scan_terraform(
     request: Request,

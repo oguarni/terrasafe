@@ -11,6 +11,7 @@ import logging
 
 from terrasafe.infrastructure.models import Scan, Vulnerability, ScanHistory, MLModelVersion
 from terrasafe.domain.models import Vulnerability as DomainVulnerability, Severity
+from terrasafe.infrastructure.validation import validate_file_hash, validate_scan_id, sanitize_filename
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,10 @@ class ScanRepository:
         Returns:
             Created Scan object
         """
+        # Validate and sanitize inputs
+        filename = sanitize_filename(filename)
+        file_hash = validate_file_hash(file_hash)
+
         scan = Scan(
             filename=filename,
             file_hash=file_hash,
@@ -131,6 +136,9 @@ class ScanRepository:
         Returns:
             Scan object or None if not found
         """
+        # Validate scan ID format
+        scan_id = validate_scan_id(scan_id)
+
         result = await self.session.execute(
             select(Scan).where(Scan.id == scan_id)
         )
@@ -151,6 +159,9 @@ class ScanRepository:
         Returns:
             List of Scan objects
         """
+        # Validate file hash format
+        file_hash = validate_file_hash(file_hash)
+
         result = await self.session.execute(
             select(Scan)
             .where(Scan.file_hash == file_hash)
@@ -316,6 +327,9 @@ class VulnerabilityRepository:
         Returns:
             List of Vulnerability objects
         """
+        # Validate scan ID format
+        scan_id = validate_scan_id(scan_id)
+
         result = await self.session.execute(
             select(Vulnerability).where(Vulnerability.scan_id == scan_id)
         )
