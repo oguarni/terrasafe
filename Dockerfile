@@ -6,7 +6,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY terrasafe/ ./terrasafe/
-COPY config.yaml .
 COPY models/ ./models/
 
 EXPOSE 8000

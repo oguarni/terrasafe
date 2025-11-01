@@ -162,9 +162,10 @@ jobs:
         severity: 'CRITICAL,HIGH'
 
     - name: Test Docker container
-      run: |
-        docker run --rm -v $(pwd)/test_files:/app/test_files \
-          terrasafe:${{ github.sha }} test_files/secure.tf
+    run: |
+    docker run --rm -v $(pwd)/test_files:/app/test_files \
+      terrasafe:${{ github.sha }} \
+      python -m terrasafe.cli test_files/secure.tf
 
   # Optional: Deploy to staging (only on main branch)
   deploy-staging:
