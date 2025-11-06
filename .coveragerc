@@ -1,0 +1,38 @@
+[run]
+source = terrasafe
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */venv/*
+    */.venv/*
+    */site-packages/*
+    setup.py
+
+[report]
+# Set minimum coverage threshold
+precision = 2
+show_missing = True
+skip_covered = False
+skip_empty = True
+
+# Exclude certain lines from coverage
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    def __str__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+    @abc.abstractmethod
+    pass
+    \.\.\.
+
+[html]
+directory = htmlcov
+title = TerraSafe Coverage Report
+
+[xml]
+output = coverage.xml

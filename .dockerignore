@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+venv/
+.venv/
+
+# Tests
+tests/
+test_files/
+pytest.ini
+.coverage
+htmlcov/
+*.coveragerc
+
+# Development
+.git/
+.gitignore
+.github/
+.gitlab-ci.yml
+Makefile
+README.md
+*.md
+screenshots/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Security scans
+bandit.json
+safety-report.txt
+trivy-report.json
+scan_results*.json
+scan_history.json
+
+# Local
+.env
+.DS_Store
