@@ -365,7 +365,14 @@ docker run -d \
 
 ## 📄 License
 
-MIT License - Educational Project
+This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)**.
+
+You are free to share and adapt this material under the following terms:
+- **Attribution**: Give appropriate credit and indicate if changes were made
+- **NonCommercial**: Do not use for commercial purposes
+- **ShareAlike**: Distribute contributions under the same license
+
+See [LICENSE](LICENSE) for the full license text.
 
 ---
 
