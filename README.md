@@ -324,14 +324,20 @@ docker run -d \
 
 ## 📸 Screenshots
 
-### Vulnerable Scan
-![Vulnerable Scan](screenshots/vulnerable_output.png)
+<p align="center">
+  <h3>1. Vulnerability Detection</h3>
+  <img src="screenshots/vulnerable_scan.png" alt="Vulnerable Scan Output" width="800">
+</p>
 
-### Secure Scan
-![Secure Scan](screenshots/secure_output.png)
+<p align="center">
+  <h3>2. Secure Infrastructure</h3>
+  <img src="screenshots/secure_scan.png" alt="Secure Scan Output" width="800">
+</p>
 
-### ML Model Training
-![ML Training](screenshots/mixed_output.png)
+<p align="center">
+  <h3>3. ML Model Training</h3>
+  <img src="screenshots/ml_training.png" alt="ML Training Output" width="800">
+</p>
 
 ## 🎓 Academic Information
 
