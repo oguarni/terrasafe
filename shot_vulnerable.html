@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TerraSafe Vulnerable Scan</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap');
+        
+        body {
+            background-color: transparent;
+            margin: 0;
+            padding: 20px;
+            font-family: 'Fira Code', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .terminal-window {
+            background-color: #0f111a;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 800px;
+            overflow: hidden;
+            border: 1px solid #1f2233;
+        }
+
+        .terminal-header {
+            background-color: #1a1c29;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #1f2233;
+        }
+
+        .dots {
+            display: flex;
+            gap: 8px;
+            margin-right: 15px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .red { background-color: #ff5f56; }
+        .yellow { background-color: #ffbd2e; }
+        .green { background-color: #27c93f; }
+
+        .title {
+            color: #8f93a2;
+            font-size: 14px;
+            flex-grow: 1;
+            text-align: center;
+            margin-right: 50px; /* Balance the dots */
+        }
+
+        .terminal-content {
+            padding: 20px;
+            color: #d8dee9;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .command { margin-bottom: 20px; }
+        .prompt { color: #c678dd; }
+        .path { color: #61afef; }
+        
+        .red-text { color: #e06c75; }
+        .green-text { color: #98c379; }
+        .yellow-text { color: #e5c07b; }
+        .blue-text { color: #61afef; }
+        .purple-text { color: #c678dd; }
+        .cyan-text { color: #56b6c2; }
+        .gray-text { color: #5c6370; }
+        .bold { font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="terminal-window">
+        <div class="terminal-header">
+            <div class="dots">
+                <div class="dot red"></div>
+                <div class="dot yellow"></div>
+                <div class="dot green"></div>
+            </div>
+            <div class="title">oguarni@terrasafe: ~/projects/terrasafe</div>
+        </div>
+        <div class="terminal-content">
+<div class="command"><span class="prompt">➜</span> <span class="path">terrasafe</span> <span class="white-text">make scan FILE=test_files/vulnerable.tf</span></div>
+🔐 <span class="bold">TerraSafe - Intelligent Terraform Security Scanner</span>
+🤖 Using hybrid approach: Rules (60%) + ML Anomaly Detection (40%)
+
+============================================================
+🔍 <span class="bold">TERRAFORM SECURITY SCAN RESULTS</span>
+============================================================
+📁 File: test_files/vulnerable.tf
+------------------------------------------------------------
+
+❌ <span class="red-text bold">HIGH RISK</span>
+📊 <span class="red-text">Final Risk Score: 78/100</span>
+├─ Rule-based Score: 100/100
+├─ ML Anomaly Score: 45.5/100
+└─ Confidence: LOW
+
+🔬 <span class="bold">Feature Analysis:</span>
+   Open Ports: 1
+   Hardcoded Secrets: 1
+   Public Access: 1
+   Unencrypted Storage: 2
+
+⏱️  <span class="bold">Performance:</span>
+   Scan Time: 0.066s
+   File Size: 1.7 KB
+
+🚨 <span class="red-text bold">Detected Vulnerabilities:</span>
+------------------------------------------------------------
+
+<span class="red-text bold">[CRITICAL]</span> Open security group - SSH port 22 exposed to internet
+   📍 Resource: <span class="cyan-text">web_sg</span>
+   💡 Fix: Restrict SSH access to specific IP ranges
+
+<span class="yellow-text bold">[MEDIUM]</span> HTTP/HTTPS port 80 open to internet
+   📍 Resource: <span class="cyan-text">web_sg</span>
+   💡 Fix: Consider using a CDN or WAF for public web services
+
+<span class="red-text bold">[CRITICAL]</span> Hardcoded password detected
+   📍 Resource: <span class="cyan-text">Database/Instance</span>
+   💡 Fix: Use variables or secrets manager for sensitive data
+
+<span class="red-text bold">[HIGH]</span> Unencrypted RDS instance
+   📍 Resource: <span class="cyan-text">main_db</span>
+   💡 Fix: Enable storage_encrypted = true
+
+<span class="red-text bold">[HIGH]</span> Unencrypted EBS volume
+   📍 Resource: <span class="cyan-text">data_volume</span>
+   💡 Fix: Enable encrypted = true
+
+<span class="red-text bold">[HIGH]</span> S3 bucket with public access enabled
+   📍 Resource: <span class="cyan-text">public_bucket</span>
+   💡 Fix: Enable all public access blocks
+
+============================================================
+
+📄 Scan results saved to scan_results_vulnerable.json
+📊 History updated in scan_history.json
+        </div>
+    </div>
+</body>
+</html>

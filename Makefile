@@ -6,7 +6,7 @@ PYTHON := python3
 VENV := venv
 PIP := $(VENV)/bin/pip
 PYTEST := $(VENV)/bin/pytest
-CLI := $(VENV)/bin/python -m terrasafe.main
+CLI := PYTHONPATH=. $(VENV)/bin/python -m terrasafe.cli
 
 # Default target
 help:
