@@ -1,5 +1,9 @@
 # TerraSafe - Intelligent Terraform Security Scanner
 
+<div align="center">
+  <img src="screenshots/terrasafe_icon.png" alt="TerraSafe Logo" width="200">
+</div>
+
 > 🚧 **Work in Progress - TCC Development Phase** 🚧
 
 An AI-powered security scanner for Terraform Infrastructure as Code (IaC) files that combines rule-based detection with machine learning anomaly detection.
