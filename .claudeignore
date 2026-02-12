@@ -3,3 +3,17 @@
 # Files to ignore
 
 # Folders to ignore (with all contents)
+venv/
+.venv/
+__pycache__/
+.pytest_cache/
+htmlcov/
+.coverage
+*.egg-info/
+models/*.pkl
+models/*.joblib
+.mypy_cache/
+.benchmarks/
+scan_results/
+docs/
+screenshots/
