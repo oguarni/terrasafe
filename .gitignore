@@ -98,11 +98,14 @@ models/baseline_data.npy
 # ===================================
 # TerraSafe Scan Artifacts (generated)
 # ===================================
+scan_results/
 scan_results.txt
 scan_results.json
 scan_results_*.json
 scan_history.json
 *.sarif
+shot_*.html
+*_output.txt
 
 # ===================================
 # Documentation Artifacts
@@ -161,7 +164,6 @@ tmp/
 temp/
 *.tmp
 *.bak
-*.swp
 *~.nib
 
 # ===================================
@@ -200,12 +202,6 @@ alembic/versions/__pycache__/
 alembic/__pycache__/
 
 # ===================================
-# Scan Results Directory
-# ===================================
-scan_results/
-scan_results_vulnerable.json
-
-# ===================================
-# Weird files
+# Project-Specific Artifacts
 # ===================================
 terrasafe-architecture.svg
