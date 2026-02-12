@@ -47,7 +47,7 @@ class TestScanRepository:
         """Provide sample scan data for testing."""
         return {
             'filename': 'test.tf',
-            'file_hash': 'abc123def456',
+            'file_hash': 'a' * 64,
             'file_size_bytes': 1024,
             'score': 75,
             'rule_based_score': 70,
@@ -140,14 +140,14 @@ class TestScanRepository:
         mock_result.scalar_one_or_none.return_value = None
         mock_session.execute.return_value = mock_result
 
-        result = await scan_repo.get_by_id('nonexistent')
+        result = await scan_repo.get_by_id('00000000-0000-0000-0000-000000000000')
 
         assert result is None
 
     @pytest.mark.asyncio
     async def test_get_by_file_hash(self, scan_repo, mock_session):
         """Test retrieving scans by file hash."""
-        file_hash = 'abc123'
+        file_hash = 'b' * 64
         mock_scans = [
             Scan(id=str(uuid4()), filename='test1.tf', file_hash=file_hash),
             Scan(id=str(uuid4()), filename='test2.tf', file_hash=file_hash)

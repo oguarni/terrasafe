@@ -35,7 +35,7 @@ services:
     environment:
       - POSTGRES_DB=terrasafe
       - POSTGRES_USER=terrasafe_user
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme123}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-CHANGE_ME_IN_PRODUCTION}
       - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
@@ -77,7 +77,7 @@ services:
       - TERRASAFE_REDIS_MAX_CONNECTIONS=50
 
       # Database Configuration
-      - TERRASAFE_DATABASE_URL=postgresql+asyncpg://terrasafe_user:${POSTGRES_PASSWORD:-changeme123}@postgres:5432/terrasafe
+      - TERRASAFE_DATABASE_URL=postgresql+asyncpg://terrasafe_user:${POSTGRES_PASSWORD:-CHANGE_ME_IN_PRODUCTION}@postgres:5432/terrasafe
 
       # Security Configuration
       - TERRASAFE_MAX_FILE_SIZE_MB=10

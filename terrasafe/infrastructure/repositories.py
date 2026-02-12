@@ -429,7 +429,7 @@ class MLModelVersionRepository:
             f1_score=f1_score,
             training_samples=training_samples,
             training_date=training_date,
-            metadata=metadata,
+            model_metadata=metadata,
         )
 
         self.session.add(model)

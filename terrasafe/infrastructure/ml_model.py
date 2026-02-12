@@ -8,6 +8,10 @@ from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 import joblib
 
+from terrasafe.config.settings import get_settings
+
+settings = get_settings()
+
 logger = logging.getLogger(__name__)
 
 
@@ -75,13 +79,62 @@ class ModelManager:
         """Load saved model and scaler, raising an error if not found."""
         if not self.model_path.exists() or not self.scaler_path.exists():
             raise ModelNotTrainedError("Model or scaler file not found.")
+        
         try:
+            # Load metadata for validation
+            metadata = self._load_metadata()
+            
+            # Check model version
+            saved_version = metadata.get('version')
+            if saved_version and saved_version != settings.model_version:
+                logger.warning(f"Model version mismatch: Saved {saved_version} != Configured {settings.model_version}")
+
+            # Check for drift
+            if self._detect_drift(metadata):
+                logger.warning("Model drift detected or model is too old. Retraining recommended.")
+
             model = joblib.load(self.model_path)
             scaler = joblib.load(self.scaler_path)
             logger.info("Model loaded successfully")
             return model, scaler
         except Exception as e:
             raise ModelNotTrainedError(f"Error loading model: {e}") from e
+
+    def _load_metadata(self) -> dict:
+        """Load model metadata."""
+        if self.metadata_path.exists():
+            with open(self.metadata_path, 'r') as f:
+                return json.load(f)
+        return {}
+
+    def _detect_drift(self, metadata: dict) -> bool:
+        """
+        Detect if model has drifted or is outdated.
+        
+        Args:
+            metadata: Model metadata dictionary
+            
+        Returns:
+            True if drift detected or model stale, False otherwise
+        """
+        # Check if model is too old (simple drift heuristic)
+        if 'saved_at' in metadata:
+            try:
+                from datetime import datetime
+                saved_at = datetime.strptime(metadata['saved_at'], '%Y-%m-%d %H:%M:%S')
+                age_days = (datetime.now() - saved_at).days
+                
+                # If model is older than 30 days, consider it drifted/stale
+                if age_days > 30:
+                    logger.warning(f"Model is {age_days} days old")
+                    return True
+            except Exception as e:
+                logger.warning(f"Failed to parse model timestamp: {e}")
+        
+        # Future: Implement statistical drift detection (KL divergence, etc.)
+        # comparing stored training_stats with recent inference stats
+        
+        return False
 
     def model_exists(self) -> bool:
         """Check if saved model exists"""
