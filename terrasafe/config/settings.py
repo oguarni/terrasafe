@@ -3,10 +3,21 @@ Configuration management for TerraSafe using Pydantic Settings.
 Provides type-safe configuration with validation and environment variable support.
 """
 
+import json
+import logging
 from functools import lru_cache
-from typing import Optional
+from typing import Optional, Dict, Any
+
+try:
+    import boto3
+    from botocore.exceptions import ClientError
+except ImportError:
+    boto3 = None  # type: ignore
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -102,7 +113,6 @@ class Settings(BaseSettings):
     @field_validator("log_level")
     @classmethod
     def validate_log_level(cls, v: str) -> str:
-        """Validate log level is one of the standard levels."""
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
         v_upper = v.upper()
         if v_upper not in valid_levels:
@@ -112,7 +122,6 @@ class Settings(BaseSettings):
     @field_validator("log_format")
     @classmethod
     def validate_log_format(cls, v: str) -> str:
-        """Validate log format."""
         valid_formats = {"json", "text"}
         v_lower = v.lower()
         if v_lower not in valid_formats:
@@ -122,7 +131,6 @@ class Settings(BaseSettings):
     @field_validator("environment")
     @classmethod
     def validate_environment(cls, v: str) -> str:
-        """Validate environment setting."""
         valid_envs = {"development", "staging", "production"}
         v_lower = v.lower()
         if v_lower not in valid_envs:
@@ -132,7 +140,6 @@ class Settings(BaseSettings):
     @field_validator("api_key_hash")
     @classmethod
     def validate_api_key_hash(cls, v: str) -> str:
-        """Validate API key hash is not a placeholder."""
         dangerous_values = {
             "change-me",
             "change-me-in-production",
@@ -157,22 +164,58 @@ class Settings(BaseSettings):
 
     @property
     def max_file_size_bytes(self) -> int:
-        """Convert max file size from MB to bytes."""
         return self.max_file_size_mb * 1024 * 1024
 
     def is_production(self) -> bool:
-        """Check if running in production environment."""
         return self.environment == "production"
 
     def is_development(self) -> bool:
-        """Check if running in development environment."""
         return self.environment == "development"
+
+    def _get_secret(self, secret_name: str) -> Dict[str, Any]:
+        if not boto3:
+            logger.warning("boto3 not installed, cannot fetch secrets from AWS Secrets Manager")
+            return {}
+            
+        region_name = "us-east-1"
+        
+        session = boto3.session.Session()
+        client = session.client(
+            service_name='secretsmanager',
+            region_name=region_name
+        )
+
+        try:
+            get_secret_value_response = client.get_secret_value(
+                SecretId=secret_name
+            )
+        except ClientError as e:
+            logger.error(f"Unable to fetch secret {secret_name}: {e}")
+            raise e
+        else:
+            if 'SecretString' in get_secret_value_response:
+                return json.loads(get_secret_value_response['SecretString'])
+            return {}
+
+    @property
+    def database_url_resolved(self) -> str:
+        if self.is_production() and not self.database_url:
+            try:
+                secret = self._get_secret("terrasafe/database")
+                if secret:
+                    user = secret.get('username', 'terrasafe_user')
+                    # Use defaults if keys missing
+                    password = secret.get('password', '')
+                    host = secret.get('host', 'localhost')
+                    port = secret.get('port', 5432)
+                    dbname = secret.get('dbname', 'terrasafe')
+                    return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{dbname}"
+            except Exception as e:
+                logger.warning(f"Failed to resolve database credentials from secrets: {e}")
+        
+        return self.database_url or ""
 
 
 @lru_cache()
 def get_settings() -> Settings:
-    """
-    Get cached settings instance.
-    Uses lru_cache to ensure settings are loaded only once.
-    """
     return Settings()
