@@ -41,7 +41,7 @@ repos:
     hooks:
       - id: terrasafe-scan
         name: TerraSafe Security Scan
-        entry: python security_scanner.py
+        entry: python -m terrasafe.cli
         language: system
         files: \.tf$
         pass_filenames: true

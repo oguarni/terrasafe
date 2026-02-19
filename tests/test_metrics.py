@@ -17,6 +17,7 @@ import time
 
 # Import the metrics module
 from terrasafe import metrics
+from terrasafe.infrastructure.utils import categorize_vulnerability
 
 
 class TestMetricsAvailability:
@@ -248,44 +249,44 @@ class TestCategorizeVulnerability:
 
     def test_categorize_hardcoded_secret(self):
         """Test categorizing hardcoded secrets."""
-        category = metrics._categorize_vulnerability("Hardcoded secret detected in code")
+        category = categorize_vulnerability("Hardcoded secret detected in code")
         assert category == 'hardcoded_secret'
 
-        category = metrics._categorize_vulnerability("Secret key found in file")
+        category = categorize_vulnerability("Secret key found in file")
         assert category == 'hardcoded_secret'
 
     def test_categorize_open_port(self):
         """Test categorizing open ports."""
-        category = metrics._categorize_vulnerability("Open security group rule exposed to internet")
+        category = categorize_vulnerability("Open security group rule exposed to internet")
         assert category == 'open_port'
 
-        category = metrics._categorize_vulnerability("Security group exposed to internet")
+        category = categorize_vulnerability("Security group exposed to internet")
         assert category == 'open_port'
 
     def test_categorize_public_access(self):
         """Test categorizing public access issues."""
-        category = metrics._categorize_vulnerability("S3 bucket is public")
+        category = categorize_vulnerability("S3 bucket is public")
         assert category == 'public_access'
 
-        category = metrics._categorize_vulnerability("Public S3 bucket detected")
+        category = categorize_vulnerability("Public S3 bucket detected")
         assert category == 'public_access'
 
     def test_categorize_unencrypted_storage(self):
         """Test categorizing unencrypted storage."""
-        category = metrics._categorize_vulnerability("Unencrypted database storage")
+        category = categorize_vulnerability("Unencrypted database storage")
         assert category == 'unencrypted_storage'
 
     def test_categorize_weak_authentication(self):
         """Test categorizing weak authentication."""
-        category = metrics._categorize_vulnerability("MFA not enabled")
+        category = categorize_vulnerability("MFA not enabled")
         assert category == 'weak_authentication'
 
-        category = metrics._categorize_vulnerability("Weak authentication method")
+        category = categorize_vulnerability("Weak authentication method")
         assert category == 'weak_authentication'
 
     def test_categorize_other(self):
         """Test categorizing unknown vulnerability types."""
-        category = metrics._categorize_vulnerability("Some random issue")
+        category = categorize_vulnerability("Some random issue")
         assert category == 'other'
 
 

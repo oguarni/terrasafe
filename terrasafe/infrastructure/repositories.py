@@ -4,7 +4,7 @@ Provides clean abstraction over database operations.
 """
 
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, func, desc, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
@@ -12,6 +12,7 @@ import logging
 from terrasafe.infrastructure.models import Scan, Vulnerability, ScanHistory, MLModelVersion
 from terrasafe.domain.models import Vulnerability as DomainVulnerability, Severity
 from terrasafe.infrastructure.validation import validate_file_hash, validate_scan_id, sanitize_filename
+from terrasafe.infrastructure.utils import categorize_vulnerability
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +119,7 @@ class ScanRepository:
                 message=message,
                 resource=resource,
                 remediation=remediation,
-                category=self._categorize_vulnerability(message),
+                category=categorize_vulnerability(message),
             )
             self.session.add(db_vuln)
 
@@ -265,7 +266,7 @@ class ScanRepository:
         Returns:
             Number of deleted scans
         """
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         result = await self.session.execute(
             select(Scan).where(Scan.created_at < cutoff_date)
@@ -278,31 +279,6 @@ class ScanRepository:
 
         logger.info(f"Deleted {count} old scans (older than {days} days)")
         return count
-
-    def _categorize_vulnerability(self, message: str) -> str:
-        """
-        Categorize vulnerability based on message.
-
-        Args:
-            message: Vulnerability message
-
-        Returns:
-            Category string
-        """
-        message_lower = message.lower()
-
-        if 'hardcoded' in message_lower or 'secret' in message_lower:
-            return 'hardcoded_secret'
-        elif 'open security group' in message_lower or 'exposed to internet' in message_lower:
-            return 'open_port'
-        elif 's3 bucket' in message_lower and 'public' in message_lower:
-            return 'public_access'
-        elif 'unencrypted' in message_lower:
-            return 'unencrypted_storage'
-        elif 'mfa' in message_lower or 'authentication' in message_lower:
-            return 'weak_authentication'
-        else:
-            return 'other'
 
 
 class VulnerabilityRepository:
@@ -373,7 +349,7 @@ class VulnerabilityRepository:
             .group_by(Vulnerability.category)
         )
 
-        return {row.category: row.count for row in result.all()}
+        return {row.category: int(row.count) for row in result.all()}
 
 
 class MLModelVersionRepository:
@@ -476,7 +452,7 @@ class MLModelVersionRepository:
         )
         model = result.scalar_one()
         model.is_active = True
-        model.deployed_at = datetime.utcnow()
+        model.deployed_at = datetime.now(timezone.utc)
 
         await self.session.flush()
 

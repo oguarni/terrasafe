@@ -2,8 +2,9 @@
 import numpy as np
 import json
 import logging
+import time
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict, Any
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 import joblib
@@ -46,7 +47,6 @@ class ModelManager:
         try:
             # Generate version if not provided
             if version is None:
-                import time
                 version = f"v{time.strftime('%Y%m%d_%H%M%S')}"
 
             # Add version to metadata
@@ -100,7 +100,7 @@ class ModelManager:
         except Exception as e:
             raise ModelNotTrainedError(f"Error loading model: {e}") from e
 
-    def _load_metadata(self) -> dict:
+    def _load_metadata(self) -> Dict[str, Any]:
         """Load model metadata."""
         if self.metadata_path.exists():
             with open(self.metadata_path, 'r') as f:
@@ -255,7 +255,7 @@ class ModelManager:
 class MLPredictor:
     """ML-based anomaly predictor"""
 
-    def __init__(self, model_manager: ModelManager = None):
+    def __init__(self, model_manager: Optional[ModelManager] = None):
         self.model_manager = model_manager or ModelManager()
         self.model: Optional[IsolationForest] = None
         self.scaler: Optional[StandardScaler] = None
@@ -398,5 +398,4 @@ class MLPredictor:
 
         # Save model with metadata
         self.model_manager.save_model(self.model, self.scaler, training_stats)
-        logger.info(f"New model trained and saved with {len(augmented_data)} samples.")
-        print(f"✅ Enhanced ML model trained successfully with {len(augmented_data)} samples")
+        logger.info(f"Enhanced ML model trained successfully with {len(augmented_data)} samples")

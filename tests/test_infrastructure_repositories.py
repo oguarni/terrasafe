@@ -10,7 +10,7 @@ These tests verify the repository pattern implementation including:
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import uuid4
@@ -22,6 +22,7 @@ from terrasafe.infrastructure.repositories import (
 )
 from terrasafe.infrastructure.models import Scan, Vulnerability, MLModelVersion
 from terrasafe.domain.models import Vulnerability as DomainVulnerability, Severity
+from terrasafe.infrastructure.utils import categorize_vulnerability
 
 
 class TestScanRepository:
@@ -240,8 +241,8 @@ class TestScanRepository:
     @pytest.mark.asyncio
     async def test_get_stats_with_date_filter(self, scan_repo, mock_session):
         """Test getting statistics with date filters."""
-        start_date = datetime.utcnow() - timedelta(days=7)
-        end_date = datetime.utcnow()
+        start_date = datetime.now(timezone.utc) - timedelta(days=7)
+        end_date = datetime.now(timezone.utc)
 
         mock_row = MagicMock()
         mock_row.total_scans = 50
@@ -274,28 +275,24 @@ class TestScanRepository:
         assert count == 3
         assert mock_session.delete.call_count == 3
 
-    @pytest.mark.asyncio
-    async def test_categorize_vulnerability_hardcoded_secret(self, scan_repo):
+    def test_categorize_vulnerability_hardcoded_secret(self, scan_repo):
         """Test vulnerability categorization for hardcoded secrets."""
-        category = scan_repo._categorize_vulnerability("Hardcoded secret found in code")
+        category = categorize_vulnerability("Hardcoded secret found in code")
         assert category == 'hardcoded_secret'
 
-    @pytest.mark.asyncio
-    async def test_categorize_vulnerability_open_port(self, scan_repo):
+    def test_categorize_vulnerability_open_port(self, scan_repo):
         """Test vulnerability categorization for open ports."""
-        category = scan_repo._categorize_vulnerability("Open security group exposed to internet")
+        category = categorize_vulnerability("Open security group exposed to internet")
         assert category == 'open_port'
 
-    @pytest.mark.asyncio
-    async def test_categorize_vulnerability_public_access(self, scan_repo):
+    def test_categorize_vulnerability_public_access(self, scan_repo):
         """Test vulnerability categorization for public access."""
-        category = scan_repo._categorize_vulnerability("S3 bucket is public")
+        category = categorize_vulnerability("S3 bucket is public")
         assert category == 'public_access'
 
-    @pytest.mark.asyncio
-    async def test_categorize_vulnerability_other(self, scan_repo):
+    def test_categorize_vulnerability_other(self, scan_repo):
         """Test vulnerability categorization for other types."""
-        category = scan_repo._categorize_vulnerability("Some other vulnerability")
+        category = categorize_vulnerability("Some other vulnerability")
         assert category == 'other'
 
 
@@ -403,7 +400,7 @@ class TestMLModelVersionRepository:
             'recall': 0.92,
             'f1_score': 0.925,
             'training_samples': 10000,
-            'training_date': datetime.utcnow(),
+            'training_date': datetime.now(timezone.utc),
             'metadata': {'features': 50, 'depth': 10}
         }
 

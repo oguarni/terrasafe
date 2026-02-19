@@ -2,7 +2,6 @@
 """FastAPI REST API for TerraSafe with rate limiting and async support"""
 import tempfile
 import asyncio
-import os
 import hashlib
 from pathlib import Path
 from typing import Dict, Any
@@ -31,6 +30,7 @@ from terrasafe.config.logging import setup_logging, get_logger, set_correlation_
 from terrasafe.infrastructure.database import get_db_manager
 from terrasafe.infrastructure.repositories import ScanRepository
 from terrasafe.infrastructure.rate_limiter import FallbackRateLimiter
+from terrasafe.infrastructure.validation import sanitize_filename
 
 # Get settings
 settings = get_settings()
@@ -97,7 +97,7 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
 
     # Verify against hashed key from settings
     if not verify_api_key_hash(api_key, settings.api_key_hash):
-        logger.warning(f"API request with invalid API key")
+        logger.warning("API request with invalid API key")
         raise HTTPException(
             status_code=403,
             detail="Invalid API Key"
@@ -302,8 +302,8 @@ async def scan_terraform(
     """
 
     # Validate file extension
-    if not file.filename.endswith(('.tf', '.tf.json')):
-        logger.warning(f"Invalid file extension: {file.filename}")
+    if not file.filename or not file.filename.endswith(('.tf', '.tf.json')):
+        logger.warning(f"Invalid file extension: {sanitize_filename(file.filename or '')}")
         raise HTTPException(
             status_code=400,
             detail="File must be a Terraform file (.tf or .tf.json)"
@@ -320,7 +320,7 @@ async def scan_terraform(
 
     # Validate file content is not empty
     if len(content) == 0:
-        logger.warning(f"Empty file uploaded: {file.filename}")
+        logger.warning(f"Empty file uploaded: {sanitize_filename(file.filename or '')}")
         raise HTTPException(
             status_code=400,
             detail="File is empty"
@@ -339,27 +339,27 @@ async def scan_terraform(
             await f.write(content)
 
         # Run scan in thread pool with timeout to avoid blocking event loop
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         try:
             results = await asyncio.wait_for(
                 loop.run_in_executor(None, scanner.scan, tmp_path),
                 timeout=settings.scan_timeout_seconds
             )
         except asyncio.TimeoutError:
-            logger.error(f"Scan timeout for file '{file.filename}' after {settings.scan_timeout_seconds}s")
+            logger.error(f"Scan timeout for file '{sanitize_filename(file.filename or '')}' after {settings.scan_timeout_seconds}s")
             raise HTTPException(
                 status_code=504,
                 detail=f"Scan timeout after {settings.scan_timeout_seconds} seconds"
             )
 
         if results['score'] == -1:
-            logger.error(f"Scan failed for file '{file.filename}': {results.get('error')}")
+            logger.error(f"Scan failed for file '{sanitize_filename(file.filename or '')}': {results.get('error')}")
             raise HTTPException(
                 status_code=422,
                 detail=results.get('error', 'Terraform scan failed')
             )
 
-        logger.info(f"Successfully scanned file '{file.filename}' - Score: {results['score']}/100")
+        logger.info(f"Successfully scanned file '{sanitize_filename(file.filename or '')}' - Score: {results['score']}/100")
 
         # Save scan results to database if available
         if db_manager.is_connected:
@@ -403,7 +403,7 @@ async def scan_terraform(
         logger.error(f"Unexpected error scanning file '{file.filename}': {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Internal server error during scan: {str(e)}"
+            detail="Internal server error during scan"
         )
     finally:
         # Cleanup temp file asynchronously

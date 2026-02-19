@@ -54,8 +54,9 @@ def sanitize_filename(filename: str) -> str:
     Returns:
         Sanitized filename (max 255 chars)
     """
-    # Remove path traversal attempts
-    filename = filename.replace('../', '').replace('..\\', '')
+    # Remove path traversal attempts (handle nested patterns like ....// -> ../)
+    while '../' in filename or '..\\' in filename:
+        filename = filename.replace('../', '').replace('..\\', '')
 
     # Keep only safe characters
     safe_filename = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)

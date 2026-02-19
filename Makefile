@@ -3,7 +3,7 @@
 
 # Variables
 PYTHON := python3
-VENV := venv
+VENV := .venv
 PIP := $(VENV)/bin/pip
 PYTEST := $(VENV)/bin/pytest
 CLI := PYTHONPATH=. $(VENV)/bin/python -m terrasafe.cli
@@ -117,7 +117,7 @@ docker:
 
 # Create Dockerfile if it doesn't exist
 Dockerfile:
-	@echo "FROM python:3.9-slim" > Dockerfile
+	@echo "FROM python:3.10-slim" > Dockerfile
 	@echo "WORKDIR /app" >> Dockerfile
 	@echo "COPY requirements.txt ." >> Dockerfile
 	@echo "RUN pip install --no-cache-dir -r requirements.txt" >> Dockerfile

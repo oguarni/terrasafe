@@ -6,7 +6,7 @@ import sys
 import os
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -62,10 +62,10 @@ def main():
 
     # Append to consolidated history with rotation
     history_path = Path("scan_history.json")
-    MAX_HISTORY_SIZE = int(os.getenv("MAX_HISTORY_SIZE", "100"))
+    MAX_HISTORY_SIZE = int(os.getenv("TERRASAFE_MAX_HISTORY_SIZE", "100"))
 
     results_with_meta = dict(results)
-    results_with_meta['timestamp'] = datetime.utcnow().isoformat() + 'Z'
+    results_with_meta['timestamp'] = datetime.now(timezone.utc).isoformat()
 
     try:
         if history_path.exists():

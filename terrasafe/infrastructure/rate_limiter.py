@@ -1,8 +1,8 @@
 """Fallback in-memory rate limiter for when Redis is unavailable"""
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
-from typing import Dict, List
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional
 from threading import Lock
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ class FallbackRateLimiter:
             True if request is allowed, False if rate limit exceeded
         """
         with self.lock:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
 
             # Clean old requests outside the time window
             self.requests[client_ip] = [
@@ -75,7 +75,7 @@ class FallbackRateLimiter:
             Number of remaining requests in current window
         """
         with self.lock:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
 
             # Clean old requests
             self.requests[client_ip] = [
@@ -85,7 +85,7 @@ class FallbackRateLimiter:
 
             return max(0, self.max_requests - len(self.requests[client_ip]))
 
-    def reset(self, client_ip: str = None):
+    def reset(self, client_ip: Optional[str] = None):
         """
         Reset rate limit tracking.
 
@@ -106,7 +106,7 @@ class FallbackRateLimiter:
         Should be called periodically.
         """
         with self.lock:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             cleaned = 0
 
             # Remove empty entries and old timestamps

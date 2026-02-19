@@ -3,7 +3,7 @@ Database models for TerraSafe.
 Defines tables for scans, vulnerabilities, and scan history.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from sqlalchemy import (
     String, Integer, Float, DateTime, Text, JSON, Boolean, ForeignKey, Index
@@ -102,7 +102,7 @@ class Scan(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
         index=True,
         comment="When the scan was performed"
     )
@@ -138,9 +138,6 @@ class Scan(Base):
 
     # Indexes for common queries
     __table_args__ = (
-        Index('idx_scan_created_at', 'created_at'),
-        Index('idx_scan_file_hash', 'file_hash'),
-        Index('idx_scan_user_id', 'user_id'),
         Index('idx_scan_score', 'score'),
     )
 
@@ -225,7 +222,7 @@ class Vulnerability(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
         comment="When the vulnerability was detected"
     )
 
@@ -235,12 +232,8 @@ class Vulnerability(Base):
         back_populates="vulnerabilities"
     )
 
-    # Indexes
-    __table_args__ = (
-        Index('idx_vuln_scan_id', 'scan_id'),
-        Index('idx_vuln_severity', 'severity'),
-        Index('idx_vuln_category', 'category'),
-    )
+    # Indexes (only if needed beyond column-level index=True)
+    __table_args__ = tuple()
 
     def __repr__(self) -> str:
         return (
@@ -306,14 +299,8 @@ class ScanHistory(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
         comment="When this history entry was created"
-    )
-
-    # Indexes
-    __table_args__ = (
-        Index('idx_history_date', 'date'),
-        Index('idx_history_scan_id', 'scan_id'),
     )
 
     def __repr__(self) -> str:
@@ -415,14 +402,8 @@ class MLModelVersion(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
         comment="When this version was created"
-    )
-
-    # Indexes
-    __table_args__ = (
-        Index('idx_model_version', 'version'),
-        Index('idx_model_is_active', 'is_active'),
     )
 
     def __repr__(self) -> str:

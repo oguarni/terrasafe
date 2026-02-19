@@ -18,6 +18,8 @@ try:
 except ImportError:
     METRICS_AVAILABLE = False
 
+from terrasafe.infrastructure.utils import categorize_vulnerability
+
 logger = logging.getLogger(__name__)
 
 if METRICS_AVAILABLE:
@@ -149,6 +151,8 @@ def track_metrics(func: Callable) -> Callable:
             # Track scan metrics if result is a scan result
             if isinstance(result, dict) and 'score' in result:
                 _record_scan_result(result, duration)
+            elif isinstance(result, tuple) and len(result) >= 1 and isinstance(result[0], dict) and 'score' in result[0]:
+                _record_scan_result(result[0], duration)
 
             return result
 
@@ -170,6 +174,8 @@ def track_metrics(func: Callable) -> Callable:
             # Track scan metrics if result is a scan result
             if isinstance(result, dict) and 'score' in result:
                 _record_scan_result(result, duration)
+            elif isinstance(result, tuple) and len(result) >= 1 and isinstance(result[0], dict) and 'score' in result[0]:
+                _record_scan_result(result[0], duration)
 
             return result
 
@@ -234,37 +240,14 @@ def _record_scan_result(result: dict, duration: float) -> None:
 
     for vuln in vulns:
         severity = vuln.get('severity', 'UNKNOWN')
-        category = _categorize_vulnerability(vuln.get('message', ''))
+        category = categorize_vulnerability(vuln.get('message', ''))
         vulnerabilities_detected_total.labels(severity=severity, category=category).inc()
-
-    # Count by severity from summary
-    if 'summary' in result:
-        for severity, count in result['summary'].items():
-            vulnerability_counter.labels(severity=severity, category='unknown').inc(count)
 
     # Record cache metrics
     if from_cache:
         cache_hits_total.inc()
     else:
         cache_misses_total.inc()
-
-
-def _categorize_vulnerability(message: str) -> str:
-    """Categorize vulnerability based on message."""
-    message_lower = message.lower()
-
-    if 'hardcoded' in message_lower or 'secret' in message_lower:
-        return 'hardcoded_secret'
-    elif 'open security group' in message_lower or 'exposed to internet' in message_lower:
-        return 'open_port'
-    elif 's3 bucket' in message_lower and 'public' in message_lower:
-        return 'public_access'
-    elif 'unencrypted' in message_lower:
-        return 'unencrypted_storage'
-    elif 'mfa' in message_lower or 'authentication' in message_lower:
-        return 'weak_authentication'
-    else:
-        return 'other'
 
 
 def record_api_request(method: str, endpoint: str, status: int, duration: float) -> None:

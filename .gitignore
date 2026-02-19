@@ -8,11 +8,7 @@
 # Python
 # ===================================
 __pycache__/
-**/__pycache__/
 *.py[cod]
-*.pyc
-*.pyo
-*.pyd
 .Python
 *.so
 
@@ -88,11 +84,7 @@ dmypy.json
 # ===================================
 models/*.pkl
 models/*.joblib
-models/scaler.pkl
-models/isolation_forest.pkl
 models/*.json
-models/metadata.json
-models/training_metadata.json
 models/baseline_data.npy
 
 # ===================================
