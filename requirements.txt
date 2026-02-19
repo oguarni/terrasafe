@@ -21,7 +21,6 @@ bcrypt==4.1.2
 aiofiles==23.2.1
 
 # Redis for caching and rate limiting
-redis==5.0.1
 redis[hiredis]==5.0.1
 
 # Database (PostgreSQL)
@@ -38,20 +37,3 @@ prometheus-client==0.19.0
 # Utilities
 pyyaml==6.0.1
 
-# Testing dependencies
-pytest==7.4.3
-pytest-cov==7.0.0
-pytest-mock==3.12.0
-pytest-asyncio==0.21.1
-pytest-benchmark==4.0.0
-coverage>=7.10.6
-httpx<0.28
-psutil==5.9.6
-
-# Type checking
-mypy==1.8.0
-types-PyYAML==6.0.12.12
-types-redis==4.6.0.20240106
-
-# Security scanning
-cyclonedx-bom==4.2.0

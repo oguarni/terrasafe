@@ -1,5 +1,4 @@
 # docker-compose.yml - Production-ready multi-service setup for TerraSafe
-version: '3.9'
 
 services:
   # Redis for caching and rate limiting
@@ -57,7 +56,7 @@ services:
   terrasafe-api:
     build:
       context: .
-      dockerfile: Dockerfile  # <-- MUDANÇA APLICADA
+      dockerfile: Dockerfile
     image: terrasafe-api:latest
     container_name: terrasafe-api
     restart: unless-stopped

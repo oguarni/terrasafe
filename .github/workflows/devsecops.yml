@@ -96,10 +96,8 @@ jobs:
         pip install pytest coverage pytest-cov
 
     - name: Run tests
-      # No env needed here, run_tests.sh handles it
       run: |
-        chmod +x run_tests.sh
-        ./run_tests.sh -v --cov=terrasafe --cov-report=xml
+        pytest -v --cov=terrasafe --cov-report=xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -162,16 +160,16 @@ jobs:
         severity: 'CRITICAL,HIGH'
 
     - name: Test Docker container
-    run: |
-    docker run --rm -v $(pwd)/test_files:/app/test_files \
-      terrasafe:${{ github.sha }} \
-      python -m terrasafe.cli test_files/secure.tf
+      run: |
+        docker run --rm -v $(pwd)/test_files:/app/test_files \
+          terrasafe:${{ github.sha }} \
+          python -m terrasafe.cli test_files/secure.tf
 
   # Optional: Deploy to staging (only on main branch)
   deploy-staging:
     runs-on: ubuntu-latest
     needs: [security-scan, test, docker]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     steps:
     - name: Deploy notification
       run: |

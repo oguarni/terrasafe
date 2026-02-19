@@ -11,9 +11,9 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
     async_sessionmaker
 )
-from sqlalchemy.orm import DeclarativeBase, declarative_base
-from sqlalchemy.pool import NullPool, AsyncAdaptedQueuePool
-from sqlalchemy import event, text
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import AsyncAdaptedQueuePool
+from sqlalchemy import text
 import logging
 
 from terrasafe.config.settings import get_settings
@@ -45,15 +45,13 @@ class DatabaseManager:
         """
         self.database_url = database_url or settings.database_url
         self.pool_size = pool_size or settings.database_pool_size
+        self._engine: Optional[AsyncEngine] = None
+        self._session_factory: Optional[async_sessionmaker] = None
 
-        if not self.database_url:
-            logger.warning("No database URL configured. Database features will be disabled.")
-            self._engine: Optional[AsyncEngine] = None
-            self._session_factory: Optional[async_sessionmaker] = None
-        else:
-            self._engine: Optional[AsyncEngine] = None
-            self._session_factory: Optional[async_sessionmaker] = None
+        if self.database_url:
             logger.info(f"DatabaseManager initialized with pool size: {self.pool_size}")
+        else:
+            logger.warning("No database URL configured. Database features will be disabled.")
 
     async def connect(self) -> None:
         """

@@ -12,10 +12,10 @@ TerraSafe is a hybrid Terraform security scanner implementing Clean Architecture
 
 ```bash
 # Setup
-make setup
+make install
 
 # Train ML model
-make train
+make train-model
 
 # Run security scan
 make scan FILE=path/to/terraform.tf

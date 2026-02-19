@@ -6,13 +6,11 @@ from pathlib import Path
 import hashlib
 from functools import lru_cache
 from typing import Dict, Any, List, Tuple
-from collections import Counter
 
 from ..domain.models import Vulnerability, Severity
 from ..domain.security_rules import SecurityRuleEngine
 from ..infrastructure.parser import HCLParser, TerraformParseError
 from ..infrastructure.ml_model import MLPredictor
-from terrasafe.config.settings import get_settings
 
 try:
     from terrasafe.metrics import track_metrics
@@ -23,7 +21,6 @@ except ImportError:
         return func
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
 
 # Scoring weights for combining rule-based and ML-based scores
 # These are exported for use in tests to avoid hardcoding magic numbers
@@ -46,14 +43,10 @@ class IntelligentSecurityScanner:
         parser: HCLParser,
         rule_analyzer: SecurityRuleEngine,
         ml_predictor: MLPredictor,
-        cache_max_size: int = None
     ):
         self.parser = parser
         self.rule_analyzer = rule_analyzer
         self.ml_predictor = ml_predictor
-        # Use settings for cache configuration
-        self._cache_max_size = cache_max_size or settings.cache_max_entries
-        logger.info(f"Scanner initialized with cache max size: {self._cache_max_size}")
 
     @lru_cache(maxsize=100)
     def _get_file_hash_cached(self, filepath: str, mtime: float) -> str:
