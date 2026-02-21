@@ -81,7 +81,7 @@ graph TD
 
 | Component | Technology | Justification |
 |-----------|------------|---------------|
-| **Language** | Python 3.8+ | Best ML ecosystem, clean syntax |
+| **Language** | Python 3.10+ | Best ML ecosystem, clean syntax |
 | **ML Framework** | Scikit-learn | Production-ready, Isolation Forest implementation |
 | **Parser** | python-hcl2 | Native HCL2 support for Terraform |
 | **Pattern Matching** | re (regex) | Built-in, efficient for rule-based detection |
@@ -152,12 +152,12 @@ Partially secure configuration:
 
 ```bash
 # Run all three tests
-./run_demo.sh
+scripts/run_demo.sh
 
 # Or test individually
-python -m terrasafe.main test_files/vulnerable.tf
-python -m terrasafe.main test_files/secure.tf
-python -m terrasafe.main test_files/mixed.tf
+python -m terrasafe.cli test_files/vulnerable.tf
+python -m terrasafe.cli test_files/secure.tf
+python -m terrasafe.cli test_files/mixed.tf
 ```
 
 ### Actual Test Results
@@ -258,7 +258,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Run scanner
-python -m terrasafe.main test_files/vulnerable.tf
+python -m terrasafe.cli test_files/vulnerable.tf
 ```
 
 ## 🔒 DevSecOps Features
@@ -291,7 +291,7 @@ make setup-hooks
 ### Production Deployment
 
 ```bash
-# Build secure Docker image (multi-stage, non-root)
+# Build Docker image
 docker build -t terrasafe:latest .
 
 # Run security scan
@@ -317,7 +317,7 @@ docker run -d \
 
 | Metric | Status |
 |--------|--------|
-| Test Coverage | 85%+ |
+| Test Coverage | Measured via `make coverage` |
 | SAST Issues | 0 Critical |
 | Dependencies | No Known Vulns |
 | Docker Scan | Pass |

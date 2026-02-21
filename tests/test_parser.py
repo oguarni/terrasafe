@@ -2,12 +2,12 @@
 Unit tests for HCL Parser - Infrastructure layer
 """
 import pytest
-import json
 from pathlib import Path
-from unittest.mock import patch, mock_open
+from unittest.mock import patch
 from terrasafe.infrastructure.parser import HCLParser, TerraformParseError
 
 
+@pytest.mark.unit
 class TestHCLParser:
     """Test suite for HCL Parser"""
 
@@ -34,43 +34,44 @@ class TestHCLParser:
         assert isinstance(tf_content, dict)
         assert isinstance(raw_content, str)
 
-    @patch('builtins.open', side_effect=IOError("Permission denied"))
-    @patch('pathlib.Path.exists', return_value=True)
-    def test_parse_file_read_error(self, mock_exists, mock_file):
+    def test_parse_file_read_error(self, tmp_path):
         """Test parsing when file cannot be read"""
+        tf_file = tmp_path / "test.tf"
+        tf_file.write_text('resource "aws_instance" "test" {}')
         parser = HCLParser()
-        with pytest.raises(TerraformParseError) as exc_info:
-            parser.parse("test.tf")
+        with patch('builtins.open', side_effect=IOError("Permission denied")):
+            with pytest.raises(TerraformParseError) as exc_info:
+                parser.parse(str(tf_file))
         assert "Cannot read file" in str(exc_info.value)
 
-    @patch('builtins.open', new_callable=mock_open, read_data='invalid hcl syntax {')
-    @patch('pathlib.Path.exists', return_value=True)
-    def test_parse_invalid_hcl_syntax(self, mock_exists, mock_file):
+    def test_parse_invalid_hcl_syntax(self, tmp_path):
         """Test parsing invalid HCL syntax"""
+        tf_file = tmp_path / "invalid.tf"
+        tf_file.write_text("invalid hcl syntax {")
         parser = HCLParser()
         with pytest.raises(TerraformParseError) as exc_info:
-            parser.parse("invalid.tf")
+            parser.parse(str(tf_file))
         # Check for enhanced error message
         assert "Invalid HCL/JSON syntax" in str(exc_info.value)
 
-    @patch('builtins.open', new_callable=mock_open, read_data='{"resource": {"aws_s3_bucket": {"test": {"bucket": "example"}}}}')
-    @patch('pathlib.Path.exists', return_value=True)
-    @patch('hcl2.loads', side_effect=Exception("HCL parse error"))
-    def test_parse_json_fallback(self, mock_hcl2, mock_exists, mock_file):
+    def test_parse_json_fallback(self, tmp_path):
         """Test JSON fallback when HCL parsing fails"""
+        tf_file = tmp_path / "test.tf.json"
+        tf_file.write_text('{"resource": {"aws_s3_bucket": {"test": {"bucket": "example"}}}}')
         parser = HCLParser()
-        tf_content, raw_content = parser.parse("test.tf.json")
+        with patch('hcl2.loads', side_effect=Exception("HCL parse error")):
+            tf_content, raw_content = parser.parse(str(tf_file))
         assert isinstance(tf_content, dict)
         assert "resource" in tf_content
 
-    @patch('builtins.open', new_callable=mock_open, read_data='not valid json or hcl')
-    @patch('pathlib.Path.exists', return_value=True)
-    @patch('hcl2.loads', side_effect=Exception("HCL parse error"))
-    def test_parse_both_formats_fail(self, mock_hcl2, mock_exists, mock_file):
+    def test_parse_both_formats_fail(self, tmp_path):
         """Test when both HCL and JSON parsing fail"""
+        tf_file = tmp_path / "invalid.tf"
+        tf_file.write_text("not valid json or hcl")
         parser = HCLParser()
-        with pytest.raises(TerraformParseError) as exc_info:
-            parser.parse("invalid.tf")
+        with patch('hcl2.loads', side_effect=Exception("HCL parse error")):
+            with pytest.raises(TerraformParseError) as exc_info:
+                parser.parse(str(tf_file))
         # Check for the enhanced error message
         assert "Invalid HCL/JSON syntax" in str(exc_info.value)
         assert "File appears to be neither valid HCL nor JSON" in str(exc_info.value)
@@ -88,24 +89,23 @@ class TestHCLParser:
         error = TerraformParseError("Custom error message")
         assert str(error) == "Custom error message"
 
-    @patch('builtins.open', new_callable=mock_open, read_data='resource "aws_instance" "example" { ami = "ami-123" }')
-    @patch('pathlib.Path.exists', return_value=True)
-    def test_parse_simple_resource(self, mock_exists, mock_file):
+    def test_parse_simple_resource(self, tmp_path):
         """Test parsing a simple resource"""
+        content = 'resource "aws_instance" "example" { ami = "ami-123" }'
+        tf_file = tmp_path / "simple.tf"
+        tf_file.write_text(content)
         parser = HCLParser()
-        tf_content, raw_content = parser.parse("simple.tf")
-        assert raw_content == 'resource "aws_instance" "example" { ami = "ami-123" }'
+        tf_content, raw_content = parser.parse(str(tf_file))
+        assert raw_content == content
 
-    @patch('builtins.open', new_callable=mock_open, read_data='')
-    @patch('pathlib.Path.exists', return_value=True)
-    def test_parse_empty_file(self, mock_exists, mock_file):
-        """Test parsing an empty file"""
+    def test_parse_empty_file_rejected(self, tmp_path):
+        """Test that empty files are correctly rejected"""
+        tf_file = tmp_path / "empty.tf"
+        tf_file.write_text("")
         parser = HCLParser()
-        # Empty file should parse as empty dict
-        tf_content, raw_content = parser.parse("empty.tf")
-        assert raw_content == ''
-        # hcl2.loads('') returns {}
-        assert tf_content == {}
+        with pytest.raises(TerraformParseError) as exc_info:
+            parser.parse(str(tf_file))
+        assert "empty" in str(exc_info.value).lower()
 
     def test_parser_encoding_utf8(self):
         """Test parser handles UTF-8 encoding"""

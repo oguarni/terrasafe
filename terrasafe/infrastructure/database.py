@@ -19,7 +19,6 @@ import logging
 from terrasafe.config.settings import get_settings
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
 
 
 class Base(DeclarativeBase):
@@ -43,8 +42,9 @@ class DatabaseManager:
             database_url: Database connection URL (from settings if None)
             pool_size: Connection pool size (from settings if None)
         """
-        self.database_url = database_url or settings.database_url
-        self.pool_size = pool_size or settings.database_pool_size
+        _settings = get_settings()
+        self.database_url = database_url or _settings.database_url
+        self.pool_size = pool_size or _settings.database_pool_size
         self._engine: Optional[AsyncEngine] = None
         self._session_factory: Optional[async_sessionmaker] = None
 
@@ -70,7 +70,7 @@ class DatabaseManager:
             # Create async engine
             self._engine = create_async_engine(
                 self.database_url,
-                echo=settings.debug,  # Log SQL in debug mode
+                echo=get_settings().debug,  # Log SQL in debug mode
                 pool_size=self.pool_size,
                 max_overflow=20,
                 pool_pre_ping=True,  # Verify connections before using
@@ -160,7 +160,7 @@ class DatabaseManager:
         if not self._engine:
             raise RuntimeError("Database not connected")
 
-        if settings.is_production():
+        if get_settings().is_production():
             raise RuntimeError("Cannot drop tables in production environment")
 
         async with self._engine.begin() as conn:

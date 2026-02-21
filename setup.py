@@ -15,6 +15,7 @@ setup(
         "pydantic-settings",
         "sqlalchemy",
         "asyncpg",
+        "alembic",
         "redis",
         "bcrypt",
         "aiofiles",

@@ -1,4 +1,5 @@
 """ML Model - Infrastructure layer"""
+import re
 import numpy as np
 import json
 import logging
@@ -11,9 +12,10 @@ import joblib
 
 from terrasafe.config.settings import get_settings
 
-settings = get_settings()
-
 logger = logging.getLogger(__name__)
+
+# Pattern matching auto-generated timestamp version strings (e.g. v20240115_143022)
+_TIMESTAMP_VERSION_RE = re.compile(r'^v\d{8}_\d{6}$')
 
 
 class ModelNotTrainedError(Exception):
@@ -43,6 +45,9 @@ class ModelManager:
             scaler: Fitted StandardScaler
             metadata: Training metadata dictionary
             version: Optional version string (auto-generated if None)
+
+        Raises:
+            Exception: Re-raised if persistence fails, so callers know the save did not succeed
         """
         try:
             # Generate version if not provided
@@ -74,20 +79,26 @@ class ModelManager:
             logger.info(f"Model version {version} saved to {self.model_dir}")
         except Exception as e:
             logger.error(f"Error saving model: {e}")
+            raise
 
     def load_model(self) -> Tuple[IsolationForest, StandardScaler]:
         """Load saved model and scaler, raising an error if not found."""
         if not self.model_path.exists() or not self.scaler_path.exists():
             raise ModelNotTrainedError("Model or scaler file not found.")
-        
+
         try:
             # Load metadata for validation
             metadata = self._load_metadata()
-            
-            # Check model version
+
+            # Check model version — skip warning for auto-generated timestamp versions
             saved_version = metadata.get('version')
-            if saved_version and saved_version != settings.model_version:
-                logger.warning(f"Model version mismatch: Saved {saved_version} != Configured {settings.model_version}")
+            configured_version = get_settings().model_version
+            if (saved_version
+                    and saved_version != configured_version
+                    and not _TIMESTAMP_VERSION_RE.match(saved_version)):
+                logger.warning(
+                    f"Model version mismatch: Saved {saved_version} != Configured {configured_version}"
+                )
 
             # Check for drift
             if self._detect_drift(metadata):
@@ -110,10 +121,10 @@ class ModelManager:
     def _detect_drift(self, metadata: dict) -> bool:
         """
         Detect if model has drifted or is outdated.
-        
+
         Args:
             metadata: Model metadata dictionary
-            
+
         Returns:
             True if drift detected or model stale, False otherwise
         """
@@ -123,17 +134,17 @@ class ModelManager:
                 from datetime import datetime
                 saved_at = datetime.strptime(metadata['saved_at'], '%Y-%m-%d %H:%M:%S')
                 age_days = (datetime.now() - saved_at).days
-                
+
                 # If model is older than 30 days, consider it drifted/stale
                 if age_days > 30:
                     logger.warning(f"Model is {age_days} days old")
                     return True
             except Exception as e:
                 logger.warning(f"Failed to parse model timestamp: {e}")
-        
+
         # Future: Implement statistical drift detection (KL divergence, etc.)
         # comparing stored training_stats with recent inference stats
-        
+
         return False
 
     def model_exists(self) -> bool:
@@ -227,7 +238,13 @@ class ModelManager:
 
     def update_model_with_feedback(self, model: IsolationForest, scaler: StandardScaler,
                                    new_data: np.ndarray, metadata: dict):
-        """Update model with new feedback data for incremental learning"""
+        """
+        Update model using only the new feedback data.
+
+        NOTE: This is a simplified incremental update that refits exclusively on new_data
+        (catastrophic forgetting). It does NOT combine with historical training data.
+        For production use, consider more sophisticated continual learning strategies.
+        """
         try:
             # Scale new data
             scaled_new_data = scaler.transform(new_data)
@@ -241,8 +258,11 @@ class ModelManager:
                     metadata['total_samples'] = new_total
                     metadata['feedback_samples_added'] = len(new_data)
 
-            # Retrain model with combined data (simplified approach)
+            # Retrain model on new data only (simplified approach — catastrophic forgetting applies)
             # In production, consider more sophisticated incremental learning
+            logger.warning(
+                "update_model_with_feedback refits only on new_data; historical patterns are lost."
+            )
             model.fit(scaled_new_data)
 
             # Save updated model
@@ -301,8 +321,8 @@ class MLPredictor:
 
     def _train_baseline_model(self):
         """Train and save a new baseline model with comprehensive patterns."""
-        # Set seed for reproducibility
-        np.random.seed(42)
+        # Use a local RNG instance to avoid polluting global random state
+        rng = np.random.default_rng(42)
 
         # Enhanced baseline patterns representing secure configurations
         # Features: [open_ports, secrets, public_access, unencrypted, resource_count]
@@ -342,7 +362,7 @@ class MLPredictor:
         # Add noise variations for each pattern
         for pattern in baseline_features:
             for _ in range(3):  # Create 3 variations per pattern
-                noise = np.random.normal(0, 0.15, 5)
+                noise = rng.normal(0, 0.15, 5)
                 augmented = pattern + noise
                 augmented = np.maximum(augmented, 0)  # Ensure non-negative
                 # Round discrete features

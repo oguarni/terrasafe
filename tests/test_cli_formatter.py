@@ -12,6 +12,7 @@ from terrasafe.cli_formatter import (
 )
 
 
+@pytest.mark.unit
 class TestCLIFormatter:
     """Test suite for CLI formatter functions"""
 
@@ -176,6 +177,7 @@ class TestCLIFormatter:
         assert 'Restrict bucket access' in output
 
 
+@pytest.mark.unit
 class TestHelperFunctions:
     """Test suite for helper functions"""
 

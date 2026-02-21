@@ -9,6 +9,7 @@ import pytest
 from terrasafe.cli import main
 
 
+@pytest.mark.unit
 class TestMainCLI:
     """Test suite for main CLI entry point"""
 
@@ -28,12 +29,13 @@ class TestMainCLI:
                 main()
             assert exc_info.value.code == 1
 
+    @patch('terrasafe.cli.MLPredictor')
     @patch('terrasafe.cli.IntelligentSecurityScanner')
     @patch('terrasafe.cli.format_results_for_display')
     @patch('builtins.open', new_callable=mock_open)
     @patch('terrasafe.cli.Path')
     def test_main_successful_low_risk_scan(
-        self, mock_path_class, mock_file, mock_format, mock_scanner_class
+        self, mock_path_class, mock_file, mock_format, mock_scanner_class, mock_predictor_class
     ):
         """Test main with successful low risk scan"""
         # Setup mocks
@@ -60,12 +62,13 @@ class TestMainCLI:
                 main()
             assert exc_info.value.code == 0  # Low risk = exit 0
 
+    @patch('terrasafe.cli.MLPredictor')
     @patch('terrasafe.cli.IntelligentSecurityScanner')
     @patch('terrasafe.cli.format_results_for_display')
     @patch('builtins.open', new_callable=mock_open)
     @patch('terrasafe.cli.Path')
     def test_main_high_risk_scan(
-        self, mock_path_class, mock_file, mock_format, mock_scanner_class
+        self, mock_path_class, mock_file, mock_format, mock_scanner_class, mock_predictor_class
     ):
         """Test main with high risk scan"""
         mock_scanner = Mock()
@@ -90,12 +93,13 @@ class TestMainCLI:
                 main()
             assert exc_info.value.code == 1  # High risk = exit 1
 
+    @patch('terrasafe.cli.MLPredictor')
     @patch('terrasafe.cli.IntelligentSecurityScanner')
     @patch('terrasafe.cli.format_results_for_display')
     @patch('builtins.open', new_callable=mock_open)
     @patch('terrasafe.cli.Path')
     def test_main_critical_risk_scan(
-        self, mock_path_class, mock_file, mock_format, mock_scanner_class
+        self, mock_path_class, mock_file, mock_format, mock_scanner_class, mock_predictor_class
     ):
         """Test main with critical risk scan"""
         mock_scanner = Mock()
@@ -122,12 +126,13 @@ class TestMainCLI:
                 main()
             assert exc_info.value.code == 3  # Critical risk = exit 3
 
+    @patch('terrasafe.cli.MLPredictor')
     @patch('terrasafe.cli.IntelligentSecurityScanner')
     @patch('terrasafe.cli.format_results_for_display')
     @patch('builtins.open', new_callable=mock_open)
     @patch('terrasafe.cli.Path')
     def test_main_scan_error(
-        self, mock_path_class, mock_file, mock_format, mock_scanner_class
+        self, mock_path_class, mock_file, mock_format, mock_scanner_class, mock_predictor_class
     ):
         """Test main with scan error"""
         mock_scanner = Mock()
@@ -149,13 +154,14 @@ class TestMainCLI:
                 main()
             assert exc_info.value.code == 2  # Scan error = exit 2
 
+    @patch('terrasafe.cli.MLPredictor')
     @patch('terrasafe.cli.IntelligentSecurityScanner')
     @patch('terrasafe.cli.format_results_for_display')
     @patch('builtins.open', new_callable=mock_open)
     @patch('terrasafe.cli.Path')
     @patch('terrasafe.cli.logger')
     def test_main_json_write_error(
-        self, mock_logger, mock_path_class, mock_file, mock_format, mock_scanner_class
+        self, mock_logger, mock_path_class, mock_file, mock_format, mock_scanner_class, mock_predictor_class
     ):
         """Test main when JSON write fails"""
         mock_scanner = Mock()
@@ -186,12 +192,13 @@ class TestMainCLI:
             # Should log the error
             mock_logger.error.assert_called()
 
+    @patch('terrasafe.cli.MLPredictor')
     @patch('terrasafe.cli.IntelligentSecurityScanner')
     @patch('terrasafe.cli.format_results_for_display')
     @patch('builtins.open', new_callable=mock_open, read_data='{"scans": []}')
     @patch('terrasafe.cli.Path')
     def test_main_appends_to_existing_history(
-        self, mock_path_class, mock_file, mock_format, mock_scanner_class
+        self, mock_path_class, mock_file, mock_format, mock_scanner_class, mock_predictor_class
     ):
         """Test main appends to existing scan history"""
         mock_scanner = Mock()
@@ -226,12 +233,13 @@ class TestMainCLI:
             with pytest.raises(SystemExit):
                 main()
 
+    @patch('terrasafe.cli.MLPredictor')
     @patch('terrasafe.cli.IntelligentSecurityScanner')
     @patch('terrasafe.cli.format_results_for_display')
     @patch('builtins.open', new_callable=mock_open)
     @patch('terrasafe.cli.Path')
     def test_main_creates_new_history(
-        self, mock_path_class, mock_file, mock_format, mock_scanner_class
+        self, mock_path_class, mock_file, mock_format, mock_scanner_class, mock_predictor_class
     ):
         """Test main creates new scan history if not exists"""
         mock_scanner = Mock()
@@ -256,12 +264,13 @@ class TestMainCLI:
                 main()
             assert exc_info.value.code == 0
 
+    @patch('terrasafe.cli.MLPredictor')
     @patch('terrasafe.cli.IntelligentSecurityScanner')
     @patch('terrasafe.cli.format_results_for_display')
     @patch('builtins.open', new_callable=mock_open)
     @patch('terrasafe.cli.Path')
     def test_main_medium_risk_boundary(
-        self, mock_path_class, mock_file, mock_format, mock_scanner_class
+        self, mock_path_class, mock_file, mock_format, mock_scanner_class, mock_predictor_class
     ):
         """Test main with medium risk at boundary (69)"""
         mock_scanner = Mock()

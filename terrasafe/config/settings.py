@@ -29,9 +29,9 @@ class Settings(BaseSettings):
     """
 
     # API Configuration
-    api_host: str = Field(default="0.0.0.0", description="API host address")
+    api_host: str = Field(default="127.0.0.1", description="API host address")
     api_port: int = Field(default=8000, ge=1, le=65535, description="API port")
-    api_key_hash: str = Field(..., description="Hashed API key (required, no default)")
+    api_key_hash: Optional[str] = Field(default=None, description="Hashed API key (required for API mode)")
     api_cors_origins: list[str] = Field(
         default=["http://localhost:3000"],
         description="Allowed CORS origins"
@@ -139,7 +139,9 @@ class Settings(BaseSettings):
 
     @field_validator("api_key_hash")
     @classmethod
-    def validate_api_key_hash(cls, v: str) -> str:
+    def validate_api_key_hash(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
         dangerous_values = {
             "change-me",
             "change-me-in-production",

@@ -87,7 +87,14 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
 
     Raises:
         HTTPException: 403 if API key is invalid or missing
+        HTTPException: 503 if api_key_hash is not configured
     """
+    if settings.api_key_hash is None:
+        raise HTTPException(
+            status_code=503,
+            detail="API key authentication is not configured. Set TERRASAFE_API_KEY_HASH."
+        )
+
     if not api_key:
         logger.warning("API request with missing API key")
         raise HTTPException(
@@ -182,6 +189,13 @@ async def lifespan(app: FastAPI):
     Manages startup and shutdown operations.
     """
     # Startup
+    if settings.api_key_hash is None:
+        raise RuntimeError(
+            "TERRASAFE_API_KEY_HASH is not set. "
+            "API key authentication is required. "
+            "Set it via the TERRASAFE_API_KEY_HASH environment variable."
+        )
+
     try:
         if settings.database_url:
             await db_manager.connect()
