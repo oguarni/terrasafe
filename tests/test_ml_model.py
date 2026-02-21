@@ -15,6 +15,8 @@ from terrasafe.infrastructure.ml_model import (
 )
 
 
+@pytest.mark.unit
+@pytest.mark.ml
 class TestModelManager:
     """Test suite for ModelManager"""
 
@@ -78,7 +80,7 @@ class TestModelManager:
 
     @patch('joblib.dump', side_effect=Exception("Write error"))
     def test_save_model_error(self, mock_dump, tmp_path):
-        """Test save_model handles errors gracefully"""
+        """Test save_model propagates errors so callers know persistence failed"""
         manager = ModelManager(str(tmp_path / "models"))
 
         model = IsolationForest(random_state=42)
@@ -87,8 +89,10 @@ class TestModelManager:
         scaler.fit(dummy_data)
         model.fit(dummy_data)
 
-        # Should not raise, just log error
-        manager.save_model(model, scaler, {"test": "data"})
+        # Should raise so the caller knows the save failed
+        with pytest.raises(Exception) as exc_info:
+            manager.save_model(model, scaler, {"test": "data"})
+        assert "Write error" in str(exc_info.value)
 
     def test_update_model_with_feedback_new_metadata(self, tmp_path):
         """Test updating model with feedback (new metadata)"""
@@ -150,6 +154,8 @@ class TestModelManager:
         manager.update_model_with_feedback(model, scaler, new_data, metadata)
 
 
+@pytest.mark.unit
+@pytest.mark.ml
 class TestMLPredictor:
     """Test suite for MLPredictor"""
 

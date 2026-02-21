@@ -24,6 +24,16 @@ from terrasafe.infrastructure.database import (
 )
 
 
+def _make_mock_settings(**kwargs):
+    """Create a mock settings object with common defaults."""
+    mock = Mock()
+    mock.database_url = kwargs.get('database_url', None)
+    mock.database_pool_size = kwargs.get('database_pool_size', 10)
+    mock.debug = kwargs.get('debug', False)
+    mock.is_production = Mock(return_value=kwargs.get('is_production', False))
+    return mock
+
+
 class TestBase:
     """Test suite for Base class."""
 
@@ -44,18 +54,14 @@ class TestDatabaseManager:
     @pytest.fixture
     def db_manager(self, db_url):
         """Create a DatabaseManager instance."""
-        with patch('terrasafe.infrastructure.database.settings') as mock_settings:
-            mock_settings.database_url = db_url
-            mock_settings.database_pool_size = 10
-            mock_settings.debug = False
+        mock_settings = _make_mock_settings(database_url=db_url, database_pool_size=10)
+        with patch('terrasafe.infrastructure.database.get_settings', return_value=mock_settings):
             return DatabaseManager(database_url=db_url, pool_size=10)
 
     def test_initialization_with_url(self, db_url):
         """Test initializing DatabaseManager with database URL."""
-        with patch('terrasafe.infrastructure.database.settings') as mock_settings:
-            mock_settings.database_url = db_url
-            mock_settings.database_pool_size = 20
-
+        mock_settings = _make_mock_settings(database_url=db_url, database_pool_size=20)
+        with patch('terrasafe.infrastructure.database.get_settings', return_value=mock_settings):
             manager = DatabaseManager(database_url=db_url, pool_size=5)
 
             assert manager.database_url == db_url
@@ -65,10 +71,8 @@ class TestDatabaseManager:
 
     def test_initialization_without_url(self):
         """Test initializing DatabaseManager without database URL."""
-        with patch('terrasafe.infrastructure.database.settings') as mock_settings:
-            mock_settings.database_url = None
-            mock_settings.database_pool_size = 10
-
+        mock_settings = _make_mock_settings(database_url=None, database_pool_size=10)
+        with patch('terrasafe.infrastructure.database.get_settings', return_value=mock_settings):
             manager = DatabaseManager()
 
             assert manager.database_url is None
@@ -92,11 +96,10 @@ class TestDatabaseManager:
 
         mock_engine.begin = mock_begin
 
+        mock_settings = _make_mock_settings(debug=False)
         with patch('terrasafe.infrastructure.database.create_async_engine', return_value=mock_engine):
             with patch('terrasafe.infrastructure.database.async_sessionmaker') as mock_sessionmaker:
-                with patch('terrasafe.infrastructure.database.settings') as mock_settings:
-                    mock_settings.debug = False
-
+                with patch('terrasafe.infrastructure.database.get_settings', return_value=mock_settings):
                     await db_manager.connect()
 
                     assert db_manager._engine is not None
@@ -117,10 +120,8 @@ class TestDatabaseManager:
     @pytest.mark.asyncio
     async def test_connect_no_url(self):
         """Test connecting without database URL."""
-        with patch('terrasafe.infrastructure.database.settings') as mock_settings:
-            mock_settings.database_url = None
-            mock_settings.database_pool_size = 10
-
+        mock_settings = _make_mock_settings(database_url=None, database_pool_size=10)
+        with patch('terrasafe.infrastructure.database.get_settings', return_value=mock_settings):
             manager = DatabaseManager()
             await manager.connect()
 
@@ -129,10 +130,9 @@ class TestDatabaseManager:
     @pytest.mark.asyncio
     async def test_connect_failure(self, db_manager):
         """Test connection failure handling."""
+        mock_settings = _make_mock_settings(debug=False)
         with patch('terrasafe.infrastructure.database.create_async_engine', side_effect=Exception("Connection error")):
-            with patch('terrasafe.infrastructure.database.settings') as mock_settings:
-                mock_settings.debug = False
-
+            with patch('terrasafe.infrastructure.database.get_settings', return_value=mock_settings):
                 with pytest.raises(Exception) as exc_info:
                     await db_manager.connect()
 
@@ -262,9 +262,8 @@ class TestDatabaseManager:
         mock_engine.begin = mock_begin
         db_manager._engine = mock_engine
 
-        with patch('terrasafe.infrastructure.database.settings') as mock_settings:
-            mock_settings.is_production.return_value = False
-
+        mock_settings = _make_mock_settings(is_production=False)
+        with patch('terrasafe.infrastructure.database.get_settings', return_value=mock_settings):
             await db_manager.drop_all_tables()
 
             mock_conn.run_sync.assert_called_once()
@@ -275,9 +274,8 @@ class TestDatabaseManager:
         mock_engine = AsyncMock()
         db_manager._engine = mock_engine
 
-        with patch('terrasafe.infrastructure.database.settings') as mock_settings:
-            mock_settings.is_production.return_value = True
-
+        mock_settings = _make_mock_settings(is_production=True)
+        with patch('terrasafe.infrastructure.database.get_settings', return_value=mock_settings):
             with pytest.raises(RuntimeError) as exc_info:
                 await db_manager.drop_all_tables()
 
@@ -344,11 +342,9 @@ class TestGetDbManager:
 
     def test_get_db_manager_singleton(self):
         """Test that get_db_manager returns a singleton instance."""
+        mock_settings = _make_mock_settings(database_url="postgresql://test", database_pool_size=10)
         with patch('terrasafe.infrastructure.database._db_manager', None):
-            with patch('terrasafe.infrastructure.database.settings') as mock_settings:
-                mock_settings.database_url = "postgresql://test"
-                mock_settings.database_pool_size = 10
-
+            with patch('terrasafe.infrastructure.database.get_settings', return_value=mock_settings):
                 manager1 = get_db_manager()
                 manager2 = get_db_manager()
 
@@ -357,11 +353,9 @@ class TestGetDbManager:
 
     def test_get_db_manager_creates_instance(self):
         """Test that get_db_manager creates an instance if none exists."""
+        mock_settings = _make_mock_settings(database_url="postgresql://test", database_pool_size=10)
         with patch('terrasafe.infrastructure.database._db_manager', None):
-            with patch('terrasafe.infrastructure.database.settings') as mock_settings:
-                mock_settings.database_url = "postgresql://test"
-                mock_settings.database_pool_size = 10
-
+            with patch('terrasafe.infrastructure.database.get_settings', return_value=mock_settings):
                 manager = get_db_manager()
 
                 assert manager is not None

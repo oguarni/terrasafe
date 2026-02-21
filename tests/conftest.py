@@ -33,20 +33,23 @@ def reset_rate_limiter():
     Reset the rate limiter state before each test.
     This prevents rate limit errors when running the full test suite.
     """
-    # Import here to avoid circular dependencies
-    from terrasafe.api import app
+    try:
+        # Import here to avoid triggering full API initialization in pure unit tests
+        from terrasafe.api import app
 
-    # Reset rate limiter if it exists
-    if hasattr(app.state, 'limiter'):
-        try:
-            # Clear the in-memory storage for the rate limiter
-            app.state.limiter.reset()
-        except (AttributeError, Exception):
-            # If reset method doesn't exist or fails, try clearing storage directly
+        # Reset rate limiter if it exists
+        if hasattr(app.state, 'limiter'):
             try:
-                if hasattr(app.state.limiter, '_storage'):
-                    app.state.limiter._storage.storage.clear()
+                # Clear the in-memory storage for the rate limiter
+                app.state.limiter.reset()
             except (AttributeError, Exception):
-                pass  # Rate limiter might not be configured
+                # If reset method doesn't exist or fails, try clearing storage directly
+                try:
+                    if hasattr(app.state.limiter, '_storage'):
+                        app.state.limiter._storage.storage.clear()
+                except (AttributeError, Exception):
+                    pass  # Rate limiter might not be configured
+    except Exception:
+        pass  # API may not be available in pure unit test contexts
 
     yield

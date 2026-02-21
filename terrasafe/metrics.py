@@ -11,8 +11,8 @@ import logging
 
 try:
     from prometheus_client import (
-        Counter, Histogram, Gauge, Info, Summary,
-        generate_latest, CONTENT_TYPE_LATEST
+        Counter, Histogram, Gauge, Info,
+        generate_latest
     )
     METRICS_AVAILABLE = True
 except ImportError:

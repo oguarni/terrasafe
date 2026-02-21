@@ -31,21 +31,13 @@ help:
 	@echo "  make clean         - Remove generated files and cache"
 
 # Install dependencies
-install: requirements-dev.txt
+install:
 	@echo "🔧 Setting up environment..."
 	$(PYTHON) -m venv $(VENV)
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements.txt
 	$(PIP) install -r requirements-dev.txt
 	@echo "✅ Installation complete"
-
-# Create requirements-dev.txt if it doesn't exist
-requirements-dev.txt:
-	@echo "pytest==7.4.3" > requirements-dev.txt
-	@echo "coverage==7.3.2" >> requirements-dev.txt
-	@echo "pylint==3.0.3" >> requirements-dev.txt
-	@echo "black==23.12.0" >> requirements-dev.txt
-	@echo "flake8==6.1.0" >> requirements-dev.txt
 
 # Run all tests
 test: install
@@ -95,8 +87,8 @@ format: install
 # Run demo
 demo: install
 	@echo "🚀 Running TerraSafe demo..."
-	@chmod +x run_demo.sh
-	./run_demo.sh
+	@chmod +x scripts/run_demo.sh
+	scripts/run_demo.sh
 
 # Scan specific file
 scan: install
@@ -114,16 +106,6 @@ docker:
 	docker build -t terrasafe:latest .
 	@echo "🚀 Running in Docker..."
 	docker run --rm -v $(PWD)/test_files:/app/test_files terrasafe:latest test_files/vulnerable.tf
-
-# Create Dockerfile if it doesn't exist
-Dockerfile:
-	@echo "FROM python:3.10-slim" > Dockerfile
-	@echo "WORKDIR /app" >> Dockerfile
-	@echo "COPY requirements.txt ." >> Dockerfile
-	@echo "RUN pip install --no-cache-dir -r requirements.txt" >> Dockerfile
-	@echo "COPY terrasafe/ ./terrasafe/" >> Dockerfile
-	@echo "COPY models/ ./models/" >> Dockerfile
-	@echo "ENTRYPOINT [\"python\", \"-m\", \"terrasafe.cli\"]" >> Dockerfile
 
 # Clean up
 clean:

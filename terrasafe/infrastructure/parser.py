@@ -8,7 +8,6 @@ import logging
 from terrasafe.config.settings import get_settings
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
 
 
 class TerraformParseError(Exception):
@@ -50,8 +49,10 @@ class HCLParser:
             max_file_size_bytes: Maximum allowed file size in bytes (from settings if None)
             parse_timeout: Maximum parsing time in seconds (from settings if None)
         """
-        self.max_file_size_bytes = max_file_size_bytes or settings.max_file_size_bytes
-        self.parse_timeout = parse_timeout or settings.scan_timeout_seconds
+        _settings = get_settings()
+        self.max_file_size_bytes = max_file_size_bytes or _settings.max_file_size_bytes
+        self.max_file_size_mb = self.max_file_size_bytes // (1024 * 1024)
+        self.parse_timeout = parse_timeout or _settings.scan_timeout_seconds
         logger.info(f"HCLParser initialized - max file size: {self.max_file_size_bytes} bytes, timeout: {self.parse_timeout}s")
 
     def _validate_path(self, filepath: str) -> Path:
@@ -133,7 +134,7 @@ class HCLParser:
         if file_size > self.max_file_size_bytes:
             raise FileSizeLimitError(
                 f"File size {file_size} bytes exceeds maximum allowed size "
-                f"{self.max_file_size_bytes} bytes ({settings.max_file_size_mb}MB)"
+                f"{self.max_file_size_bytes} bytes ({self.max_file_size_mb}MB)"
             )
 
         if file_size == 0:
@@ -190,7 +191,7 @@ class HCLParser:
             except json.JSONDecodeError as json_error:
                 # Provide context from the file content
                 content_preview = raw_content[:200].strip() if raw_content else "(empty file)"
-                if len(content_preview) == 200:
+                if len(raw_content) > 200:
                     content_preview += "..."
                 error_msg = (
                     f"Invalid HCL/JSON syntax in {filepath}. "

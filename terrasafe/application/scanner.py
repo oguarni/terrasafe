@@ -1,10 +1,10 @@
 """Scanner orchestration - Application layer with optimized caching"""
+import copy
 import time
 import logging
 import numpy as np
 from pathlib import Path
 import hashlib
-from functools import lru_cache
 from typing import Dict, Any, List, Tuple
 
 from ..domain.models import Vulnerability, Severity
@@ -33,7 +33,7 @@ class IntelligentSecurityScanner:
     Orchestrates the scanning process with optimized caching and feature extraction.
 
     Improvements:
-    - LRU cache with size limit (max 100 entries)
+    - Instance-level dict caches with size limit (max 100 entries per instance)
     - Vectorized feature extraction using numpy
     - Better memory management
     """
@@ -47,12 +47,13 @@ class IntelligentSecurityScanner:
         self.parser = parser
         self.rule_analyzer = rule_analyzer
         self.ml_predictor = ml_predictor
+        self._hash_cache: Dict[Tuple[str, float], str] = {}
+        self._scan_cache: Dict[Tuple[str, str, float], Tuple[Dict[str, Any], float]] = {}
 
-    @lru_cache(maxsize=100)
     def _get_file_hash_cached(self, filepath: str, mtime: float) -> str:
         """
-        Generate hash of file content for caching.
-        LRU cached with mtime as part of key to invalidate on file changes.
+        Generate hash of file content with instance-level caching.
+        mtime is part of key to invalidate on file changes.
 
         Args:
             filepath: Path to file
@@ -61,8 +62,13 @@ class IntelligentSecurityScanner:
         Returns:
             SHA-256 hash of file content
         """
-        with open(filepath, 'rb') as f:
-            return hashlib.sha256(f.read()).hexdigest()
+        key = (filepath, mtime)
+        if key not in self._hash_cache:
+            if len(self._hash_cache) >= 100:
+                self._hash_cache.pop(next(iter(self._hash_cache)))
+            with open(filepath, 'rb') as f:
+                self._hash_cache[key] = hashlib.sha256(f.read()).hexdigest()
+        return self._hash_cache[key]
 
     def _get_file_hash(self, filepath: str) -> str:
         """
@@ -84,11 +90,9 @@ class IntelligentSecurityScanner:
                 return hashlib.sha256(f.read()).hexdigest()
 
     @track_metrics
-    @lru_cache(maxsize=100)
-    def _scan_cached(self, filepath: str, file_hash: str, mtime: float) -> Tuple[Dict[str, Any], float]:
+    def _do_scan(self, filepath: str, file_hash: str, mtime: float) -> Tuple[Dict[str, Any], float]:
         """
-        Cached scan implementation.
-        Uses LRU cache with file hash and mtime to invalidate on changes.
+        Core scan implementation with no caching logic.
 
         Args:
             filepath: Path to file
@@ -132,10 +136,8 @@ class IntelligentSecurityScanner:
         """
         Main scanning method with performance metrics and improved error handling.
 
-        Uses LRU cache to avoid re-scanning unchanged files.
+        Uses instance-level dict cache to avoid re-scanning unchanged files.
         """
-        start_time = time.time()
-
         try:
             # Get file metadata for cache validation
             file_stat = Path(filepath).stat()
@@ -144,35 +146,34 @@ class IntelligentSecurityScanner:
 
             # Get file hash for cache key
             file_hash = self._get_file_hash(filepath)
+            cache_key = (filepath, file_hash, mtime)
 
-            # Try cached scan
-            try:
-                result, cached_scan_duration = self._scan_cached(filepath, file_hash, mtime)
-                logger.info(f"Scan completed for {filepath} (cached: {cached_scan_duration}s)")
-
-                # Add performance metrics
+            # Check instance-level cache
+            if cache_key in self._scan_cache:
+                cached_result, cached_duration = self._scan_cache[cache_key]
+                logger.info(f"Scan completed for {filepath} (cached: {cached_duration}s)")
+                result = copy.deepcopy(cached_result)
                 result['performance'] = {
-                    'scan_time_seconds': cached_scan_duration,
+                    'scan_time_seconds': cached_duration,
                     'file_size_kb': file_size_kb,
                     'from_cache': True
                 }
-
                 return result
-            except Exception as cache_error:
-                logger.warning(f"Cache error, performing direct scan: {cache_error}")
-                # Fall through to direct scan
 
-            # Direct scan without cache
-            result, scan_duration = self._scan_cached.__wrapped__(
-                self, filepath, file_hash, mtime
-            )
+            # Cache miss: perform scan directly
+            result, scan_duration = self._do_scan(filepath, file_hash, mtime)
+
+            # Store in cache (capped at 100 entries)
+            if len(self._scan_cache) >= 100:
+                self._scan_cache.pop(next(iter(self._scan_cache)))
+            self._scan_cache[cache_key] = (copy.deepcopy(result), scan_duration)
 
             result['performance'] = {
                 'scan_time_seconds': scan_duration,
                 'file_size_kb': file_size_kb,
                 'from_cache': False
             }
-
+            logger.info(f"Scan completed for {filepath} ({scan_duration}s)")
             return result
         except TerraformParseError as e:
             logger.error(f"Parse error scanning {filepath}: {e}")

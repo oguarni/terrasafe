@@ -28,6 +28,7 @@ class FallbackRateLimiter:
         self.window = timedelta(seconds=window_seconds)
         self.requests: Dict[str, List[datetime]] = defaultdict(list)
         self.lock = Lock()
+        self._check_count: int = 0
         logger.info(
             f"Fallback rate limiter initialized: {max_requests} requests "
             f"per {window_seconds}s window"
@@ -46,7 +47,12 @@ class FallbackRateLimiter:
         with self.lock:
             now = datetime.now(timezone.utc)
 
-            # Clean old requests outside the time window
+            # Periodically clean all stale entries to prevent memory growth
+            self._check_count += 1
+            if self._check_count % 100 == 0:
+                self._cleanup_locked(now)
+
+            # Clean old requests outside the time window for this client
             self.requests[client_ip] = [
                 req_time for req_time in self.requests[client_ip]
                 if now - req_time < self.window
@@ -63,6 +69,16 @@ class FallbackRateLimiter:
             # Record this request
             self.requests[client_ip].append(now)
             return True
+
+    def _cleanup_locked(self, now: datetime) -> None:
+        """Remove all stale entries. Must be called while holding self.lock."""
+        for ip in list(self.requests.keys()):
+            self.requests[ip] = [
+                req_time for req_time in self.requests[ip]
+                if now - req_time < self.window
+            ]
+            if not self.requests[ip]:
+                del self.requests[ip]
 
     def get_remaining(self, client_ip: str) -> int:
         """

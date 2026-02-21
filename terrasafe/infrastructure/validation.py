@@ -1,6 +1,5 @@
 """Input validation for database operations"""
 import re
-from typing import Any
 
 
 def validate_file_hash(file_hash: str) -> str:
