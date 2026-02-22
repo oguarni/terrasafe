@@ -2,6 +2,7 @@
 Prometheus metrics for TerraSafe.
 Provides comprehensive monitoring and observability.
 """
+# pylint: disable=possibly-used-before-assignment
 
 import time
 import functools

@@ -85,7 +85,7 @@ flake8 terrasafe/ --max-line-length=120 --exclude=__pycache__ --ignore=E402,E501
 mypy terrasafe/ --ignore-missing-imports
 
 # Security scan (uses .bandit config — skips B101)
-bandit -r terrasafe/ -c .bandit -f screen
+bandit -r terrasafe/ --ini .bandit -f screen
 
 # Formatting
 black terrasafe/ tests/

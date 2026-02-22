@@ -11,11 +11,11 @@ def format_results_for_display(results: Dict[str, Any]) -> str:
         return f"\n❌ Error scanning file: {results.get('error', 'Unknown error')}"
 
     output = []
-    output.append("\n" + "="*60)
+    output.append("\n" + "=" * 60)
     output.append("🔍 TERRAFORM SECURITY SCAN RESULTS")
-    output.append("="*60)
+    output.append("=" * 60)
     output.append(f"📁 File: {results['file']}")
-    output.append("-"*60)
+    output.append("-" * 60)
 
     score = results['score']
     status, color = _determine_risk_status(score)
@@ -40,7 +40,7 @@ def format_results_for_display(results: Dict[str, Any]) -> str:
     else:
         output.extend(_format_no_issues())
 
-    output.append("\n" + "="*60)
+    output.append("\n" + "=" * 60)
     return "\n".join(output)
 
 

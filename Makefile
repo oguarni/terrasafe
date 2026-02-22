@@ -74,7 +74,7 @@ coverage-html: install
 # Run linting
 lint: install
 	@echo "🔍 Running code quality checks..."
-	$(VENV)/bin/flake8 terrasafe/ --max-line-length=120 --exclude=__pycache__
+	$(VENV)/bin/flake8 terrasafe/ --max-line-length=120 --exclude=__pycache__ --ignore=E402,E501
 	$(VENV)/bin/pylint terrasafe/ --max-line-length=120 || true
 	@echo "✅ Linting complete"
 
@@ -164,7 +164,7 @@ security-deps: install
 security-sast: install
 	@echo "🔍 Running SAST with Bandit..."
 	$(VENV)/bin/pip install bandit
-	$(VENV)/bin/bandit -r terrasafe/ -f screen || true
+	$(VENV)/bin/bandit -r terrasafe/ --ini .bandit -f screen || true
 
 security-all: security-scan
 	@echo "🔒 Running comprehensive security audit..."

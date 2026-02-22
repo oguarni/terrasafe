@@ -93,9 +93,9 @@ class ModelManager:
             # Check model version — skip warning for auto-generated timestamp versions
             saved_version = metadata.get('version')
             configured_version = get_settings().model_version
-            if (saved_version
-                    and saved_version != configured_version
-                    and not _TIMESTAMP_VERSION_RE.match(saved_version)):
+            if (saved_version and
+                    saved_version != configured_version and
+                    not _TIMESTAMP_VERSION_RE.match(saved_version)):
                 logger.warning(
                     f"Model version mismatch: Saved {saved_version} != Configured {configured_version}"
                 )
