@@ -116,7 +116,8 @@ class ModelManager:
         """Load model metadata."""
         if self.metadata_path.exists():
             with open(self.metadata_path, 'r') as f:
-                return json.load(f)
+                result: Dict[str, Any] = json.load(f)
+                return result
         return {}
 
     def _detect_drift(self, metadata: dict) -> bool:

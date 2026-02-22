@@ -196,7 +196,8 @@ class Settings(BaseSettings):
             raise e
         else:
             if 'SecretString' in get_secret_value_response:
-                return json.loads(get_secret_value_response['SecretString'])
+                secret_data: Dict[str, Any] = json.loads(get_secret_value_response['SecretString'])
+                return secret_data
             return {}
 
     @property

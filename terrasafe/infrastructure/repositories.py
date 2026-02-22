@@ -349,7 +349,7 @@ class VulnerabilityRepository:
             .group_by(Vulnerability.category)
         )
 
-        return {row.category: int(row.count) for row in result.all()}
+        return {row.category: int(row.count) for row in result.all()}  # type: ignore[call-overload]
 
 
 class MLModelVersionRepository:

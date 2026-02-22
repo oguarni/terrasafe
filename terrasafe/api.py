@@ -140,10 +140,10 @@ try:
         # Redis connection failed, use fallback
         logger.warning(f"Redis connection failed: {redis_error}. Using fallback rate limiter.")
         RATE_LIMITING_AVAILABLE = False
-        limiter = None
+        limiter = None  # type: ignore[assignment]
 except ImportError:
     RATE_LIMITING_AVAILABLE = False
-    limiter = None
+    limiter = None  # type: ignore[assignment]
     logger.warning("slowapi not installed, using fallback rate limiter")
 
 # Initialize fallback rate limiter (always available)
