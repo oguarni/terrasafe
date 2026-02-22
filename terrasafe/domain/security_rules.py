@@ -16,7 +16,7 @@ class SecurityRuleEngine:
 
     def check_open_security_groups(self, tf_content: Dict) -> List[Vulnerability]:
         """Check for security groups with open access (0.0.0.0/0)"""
-        vulns = []
+        vulns: List[Vulnerability] = []
 
         if 'resource' not in tf_content:
             return vulns
@@ -119,7 +119,7 @@ class SecurityRuleEngine:
 
     def check_encryption(self, tf_content: Dict) -> List[Vulnerability]:
         """Check for unencrypted storage resources"""
-        vulns = []
+        vulns: List[Vulnerability] = []
 
         if 'resource' not in tf_content:
             return vulns
@@ -169,7 +169,7 @@ class SecurityRuleEngine:
 
     def check_public_s3(self, tf_content: Dict) -> List[Vulnerability]:
         """Check for public S3 bucket configurations"""
-        vulns = []
+        vulns: List[Vulnerability] = []
 
         if 'resource' not in tf_content:
             return vulns
@@ -215,7 +215,7 @@ class SecurityRuleEngine:
 
     def check_iam_policies(self, tf_content: Dict) -> List[Vulnerability]:
         """Check for overly permissive IAM policies"""
-        vulns = []
+        vulns: List[Vulnerability] = []
 
         if 'resource' not in tf_content:
             return vulns

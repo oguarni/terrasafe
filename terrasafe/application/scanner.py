@@ -5,7 +5,7 @@ import logging
 import numpy as np
 from pathlib import Path
 import hashlib
-from typing import Dict, Any, List, Tuple
+from typing import Callable, Dict, Any, List, Tuple
 
 from ..domain.models import Vulnerability, Severity
 from ..domain.security_rules import SecurityRuleEngine
@@ -16,7 +16,7 @@ try:
     from terrasafe.metrics import track_metrics
 except ImportError:
     # Metrics module not available (e.g., prometheus_client not installed)
-    def track_metrics(func):
+    def track_metrics(func: Callable[..., Any]) -> Callable[..., Any]:  # type: ignore[misc]
         """Fallback decorator when metrics are not available"""
         return func
 

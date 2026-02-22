@@ -76,6 +76,7 @@ def setup_logging(
         log_file: Optional file path for log output
     """
     # Choose formatter based on format type
+    formatter: logging.Formatter
     if log_format == "json":
         formatter = StructuredFormatter()
     else:
