@@ -96,7 +96,7 @@ class HCLParser:
             except ValueError:
                 # Path is not within CWD, check if it's in /tmp
                 try:
-                    _ = path.relative_to('/tmp')
+                    _ = path.relative_to('/tmp')  # nosec B108
                     is_in_tmp = True
                 except ValueError:
                     pass

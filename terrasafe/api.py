@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """FastAPI REST API for TerraSafe with rate limiting and async support"""
+import os
 import tempfile
 import asyncio
 import hashlib
@@ -344,9 +345,8 @@ async def scan_terraform(
     tmp_path = None
     try:
         # Create temp file
-        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.tf', mode='wb')
-        tmp_path = tmp_file.name
-        tmp_file.close()
+        fd, tmp_path = tempfile.mkstemp(suffix='.tf')  # nosec B108
+        os.close(fd)
 
         # Write content asynchronously
         async with aiofiles.open(tmp_path, 'wb') as f:

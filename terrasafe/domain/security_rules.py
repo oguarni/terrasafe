@@ -79,7 +79,8 @@ class SecurityRuleEngine:
         vulns = []
 
         # Pattern for hardcoded passwords (not variables)
-        password_pattern = r'password\s*=\s*"([^"]+)"'
+        # This is a regex pattern for detection, not a credential
+        password_pattern = r'password\s*=\s*"([^"]+)"'  # nosec B105
         matches = re.finditer(password_pattern, raw_content, re.IGNORECASE)
 
         for match in matches:
@@ -94,11 +95,11 @@ class SecurityRuleEngine:
                     remediation="Use variables or secrets manager for sensitive data"
                 ))
 
-        # Check for API keys and tokens
+        # Check for API keys and tokens (regex patterns for detection, not credentials)
         secret_patterns = [
-            (r'api_key\s*=\s*"([^"]+)"', "API key"),
-            (r'secret_key\s*=\s*"([^"]+)"', "Secret key"),
-            (r'token\s*=\s*"([^"]+)"', "Token")
+            (r'api_key\s*=\s*"([^"]+)"', "API key"),  # nosec B105
+            (r'secret_key\s*=\s*"([^"]+)"', "Secret key"),  # nosec B105
+            (r'token\s*=\s*"([^"]+)"', "Token")  # nosec B105
         ]
 
         for pattern, secret_type in secret_patterns:
