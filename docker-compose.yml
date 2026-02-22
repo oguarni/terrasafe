@@ -70,6 +70,8 @@ services:
       # API Configuration
       - TERRASAFE_API_HOST=0.0.0.0
       - TERRASAFE_API_PORT=8000
+      # API Key Hash (loaded from .env file via env_file directive)
+      - TERRASAFE_API_KEY_HASH=${TERRASAFE_API_KEY_HASH}
 
       # Redis Configuration
       - TERRASAFE_REDIS_URL=redis://redis:6379
