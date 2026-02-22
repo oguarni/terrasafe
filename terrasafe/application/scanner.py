@@ -83,8 +83,8 @@ class IntelligentSecurityScanner:
         try:
             mtime = Path(filepath).stat().st_mtime
             return self._get_file_hash_cached(filepath, mtime)
-        except Exception as e:
-            logger.warning(f"Failed to get file hash for {filepath}: {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.warning("Failed to get file hash for %s: %s", filepath, e)
             # Fallback to direct hash without caching
             with open(filepath, 'rb') as f:
                 return hashlib.sha256(f.read()).hexdigest()
@@ -151,7 +151,7 @@ class IntelligentSecurityScanner:
             # Check instance-level cache
             if cache_key in self._scan_cache:
                 cached_result, cached_duration = self._scan_cache[cache_key]
-                logger.info(f"Scan completed for {filepath} (cached: {cached_duration}s)")
+                logger.info("Scan completed for %s (cached: %ss)", filepath, cached_duration)
                 result = copy.deepcopy(cached_result)
                 result['performance'] = {
                     'scan_time_seconds': cached_duration,
@@ -173,10 +173,10 @@ class IntelligentSecurityScanner:
                 'file_size_kb': file_size_kb,
                 'from_cache': False
             }
-            logger.info(f"Scan completed for {filepath} ({scan_duration}s)")
+            logger.info("Scan completed for %s (%ss)", filepath, scan_duration)
             return result
         except TerraformParseError as e:
-            logger.error(f"Parse error scanning {filepath}: {e}")
+            logger.error("Parse error scanning %s: %s", filepath, e)
             return {
                 'score': -1,
                 'error': f"Parse error: {str(e)}",
@@ -184,7 +184,7 @@ class IntelligentSecurityScanner:
                 'file': filepath
             }
         except FileNotFoundError:
-            logger.error(f"File not found: {filepath}")
+            logger.error("File not found: %s", filepath)
             return {
                 'score': -1,
                 'error': f"File not found: {filepath}. Please verify the file path exists.",
@@ -192,15 +192,15 @@ class IntelligentSecurityScanner:
                 'file': filepath
             }
         except PermissionError as e:
-            logger.error(f"Permission denied accessing {filepath}: {e}")
+            logger.error("Permission denied accessing %s: %s", filepath, e)
             return {
                 'score': -1,
                 'error': f"Permission denied: Cannot access {filepath}. Check file permissions.",
                 'error_type': 'PermissionError',
                 'file': filepath
             }
-        except Exception as e:
-            logger.error(f"Unexpected error scanning {filepath}: {type(e).__name__} - {e}", exc_info=True)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Unexpected error scanning %s: %s - %s", filepath, type(e).__name__, e, exc_info=True)
             return {
                 'score': -1,
                 'error': f"Unexpected {type(e).__name__} error during scan: {str(e)}",
@@ -229,8 +229,8 @@ class IntelligentSecurityScanner:
         # Log if any features were out of bounds
         if not np.array_equal(features, validated):
             logger.warning(
-                f"Features out of bounds detected - Original: {features[0]}, "
-                f"Validated: {validated[0]}"
+                "Features out of bounds detected - Original: %s, Validated: %s",
+                features[0], validated[0]
             )
 
         return validated

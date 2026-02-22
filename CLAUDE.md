@@ -79,7 +79,7 @@ pytest tests/test_application_scanner.py -v
 
 ```bash
 # Linting (flake8) — exclude E402 (dotenv load order) and E501 (marginal line length)
-flake8 terrasafe/ --max-line-length=120 --exclude=__pycache__ --ignore=E402,E501
+flake8 terrasafe/ --max-line-length=120 --exclude=__pycache__ --ignore=E402,E501,W503,W504
 
 # Type checking
 mypy terrasafe/ --ignore-missing-imports
@@ -104,6 +104,31 @@ black terrasafe/ tests/
 - **Rate Limiting**: Fallback in-memory rate limiter if Redis unavailable
 - **API Keys**: Hashed with bcrypt, no plaintext storage
 - **Input Validation**: SHA-256 hashes, UUIDs, ML feature bounds all validated
+
+## Domain Guides
+
+Subdirectory CLAUDE.md files provide focused instructions per architectural layer:
+
+| Layer | File | Topics |
+|---|---|---|
+| Domain | `terrasafe/domain/CLAUDE.md` | Security rules, severity model, rule inventory, coverage gaps |
+| Application | `terrasafe/application/CLAUDE.md` | Scan pipeline, scoring, caching, feature extraction |
+| Infrastructure | `terrasafe/infrastructure/CLAUDE.md` | DB, cache, parser, repositories, rate limiter |
+| ML System | `terrasafe/infrastructure/CLAUDE_ML.md` | IsolationForest, training, drift detection, model files |
+| Tests | `tests/CLAUDE.md` | Fixtures, markers, mocking patterns, coverage gaps |
+
+## Known Issues
+
+Findings from a comprehensive diagnostic of the codebase:
+
+- `SecureCache` (`infrastructure/cache.py`) is **completely unused** — scanner uses instance dicts
+- `FallbackRateLimiter.cleanup_old_entries()` is **never called** from any code
+- `ScanHistory` ORM model is **defined but never used** anywhere
+- `settings.model_path` field is **never read** — `ModelManager` hardcodes the path
+- `check_iam_policies()` in `SecurityRuleEngine` has **zero test coverage**
+- `config/logging.py` has **zero test coverage**
+- No `INFO` severity level in domain `Severity` enum despite references elsewhere
+- `update_model_with_feedback()` has documented catastrophic forgetting risk
 
 ## Contributing
 

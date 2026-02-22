@@ -55,7 +55,7 @@ class SecureCache:
         self.default_ttl = default_ttl
         self.key_prefix = key_prefix
         self._redis: Optional[redis.Redis] = None
-        logger.info(f"Initializing SecureCache with prefix '{key_prefix}'")
+        logger.info("Initializing SecureCache with prefix '%s'", key_prefix)
 
     async def connect(self) -> None:
         """Establish connection to Redis."""
@@ -71,7 +71,7 @@ class SecureCache:
                 await self._redis.ping()
                 logger.info("Successfully connected to Redis")
             except RedisConnectionError as e:
-                logger.error(f"Failed to connect to Redis: {e}")
+                logger.error("Failed to connect to Redis: %s", e)
                 raise CacheError(f"Redis connection failed: {e}") from e
 
     async def disconnect(self) -> None:
@@ -112,7 +112,7 @@ class SecureCache:
         try:
             return json.dumps(value, default=str)
         except (TypeError, ValueError) as e:
-            logger.error(f"Failed to serialize value: {e}")
+            logger.error("Failed to serialize value: %s", e)
             raise CacheError(f"Serialization failed: {e}") from e
 
     def _deserialize(self, value: str) -> Any:
@@ -131,7 +131,7 @@ class SecureCache:
         try:
             return json.loads(value)
         except (TypeError, ValueError) as e:
-            logger.error(f"Failed to deserialize value: {e}")
+            logger.error("Failed to deserialize value: %s", e)
             raise CacheError(f"Deserialization failed: {e}") from e
 
     async def get(self, key: str) -> Optional[Any]:
@@ -157,21 +157,21 @@ class SecureCache:
                 raise CacheError("Redis connection not established")
             value = await self._redis.get(hashed_key)
             if value is None:
-                logger.debug(f"Cache miss for key: {key}")
+                logger.debug("Cache miss for key: %s", key)
                 return None
 
-            logger.debug(f"Cache hit for key: {key}")
+            logger.debug("Cache hit for key: %s", key)
             return self._deserialize(value)
 
         except RedisError as e:
-            logger.error(f"Redis error during get operation: {e}")
+            logger.error("Redis error during get operation: %s", e)
             # Return None on error to allow fallback to original computation
             return None
         except CacheError:
             # Re-raise cache errors
             raise
-        except Exception as e:
-            logger.error(f"Unexpected error during cache get: {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Unexpected error during cache get: %s", e)
             return None
 
     async def set(
@@ -212,17 +212,17 @@ class SecureCache:
                 raise CacheError("Redis connection not established")
             serialized_value = self._serialize(value)
             await self._redis.setex(hashed_key, ttl_seconds, serialized_value)
-            logger.debug(f"Cached value for key: {key} (TTL: {ttl_seconds}s)")
+            logger.debug("Cached value for key: %s (TTL: %ss)", key, ttl_seconds)
             return True
 
         except RedisError as e:
-            logger.error(f"Redis error during set operation: {e}")
+            logger.error("Redis error during set operation: %s", e)
             return False
         except CacheError:
             # Re-raise cache errors
             raise
-        except Exception as e:
-            logger.error(f"Unexpected error during cache set: {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Unexpected error during cache set: %s", e)
             return False
 
     async def delete(self, key: str) -> bool:
@@ -245,15 +245,15 @@ class SecureCache:
                 raise CacheError("Redis connection not established")
             result = await self._redis.delete(hashed_key)
             if result > 0:
-                logger.debug(f"Deleted cache key: {key}")
+                logger.debug("Deleted cache key: %s", key)
                 return True
             return False
 
         except RedisError as e:
-            logger.error(f"Redis error during delete operation: {e}")
+            logger.error("Redis error during delete operation: %s", e)
             return False
-        except Exception as e:
-            logger.error(f"Unexpected error during cache delete: {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Unexpected error during cache delete: %s", e)
             return False
 
     async def exists(self, key: str) -> bool:
@@ -278,10 +278,10 @@ class SecureCache:
             return result > 0
 
         except RedisError as e:
-            logger.error(f"Redis error during exists operation: {e}")
+            logger.error("Redis error during exists operation: %s", e)
             return False
-        except Exception as e:
-            logger.error(f"Unexpected error during cache exists: {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Unexpected error during cache exists: %s", e)
             return False
 
     async def clear(self, pattern: Optional[str] = None) -> int:
@@ -313,14 +313,14 @@ class SecureCache:
                 await self._redis.delete(key)
                 deleted += 1
 
-            logger.info(f"Cleared {deleted} cache entries matching pattern: {full_pattern}")
+            logger.info("Cleared %s cache entries matching pattern: %s", deleted, full_pattern)
             return deleted
 
         except RedisError as e:
-            logger.error(f"Redis error during clear operation: {e}")
+            logger.error("Redis error during clear operation: %s", e)
             return 0
-        except Exception as e:
-            logger.error(f"Unexpected error during cache clear: {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Unexpected error during cache clear: %s", e)
             return 0
 
     async def get_ttl(self, key: str) -> Optional[int]:
@@ -348,10 +348,10 @@ class SecureCache:
             return ttl
 
         except RedisError as e:
-            logger.error(f"Redis error during ttl operation: {e}")
+            logger.error("Redis error during ttl operation: %s", e)
             return None
-        except Exception as e:
-            logger.error(f"Unexpected error during get_ttl: {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Unexpected error during get_ttl: %s", e)
             return None
 
     async def increment(self, key: str, amount: int = 1) -> Optional[int]:
@@ -377,10 +377,10 @@ class SecureCache:
             return result
 
         except RedisError as e:
-            logger.error(f"Redis error during increment operation: {e}")
+            logger.error("Redis error during increment operation: %s", e)
             return None
-        except Exception as e:
-            logger.error(f"Unexpected error during increment: {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Unexpected error during increment: %s", e)
             return None
 
     async def __aenter__(self):

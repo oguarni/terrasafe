@@ -49,7 +49,7 @@ class DatabaseManager:
         self._session_factory: Optional[async_sessionmaker] = None
 
         if self.database_url:
-            logger.info(f"DatabaseManager initialized with pool size: {self.pool_size}")
+            logger.info("DatabaseManager initialized with pool size: %s", self.pool_size)
         else:
             logger.warning("No database URL configured. Database features will be disabled.")
 
@@ -93,8 +93,8 @@ class DatabaseManager:
 
             logger.info("Database connection established successfully")
 
-        except Exception as e:
-            logger.error(f"Failed to connect to database: {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Failed to connect to database: %s", e)
             raise
 
     async def disconnect(self) -> None:
@@ -130,9 +130,9 @@ class DatabaseManager:
             try:
                 yield session
                 await session.commit()
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 await session.rollback()
-                logger.error(f"Database session error: {e}")
+                logger.error("Database session error: %s", e)
                 raise
             finally:
                 await session.close()
@@ -187,8 +187,8 @@ class DatabaseManager:
             async with self._engine.begin() as conn:
                 await conn.execute(text("SELECT 1"))
             return True
-        except Exception as e:
-            logger.error(f"Database health check failed: {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Database health check failed: %s", e)
             return False
 
 

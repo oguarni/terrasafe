@@ -34,7 +34,7 @@ help:
 install:
 	@echo "🔧 Setting up environment..."
 	$(PYTHON) -m venv $(VENV)
-	$(PIP) install --upgrade pip
+	$(PIP) install --upgrade pip "setuptools>=70.0.0"
 	$(PIP) install -r requirements.txt
 	$(PIP) install -r requirements-dev.txt
 	@echo "✅ Installation complete"
@@ -74,8 +74,8 @@ coverage-html: install
 # Run linting
 lint: install
 	@echo "🔍 Running code quality checks..."
-	$(VENV)/bin/flake8 terrasafe/ --max-line-length=120 --exclude=__pycache__ --ignore=E402,E501
-	$(VENV)/bin/pylint terrasafe/ --max-line-length=120 || true
+	$(VENV)/bin/flake8 terrasafe/ --max-line-length=120 --exclude=__pycache__ --ignore=E226,E402,E501,W503,W504
+	$(VENV)/bin/pylint terrasafe/ --max-line-length=120 --disable=E1101,E1102 --fail-under=8.5
 	@echo "✅ Linting complete"
 
 # Format code
@@ -159,12 +159,12 @@ security-scan: install
 security-deps: install
 	@echo "🔍 Checking for vulnerable dependencies..."
 	$(VENV)/bin/pip install safety
-	$(VENV)/bin/safety check || true
+	$(VENV)/bin/safety check
 
 security-sast: install
 	@echo "🔍 Running SAST with Bandit..."
 	$(VENV)/bin/pip install bandit
-	$(VENV)/bin/bandit -r terrasafe/ --ini .bandit -f screen || true
+	$(VENV)/bin/bandit -r terrasafe/ --ini .bandit -f screen
 
 security-all: security-scan
 	@echo "🔒 Running comprehensive security audit..."

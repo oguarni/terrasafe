@@ -192,7 +192,7 @@ class Settings(BaseSettings):
                 SecretId=secret_name
             )
         except ClientError as e:
-            logger.error(f"Unable to fetch secret {secret_name}: {e}")
+            logger.error("Unable to fetch secret %s: %s", secret_name, e)
             raise e
         else:
             if 'SecretString' in get_secret_value_response:
@@ -213,8 +213,8 @@ class Settings(BaseSettings):
                     port = secret.get('port', 5432)
                     dbname = secret.get('dbname', 'terrasafe')
                     return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{dbname}"
-            except Exception as e:
-                logger.warning(f"Failed to resolve database credentials from secrets: {e}")
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                logger.warning("Failed to resolve database credentials from secrets: %s", e)
 
         return self.database_url or ""
 

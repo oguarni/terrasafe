@@ -54,11 +54,11 @@ def main():
 
     # Persist individual scan result
     try:
-        with open(json_output, 'w') as f:
+        with open(json_output, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2, default=str)
         print(f"\n📄 Scan results saved to {json_output}")
-    except Exception as e:
-        logger.error(f"Failed writing scan output {json_output}: {e}")
+    except (OSError, TypeError, ValueError) as e:
+        logger.error("Failed writing scan output %s: %s", json_output, e)
 
     # Append to consolidated history with rotation
     history_path = Path("scan_history.json")
@@ -69,7 +69,7 @@ def main():
 
     try:
         if history_path.exists():
-            with open(history_path, 'r') as hf:
+            with open(history_path, 'r', encoding='utf-8') as hf:
                 history = json.load(hf)
                 if not isinstance(history, dict) or 'scans' not in history:
                     history = {"scans": []}
@@ -82,13 +82,13 @@ def main():
         # Keep only last MAX_HISTORY_SIZE scans
         if len(history['scans']) > MAX_HISTORY_SIZE:
             history['scans'] = history['scans'][-MAX_HISTORY_SIZE:]
-            logger.info(f"Rotated scan history to keep last {MAX_HISTORY_SIZE} entries")
+            logger.info("Rotated scan history to keep last %s entries", MAX_HISTORY_SIZE)
 
-        with open(history_path, 'w') as hf:
+        with open(history_path, 'w', encoding='utf-8') as hf:
             json.dump(history, hf, indent=2, default=str)
         print(f"📊 History updated in {history_path}")
-    except Exception as e:
-        logger.error(f"Failed updating history file: {e}")
+    except (OSError, json.JSONDecodeError, TypeError, ValueError) as e:
+        logger.error("Failed updating history file: %s", e)
 
     # Severity-based exit codes (Task 3)
     if results['score'] == -1:

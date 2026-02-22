@@ -73,8 +73,8 @@ def verify_api_key_hash(api_key: str, hashed_key: str) -> bool:
     """
     try:
         return bcrypt.checkpw(api_key.encode('utf-8'), hashed_key.encode('utf-8'))
-    except Exception as e:
-        logger.error(f"Error verifying API key: {e}")
+    except (ValueError, TypeError) as e:
+        logger.error("Error verifying API key: %s", e)
         return False
 
 
@@ -137,10 +137,13 @@ try:
             default_limits=[f"{settings.rate_limit_requests}/{settings.rate_limit_window_seconds}seconds"]
         )
         RATE_LIMITING_AVAILABLE = True
-        logger.info(f"Rate limiting enabled: {settings.rate_limit_requests} requests per {settings.rate_limit_window_seconds}s")
-    except Exception as redis_error:
+        logger.info(
+            "Rate limiting enabled: %s requests per %ss",
+            settings.rate_limit_requests, settings.rate_limit_window_seconds
+        )
+    except (ConnectionError, OSError) as redis_error:
         # Redis connection failed, use fallback
-        logger.warning(f"Redis connection failed: {redis_error}. Using fallback rate limiter.")
+        logger.warning("Redis connection failed: %s. Using fallback rate limiter.", redis_error)
         RATE_LIMITING_AVAILABLE = False
         limiter = None  # type: ignore[assignment]
 except ImportError:
@@ -208,8 +211,8 @@ async def lifespan(app: FastAPI):
             logger.info("Database connection established")
         else:
             logger.warning("No database URL configured - database features disabled")
-    except Exception as e:
-        logger.error(f"Failed to connect to database: {e}")
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error("Failed to connect to database: %s", e)
         # Don't fail startup if database is unavailable
         logger.warning("Continuing without database persistence")
 
@@ -219,8 +222,8 @@ async def lifespan(app: FastAPI):
     try:
         await db_manager.disconnect()
         logger.info("Database connection closed")
-    except Exception as e:
-        logger.error(f"Error closing database connection: {e}")
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error("Error closing database connection: %s", e)
 
 
 app = FastAPI(
@@ -324,7 +327,7 @@ async def scan_terraform(
 
     # Validate file extension
     if not file.filename or not file.filename.endswith(('.tf', '.tf.json')):
-        logger.warning(f"Invalid file extension: {sanitize_filename(file.filename or '')}")
+        logger.warning("Invalid file extension: %s", sanitize_filename(file.filename or ''))
         raise HTTPException(
             status_code=400,
             detail="File must be a Terraform file (.tf or .tf.json)"
@@ -333,7 +336,7 @@ async def scan_terraform(
     # Validate file size using settings
     content = await file.read()
     if len(content) > settings.max_file_size_bytes:
-        logger.warning(f"File too large: {len(content)} bytes (max: {settings.max_file_size_bytes})")
+        logger.warning("File too large: %s bytes (max: %s)", len(content), settings.max_file_size_bytes)
         raise HTTPException(
             status_code=413,
             detail=f"File too large. Maximum size is {settings.max_file_size_mb}MB"
@@ -341,7 +344,7 @@ async def scan_terraform(
 
     # Validate file content is not empty
     if len(content) == 0:
-        logger.warning(f"Empty file uploaded: {sanitize_filename(file.filename or '')}")
+        logger.warning("Empty file uploaded: %s", sanitize_filename(file.filename or ''))
         raise HTTPException(
             status_code=400,
             detail="File is empty"
@@ -366,20 +369,29 @@ async def scan_terraform(
                 timeout=settings.scan_timeout_seconds
             )
         except asyncio.TimeoutError:
-            logger.error(f"Scan timeout for file '{sanitize_filename(file.filename or '')}' after {settings.scan_timeout_seconds}s")
+            logger.error(
+                "Scan timeout for file '%s' after %ss",
+                sanitize_filename(file.filename or ''), settings.scan_timeout_seconds
+            )
             raise HTTPException(
                 status_code=504,
                 detail=f"Scan timeout after {settings.scan_timeout_seconds} seconds"
             )
 
         if results['score'] == -1:
-            logger.error(f"Scan failed for file '{sanitize_filename(file.filename or '')}': {results.get('error')}")
+            logger.error(
+                "Scan failed for file '%s': %s",
+                sanitize_filename(file.filename or ''), results.get('error')
+            )
             raise HTTPException(
                 status_code=422,
                 detail=results.get('error', 'Terraform scan failed')
             )
 
-        logger.info(f"Successfully scanned file '{sanitize_filename(file.filename or '')}' - Score: {results['score']}/100")
+        logger.info(
+            "Successfully scanned file '%s' - Score: %s/100",
+            sanitize_filename(file.filename or ''), results['score']
+        )
 
         # Save scan results to database if available
         if db_manager.is_connected:
@@ -410,17 +422,17 @@ async def scan_terraform(
                         correlation_id=correlation_id_value,
                         environment=settings.environment
                     )
-                    logger.debug(f"Scan results saved to database for file '{file.filename}'")
-            except Exception as db_error:
+                    logger.debug("Scan results saved to database for file '%s'", file.filename)
+            except Exception as db_error:  # pylint: disable=broad-exception-caught
                 # Log but don't fail the request if database save fails
-                logger.error(f"Failed to save scan to database: {db_error}", exc_info=True)
+                logger.error("Failed to save scan to database: %s", db_error, exc_info=True)
 
         return JSONResponse(content=results, status_code=200)
 
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error scanning file '{file.filename}': {e}", exc_info=True)
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error("Unexpected error scanning file '%s': %s", file.filename, e, exc_info=True)
         raise HTTPException(
             status_code=500,
             detail="Internal server error during scan"
@@ -430,8 +442,8 @@ async def scan_terraform(
         if tmp_path:
             try:
                 await aiofiles.os.remove(tmp_path)
-            except Exception as e:
-                logger.warning(f"Failed to cleanup temp file {tmp_path}: {e}")
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                logger.warning("Failed to cleanup temp file %s: %s", tmp_path, e)
 
 
 @app.get("/metrics")
@@ -490,9 +502,9 @@ def main():
     - Reverse proxy (nginx/traefik)
     - HTTPS/TLS termination
     """
-    logger.info(f"Starting TerraSafe API server on {settings.api_host}:{settings.api_port}")
-    logger.info(f"Environment: {settings.environment}")
-    logger.info(f"Debug mode: {settings.debug}")
+    logger.info("Starting TerraSafe API server on %s:%s", settings.api_host, settings.api_port)
+    logger.info("Environment: %s", settings.environment)
+    logger.info("Debug mode: %s", settings.debug)
 
     uvicorn.run(
         app,

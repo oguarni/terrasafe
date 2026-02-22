@@ -138,7 +138,7 @@ class TestModelManager:
         assert updated_metadata['total_samples'] == 4  # 2 + 2
         assert updated_metadata['feedback_samples_added'] == 2
 
-    @patch('sklearn.ensemble.IsolationForest.fit', side_effect=Exception("Fit error"))
+    @patch('sklearn.ensemble.IsolationForest.fit', side_effect=ValueError("Fit error"))
     def test_update_model_with_feedback_error(self, mock_fit, tmp_path):
         """Test update_model_with_feedback handles errors"""
         manager = ModelManager(str(tmp_path / "models"))

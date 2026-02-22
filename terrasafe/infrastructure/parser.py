@@ -53,7 +53,10 @@ class HCLParser:
         self.max_file_size_bytes = max_file_size_bytes or _settings.max_file_size_bytes
         self.max_file_size_mb = self.max_file_size_bytes // (1024 * 1024)
         self.parse_timeout = parse_timeout or _settings.scan_timeout_seconds
-        logger.info(f"HCLParser initialized - max file size: {self.max_file_size_bytes} bytes, timeout: {self.parse_timeout}s")
+        logger.info(
+            "HCLParser initialized - max file size: %s bytes, timeout: %ss",
+            self.max_file_size_bytes, self.parse_timeout
+        )
 
     def _validate_path(self, filepath: str) -> Path:
         """
@@ -128,7 +131,7 @@ class HCLParser:
         except (OSError, FileNotFoundError) as e:
             # If stat fails, the file might be mocked in tests or truly missing
             # Let the subsequent open() call handle it
-            logger.debug(f"Could not stat file {path}: {e}")
+            logger.debug("Could not stat file %s: %s", path, e)
             return
 
         if file_size > self.max_file_size_bytes:
@@ -140,7 +143,7 @@ class HCLParser:
         if file_size == 0:
             raise TerraformParseError(f"File is empty: {path}")
 
-        logger.debug(f"File size validation passed: {file_size} bytes")
+        logger.debug("File size validation passed: %s bytes", file_size)
 
     def parse(self, filepath: str) -> Tuple[Dict[str, Any], str]:
         """
@@ -179,14 +182,14 @@ class HCLParser:
         # Note: Timeout is handled at the API level via asyncio.wait_for
         try:
             tf_content = hcl2.loads(raw_content)
-            logger.debug(f"Successfully parsed HCL file: {filepath}")
+            logger.debug("Successfully parsed HCL file: %s", filepath)
             return tf_content, raw_content
-        except Exception as hcl_error:
-            logger.debug(f"HCL2 parse failed: {hcl_error}")
+        except Exception as hcl_error:  # pylint: disable=broad-exception-caught
+            logger.debug("HCL2 parse failed: %s", hcl_error)
             # Fallback to JSON parsing for .tf.json files
             try:
                 tf_content = json.loads(raw_content)
-                logger.debug(f"Successfully parsed JSON file: {filepath}")
+                logger.debug("Successfully parsed JSON file: %s", filepath)
                 return tf_content, raw_content
             except json.JSONDecodeError as json_error:
                 # Provide context from the file content

@@ -30,8 +30,8 @@ class FallbackRateLimiter:
         self.lock = Lock()
         self._check_count: int = 0
         logger.info(
-            f"Fallback rate limiter initialized: {max_requests} requests "
-            f"per {window_seconds}s window"
+            "Fallback rate limiter initialized: %s requests per %ss window",
+            max_requests, window_seconds
         )
 
     def check_rate_limit(self, client_ip: str) -> bool:
@@ -61,8 +61,8 @@ class FallbackRateLimiter:
             # Check if limit exceeded
             if len(self.requests[client_ip]) >= self.max_requests:
                 logger.warning(
-                    f"Rate limit exceeded for {client_ip}: "
-                    f"{len(self.requests[client_ip])} requests in window"
+                    "Rate limit exceeded for %s: %s requests in window",
+                    client_ip, len(self.requests[client_ip])
                 )
                 return False
 
@@ -111,7 +111,7 @@ class FallbackRateLimiter:
         with self.lock:
             if client_ip:
                 self.requests.pop(client_ip, None)
-                logger.info(f"Rate limit reset for {client_ip}")
+                logger.info("Rate limit reset for %s", client_ip)
             else:
                 self.requests.clear()
                 logger.info("Rate limit reset for all clients")
@@ -138,4 +138,4 @@ class FallbackRateLimiter:
                     cleaned += 1
 
             if cleaned > 0:
-                logger.debug(f"Cleaned {cleaned} old rate limit entries")
+                logger.debug("Cleaned %s old rate limit entries", cleaned)

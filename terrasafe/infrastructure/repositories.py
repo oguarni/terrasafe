@@ -124,7 +124,7 @@ class ScanRepository:
             self.session.add(db_vuln)
 
         await self.session.flush()
-        logger.info(f"Created scan record: {scan.id}")
+        logger.info("Created scan record: %s", scan.id)
         return scan
 
     async def get_by_id(self, scan_id: str) -> Optional[Scan]:
@@ -277,7 +277,7 @@ class ScanRepository:
         for scan in scans_to_delete:
             await self.session.delete(scan)
 
-        logger.info(f"Deleted {count} old scans (older than {days} days)")
+        logger.info("Deleted %s old scans (older than %s days)", count, days)
         return count
 
 
@@ -411,7 +411,7 @@ class MLModelVersionRepository:
         self.session.add(model)
         await self.session.flush()
 
-        logger.info(f"Created ML model version: {version}")
+        logger.info("Created ML model version: %s", version)
         return model
 
     async def get_active_version(self) -> Optional[MLModelVersion]:
@@ -456,7 +456,7 @@ class MLModelVersionRepository:
 
         await self.session.flush()
 
-        logger.info(f"Activated ML model version: {version}")
+        logger.info("Activated ML model version: %s", version)
         return model
 
     async def get_all_versions(self) -> List[MLModelVersion]:

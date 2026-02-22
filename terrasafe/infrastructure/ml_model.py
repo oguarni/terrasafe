@@ -61,7 +61,7 @@ class ModelManager:
             # Save current model
             joblib.dump(model, self.model_path)
             joblib.dump(scaler, self.scaler_path)
-            with open(self.metadata_path, 'w') as f:
+            with open(self.metadata_path, 'w', encoding='utf-8') as f:
                 json.dump(metadata, f, indent=2)
 
             # Save versioned backup for rollback capability
@@ -69,16 +69,16 @@ class ModelManager:
             version_dir.mkdir(exist_ok=True)
             joblib.dump(model, version_dir / "model.pkl")
             joblib.dump(scaler, version_dir / "scaler.pkl")
-            with open(version_dir / "metadata.json", 'w') as f:
+            with open(version_dir / "metadata.json", 'w', encoding='utf-8') as f:
                 json.dump(metadata, f, indent=2)
 
             # Update current version file
-            with open(self.current_version_file, 'w') as f:
+            with open(self.current_version_file, 'w', encoding='utf-8') as f:
                 f.write(version)
 
-            logger.info(f"Model version {version} saved to {self.model_dir}")
-        except Exception as e:
-            logger.error(f"Error saving model: {e}")
+            logger.info("Model version %s saved to %s", version, self.model_dir)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Error saving model: %s", e)
             raise
 
     def load_model(self) -> Tuple[IsolationForest, StandardScaler]:
@@ -93,11 +93,12 @@ class ModelManager:
             # Check model version — skip warning for auto-generated timestamp versions
             saved_version = metadata.get('version')
             configured_version = get_settings().model_version
-            if (saved_version and
-                    saved_version != configured_version and
-                    not _TIMESTAMP_VERSION_RE.match(saved_version)):
+            if (saved_version
+                    and saved_version != configured_version
+                    and not _TIMESTAMP_VERSION_RE.match(saved_version)):
                 logger.warning(
-                    f"Model version mismatch: Saved {saved_version} != Configured {configured_version}"
+                    "Model version mismatch: Saved %s != Configured %s",
+                    saved_version, configured_version
                 )
 
             # Check for drift
@@ -109,13 +110,13 @@ class ModelManager:
             scaler = joblib.load(self.scaler_path)  # nosec B301
             logger.info("Model loaded successfully")
             return model, scaler
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             raise ModelNotTrainedError(f"Error loading model: {e}") from e
 
     def _load_metadata(self) -> Dict[str, Any]:
         """Load model metadata."""
         if self.metadata_path.exists():
-            with open(self.metadata_path, 'r') as f:
+            with open(self.metadata_path, 'r', encoding='utf-8') as f:
                 result: Dict[str, Any] = json.load(f)
                 return result
         return {}
@@ -139,10 +140,10 @@ class ModelManager:
 
                 # If model is older than 30 days, consider it drifted/stale
                 if age_days > 30:
-                    logger.warning(f"Model is {age_days} days old")
+                    logger.warning("Model is %s days old", age_days)
                     return True
-            except Exception as e:
-                logger.warning(f"Failed to parse model timestamp: {e}")
+            except (ValueError, TypeError) as e:
+                logger.warning("Failed to parse model timestamp: %s", e)
 
         # Future: Implement statistical drift detection (KL divergence, etc.)
         # comparing stored training_stats with recent inference stats
@@ -162,11 +163,11 @@ class ModelManager:
         """
         try:
             if self.current_version_file.exists():
-                with open(self.current_version_file, 'r') as f:
+                with open(self.current_version_file, 'r', encoding='utf-8') as f:
                     return f.read().strip()
             return None
-        except Exception as e:
-            logger.error(f"Error reading current version: {e}")
+        except OSError as e:
+            logger.error("Error reading current version: %s", e)
             return None
 
     def list_versions(self) -> list[str]:
@@ -183,8 +184,8 @@ class ModelManager:
                     if version_dir.is_dir() and (version_dir / "model.pkl").exists():
                         versions.append(version_dir.name)
             return sorted(versions, reverse=True)
-        except Exception as e:
-            logger.error(f"Error listing versions: {e}")
+        except OSError as e:
+            logger.error("Error listing versions: %s", e)
             return []
 
     def rollback_to_version(self, version: str) -> Tuple[IsolationForest, StandardScaler]:
@@ -219,23 +220,23 @@ class ModelManager:
             # Load metadata if available
             metadata = {}
             if version_metadata_path.exists():
-                with open(version_metadata_path, 'r') as f:
+                with open(version_metadata_path, 'r', encoding='utf-8') as f:
                     metadata = json.load(f)
 
             # Copy versioned files to current
             joblib.dump(model, self.model_path)
             joblib.dump(scaler, self.scaler_path)
-            with open(self.metadata_path, 'w') as f:
+            with open(self.metadata_path, 'w', encoding='utf-8') as f:
                 json.dump(metadata, f, indent=2)
 
             # Update current version
-            with open(self.current_version_file, 'w') as f:
+            with open(self.current_version_file, 'w', encoding='utf-8') as f:
                 f.write(version)
 
-            logger.info(f"Successfully rolled back to version {version}")
+            logger.info("Successfully rolled back to version %s", version)
             return model, scaler
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             raise ModelNotTrainedError(f"Error rolling back to version {version}: {e}") from e
 
     def update_model_with_feedback(self, model: IsolationForest, scaler: StandardScaler,
@@ -253,7 +254,7 @@ class ModelManager:
 
             # Load existing training data if metadata exists
             if self.metadata_path.exists():
-                with open(self.metadata_path, 'r') as f:
+                with open(self.metadata_path, 'r', encoding='utf-8') as f:
                     old_metadata = json.load(f)
                     old_samples = old_metadata.get('total_samples', 0)
                     new_total = old_samples + len(new_data)
@@ -269,9 +270,9 @@ class ModelManager:
 
             # Save updated model
             self.save_model(model, scaler, metadata)
-            logger.info(f"Model updated with {len(new_data)} new samples")
-        except Exception as e:
-            logger.error(f"Error updating model: {e}")
+            logger.info("Model updated with %s new samples", len(new_data))
+        except (ValueError, OSError) as e:
+            logger.error("Error updating model: %s", e)
 
 
 class MLPredictor:
@@ -315,10 +316,10 @@ class MLPredictor:
             else:
                 confidence = "LOW"
 
-            logger.debug(f"ML Score: {risk_score:.1f}, Confidence: {confidence}, Anomaly: {anomaly_score:.3f}")
+            logger.debug("ML Score: %.1f, Confidence: %s, Anomaly: %.3f", risk_score, confidence, anomaly_score)
             return risk_score, confidence
-        except Exception as e:
-            logger.error(f"Error in ML scoring: {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Error in ML scoring: %s", e)
             return 50.0, "LOW"  # Return neutral score on error
 
     def _train_baseline_model(self):
@@ -420,4 +421,4 @@ class MLPredictor:
 
         # Save model with metadata
         self.model_manager.save_model(self.model, self.scaler, training_stats)
-        logger.info(f"Enhanced ML model trained successfully with {len(augmented_data)} samples")
+        logger.info("Enhanced ML model trained successfully with %s samples", len(augmented_data))
