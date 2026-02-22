@@ -1,382 +1,513 @@
-# TerraSafe - Intelligent Terraform Security Scanner
 <div align="center">
-  <img src="screenshots/terrasafe_icon.png" alt="TerraSafe Logo" width="300">
+  <img src="screenshots/terrasafe_icon.png" alt="TerraSafe Logo" width="200">
+
+  # TerraSafe
+
+  **Intelligent Terraform Security Scanner — Rules + Machine Learning**
+
+  [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+  [![Tests 272 Passed](https://img.shields.io/badge/tests-272%20passed-2ea44f)](tests/)
+  [![Pylint 9.24/10](https://img.shields.io/badge/pylint-9.24%2F10-2ea44f)](https://pylint.org/)
+  [![SAST Clean](https://img.shields.io/badge/SAST-0%20issues-2ea44f)](https://bandit.readthedocs.io/)
+  [![License CC BY-NC-SA 4.0](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey)](LICENSE)
+  [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+
+  <br>
+
+  An AI-powered security scanner for Terraform Infrastructure as Code (IaC) that combines **rule-based detection** with **Isolation Forest anomaly detection** to identify misconfigurations, hardcoded secrets, and infrastructure risks.
+
 </div>
-> 🚧 **Work in Progress - TCC Development Phase** 🚧
 
-An AI-powered security scanner for Terraform Infrastructure as Code (IaC) files that combines rule-based detection with machine learning anomaly detection.
+---
 
-## 📝 1. Problem Definition
+### ✨ Highlights
 
-### Context
-Infrastructure as Code (IaC) has revolutionized cloud deployments, but misconfigurations remain the #1 cause of cloud security breaches. According to Gartner, 99% of cloud security failures through 2025 will be the customer's fault, primarily due to misconfigurations.
+- 🔐 **Hybrid Scoring** — 60% rule-based + 40% ML anomaly detection for comprehensive coverage
+- ⚡ **Sub-second scans** — ~0.027s per file with trained Isolation Forest model
+- 🌐 **REST API** — Production-ready FastAPI with bcrypt auth, rate limiting, and async I/O
+- 🛡️ **DevSecOps Pipeline** — Bandit SAST, Safety dependency checks, GitLeaks, Trivy container scan
 
-### Importance
-- **$5 million** - Average cost of a cloud breach (IBM Security Report 2024)
-- **70%** of organizations experienced IaC security incidents in the past year
-- Manual security reviews are slow and error-prone
+---
 
-### Why AI is Appropriate
-Traditional rule-based scanners miss complex patterns and novel attack vectors. Machine learning can:
-- Detect anomalous configurations not covered by rules
-- Learn from new threat patterns
-- Provide confidence scoring for risk assessment
-- Adapt to organization-specific security baselines
+## 📑 Table of Contents
 
-## 🎯 2. Proposed Solution
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+- [Architecture](#️-architecture)
+- [CLI Usage](#-cli-usage)
+- [REST API](#-rest-api)
+- [Quality Metrics](#-quality-metrics)
+- [DevSecOps Pipeline](#-devsecops-pipeline)
+- [Docker Deployment](#-docker-deployment)
+- [Monitoring & Observability](#-monitoring--observability)
+- [Technology Stack](#-technology-stack)
+- [Screenshots](#-screenshots)
+- [Academic Context](#-academic-context)
+- [Limitations & Future Work](#️-limitations--future-work)
+- [References](#-references)
+- [License](#-license)
 
-**TerraSafe** is an intelligent system that combines:
-- **Rule-based detection** for known vulnerabilities (deterministic)
-- **Anomaly detection ML** for unknown risks (probabilistic)
-- **Hybrid scoring** that weights both approaches
+---
 
-### Task Classification
-- **Primary**: Anomaly Detection (unsupervised learning)
-- **Secondary**: Risk Classification (pattern recognition)
-- **Output**: Security risk scoring and vulnerability identification
+## 🚀 Features
 
-## 🏗️ 3. Solution Architecture
+### Security Scanner
+- Pattern matching for **6 vulnerability categories**: open ports, hardcoded secrets, unencrypted storage, public S3 buckets, IAM misconfigurations, and overly permissive security groups
+- Severity classification: `CRITICAL` · `HIGH` · `MEDIUM` · `LOW`
+- Actionable remediation suggestions per finding
+
+### Machine Learning Engine
+- **Isolation Forest** anomaly detection (unsupervised — no labeled data required)
+- 5-dimensional feature vector: open ports, hardcoded secrets, public access, unencrypted storage, resource count
+- Model persistence via Joblib with automatic retraining support
+- Confidence scoring based on anomaly distance
+
+### REST API
+- FastAPI with OpenAPI/Swagger docs at `/docs`
+- Bcrypt-hashed API key authentication
+- Redis-backed caching and rate limiting
+- Async file processing with configurable timeouts
+- Prometheus metrics at `/metrics`
+- Correlation ID tracing for all requests
+
+### DevSecOps
+- GitHub Actions CI/CD with 5-stage pipeline
+- SAST (Bandit), dependency scanning (Safety), secret detection (GitLeaks)
+- Docker image security scan (Trivy)
+- Pre-commit hooks for local development
+- SBOM generation (CycloneDX)
+
+---
+
+## 🏁 Quick Start
+
+### Prerequisites
+- Python 3.10+
+- Git
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/oguarni/terrasafe.git
+cd terrasafe
+
+# Install everything (creates venv, installs deps)
+make install
+```
+
+### Run the Demo
+
+```bash
+# Scan all three test configurations
+make demo
+
+# Or scan a specific file
+python -m terrasafe.cli test_files/vulnerable.tf
+python -m terrasafe.cli test_files/secure.tf
+python -m terrasafe.cli test_files/mixed.tf
+```
+
+### Run Tests
+
+```bash
+make test          # All tests
+make coverage      # With coverage report
+make lint          # Code quality (Pylint + Flake8)
+make security-scan # Bandit SAST + Safety dependency check
+```
+
+> 📘 For full API setup with Docker, database, and monitoring, see the **[Quick Start Guide](QUICKSTART.md)**.
+
+---
+
+## 🏗️ Architecture
+
+TerraSafe follows **Clean Architecture** with clear separation of concerns:
+
+```
+terrasafe/
+├── domain/            # Business rules, severity levels, vulnerability models
+├── application/       # Use cases — IntelligentSecurityScanner orchestrator
+├── infrastructure/    # Adapters — HCL parser, ML model, database, API
+├── config/            # Settings, logging configuration
+├── cli.py             # Command-line interface
+├── api.py             # FastAPI REST server
+└── metrics.py         # Prometheus instrumentation
+```
+
+### Scan Pipeline
 
 ```mermaid
 graph TD
-    A[Terraform File] --> B[Parser HCL2]
+    A[Terraform .tf File] --> B[HCL2 Parser]
     B --> C[Feature Extraction Engine]
-    
+
     C --> D[Rule-based Detection]
-    C --> E[ML Features Extraction]
-    
-    D --> F[Pattern Matching]
-    E --> G[Isolation Forest]
-    
-    F --> H[Risk Score Aggregator <br> 0.6*rules + 0.4*ML]
+    C --> E[ML Feature Vectorization]
+
+    D --> F[Pattern Matching<br>6 vulnerability categories]
+    E --> G[Isolation Forest<br>Anomaly Detection]
+
+    F --> H[Risk Score Aggregator<br>0.6 × Rules + 0.4 × ML]
     G --> H
-    
-    H --> I[Report]
+
+    H --> I[Scan Report<br>Score · Vulnerabilities · Confidence]
 
     style C fill:#e1f5ff,stroke:#0288d1,stroke-width:2px,color:#01579b
     style H fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#e65100
     style I fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#1b5e20
 ```
 
-### Input/Output Specification
-- **Input**: Terraform .tf files (HCL format)
-- **Processing**: Dual-path analysis (deterministic + probabilistic)
-- **Output**: Risk score (0-100), vulnerabilities list, confidence level
+### Scoring System
 
-## 🤖 4. Algorithm Choice
+| Weight | Component | Method |
+|--------|-----------|--------|
+| **60%** | Rule-based | Deterministic pattern matching — CRITICAL (30pts), HIGH (20pts), MEDIUM (10pts) |
+| **40%** | ML Anomaly | Isolation Forest deviation from security baseline |
 
-### Selected: Isolation Forest (Anomaly Detection)
-**Justification:**
-- Excellent for detecting outliers in security configurations
-- Unsupervised - doesn't need labeled attack data
-- Fast training and inference
-- Works well with small datasets
+**Score ranges:** `0–30` Secure ✅ · `31–60` Review recommended ⚠️ · `61–100` Critical action required ❌
 
-### Why Not Other Algorithms:
-- **Neural Networks**: Overkill for structured config data, needs more training data
-- **Genetic Algorithms**: Better for optimization, not detection
-- **Decision Trees**: Too rigid for anomaly detection
+---
 
-## 💻 5. Technology Stack
-
-| Component | Technology | Justification |
-|-----------|------------|---------------|
-| **Language** | Python 3.10+ | Best ML ecosystem, clean syntax |
-| **ML Framework** | Scikit-learn | Production-ready, Isolation Forest implementation |
-| **Parser** | python-hcl2 | Native HCL2 support for Terraform |
-| **Pattern Matching** | re (regex) | Built-in, efficient for rule-based detection |
-| **Numerical** | NumPy | Efficient array operations for features |
-| **Model Persistence** | Joblib | Optimized for scikit-learn models |
-
-## 🚀 6. Development Plan
-
-### Phase 1: Foundation ✅
-- [x] Set up project structure
-- [x] Implement HCL2 parser
-- [x] Create test files (vulnerable/secure)
-
-### Phase 2: Rule Engine ✅
-- [x] Implement pattern matching for known vulnerabilities
-- [x] Create severity classification
-- [x] Build basic scoring system
-
-### Phase 3: ML Integration ✅
-- [x] Feature extraction pipeline
-- [x] Isolation Forest training
-- [x] Model persistence layer
-
-### Phase 4: Hybrid System ✅
-- [x] Combine rule-based and ML scores
-- [x] Add confidence metrics
-- [x] Create unified reporting
-
-### Phase 5: Testing & Documentation ✅
-- [x] Test with multiple configurations
-- [x] Generate screenshots
-- [x] Complete documentation
-
-## 📊 Results & Test Files
-
-### Test Configurations
-
-The project includes three test configurations demonstrating different security levels:
-
-#### 1. `vulnerable.tf` - High Risk (Score: 90-100)
-Contains critical security issues:
-- Open SSH access from internet (0.0.0.0/0)
-- Hardcoded database passwords  
-- Unencrypted storage (RDS, EBS)
-- Public S3 bucket access
-
-**ML Detection**: High anomaly score due to multiple security anti-patterns
-
-#### 2. `secure.tf` - Low Risk (Score: 0-20)
-Follows security best practices:
-- Restricted network access (private subnets only)
-- Variables for sensitive data
-- Encrypted storage enabled
-- S3 public access blocked
-
-**ML Detection**: Normal pattern, low anomaly score
-
-#### 3. `mixed.tf` - Medium Risk (Score: 40-60)
-Partially secure configuration:
-- Public HTTP (acceptable for web servers)
-- SSH restricted to internal network ✓
-- Database encrypted ✓
-- S3 partially restricted
-
-**ML Detection**: Slight anomaly due to mixed security posture
-
-### Running the Tests
+## 💻 CLI Usage
 
 ```bash
-# Run all three tests
-scripts/run_demo.sh
+# Scan a Terraform file
+python -m terrasafe.cli <path-to-file.tf>
 
-# Or test individually
-python -m terrasafe.cli test_files/vulnerable.tf
-python -m terrasafe.cli test_files/secure.tf
-python -m terrasafe.cli test_files/mixed.tf
+# Scan via Makefile
+make scan FILE=test_files/vulnerable.tf
 ```
 
-### Actual Test Results
+### Example Output — Vulnerable Configuration
 
-#### Test 1: Vulnerable Configuration
 ```
-Final Risk Score: 92/100
+🔐 TerraSafe - Intelligent Terraform Security Scanner
+🤖 Using hybrid approach: Rules (60%) + ML Anomaly Detection (40%)
+
+============================================================
+🔍 TERRAFORM SECURITY SCAN RESULTS
+============================================================
+📁 File: test_files/vulnerable.tf
+
+❌ HIGH RISK
+📊 Final Risk Score: 81/100
 ├─ Rule-based Score: 100/100
-├─ ML Anomaly Score: 78.3/100
-└─ Confidence: HIGH
+├─ ML Anomaly Score: 54.7/100
+└─ Confidence: LOW
 
-Critical Issues: 3
-High Issues: 3
+🚨 Detected Vulnerabilities:
+[CRITICAL] Open security group - SSH port 22 exposed to internet
+   📍 Resource: web_sg
+   💡 Fix: Restrict SSH access to specific IP ranges
 
-Detected Vulnerabilities:
-[CRITICAL] Open security group - port 22 exposed to internet
-[CRITICAL] Open security group - port 80 exposed to internet
 [CRITICAL] Hardcoded password detected
+   📍 Resource: Database/Instance
+   💡 Fix: Use variables or secrets manager for sensitive data
+
 [HIGH] Unencrypted RDS instance
+   📍 Resource: main_db
+   💡 Fix: Enable storage_encrypted = true
+
 [HIGH] Unencrypted EBS volume
+   📍 Resource: data_volume
+   💡 Fix: Enable encrypted = true
+
 [HIGH] S3 bucket with public access enabled
+   📍 Resource: public_bucket
+   💡 Fix: Enable all public access blocks
 ```
 
-#### Test 2: Secure Configuration
+### Example Output — Secure Configuration
+
 ```
-Final Risk Score: 0/100
+✅ LOW RISK
+📊 Final Risk Score: 18/100
 ├─ Rule-based Score: 0/100
-├─ ML Anomaly Score: 0.0/100
-└─ Confidence: HIGH
+├─ ML Anomaly Score: 46.0/100
+└─ Confidence: LOW
 
-✓ No security issues detected!
-✓ All resources properly encrypted
+✅ No security issues detected!
+✓ All resources properly configured
+✓ Encryption enabled where required
 ✓ Network access properly restricted
-✓ No hardcoded secrets found
 ```
 
-#### Test 3: Mixed Configuration
-```
-Final Risk Score: 48/100
-├─ Rule-based Score: 40/100
-├─ ML Anomaly Score: 62.1/100
-└─ Confidence: MEDIUM
+---
 
-High Issues: 2
+## 🌐 REST API
 
-Detected Vulnerabilities:
-[HIGH] S3 bucket with public access enabled (partially)
-[MEDIUM] HTTP port 80 open to internet (acceptable for web servers)
-```
-
-### Understanding the Hybrid Scoring System
-
-The scanner uses a **weighted hybrid approach**:
-
-1. **Rule-based Score (60% weight)**: Deterministic detection of known vulnerabilities
-   - CRITICAL issues: 30 points each
-   - HIGH issues: 20 points each
-   - MEDIUM issues: 10 points each
-
-2. **ML Anomaly Score (40% weight)**: Isolation Forest detects unusual patterns
-   - Trained on baseline security configurations
-   - Detects deviations from normal security patterns
-   - Provides confidence level based on anomaly distance
-
-3. **Final Score**: `0.6 × Rule Score + 0.4 × ML Score`
-
-### Score Interpretation
-- **0-30**: Secure configuration ✅
-- **31-60**: Some issues, review recommended ⚠️
-- **61-100**: Critical issues, immediate action required ❌
-
-### Feature Vector Analysis
-
-The ML model analyzes these features:
-- Number of open ports to internet
-- Presence of hardcoded secrets
-- Public access configurations
-- Unencrypted storage instances
-- Total resource count
-
-Example feature vectors from tests:
-- **Vulnerable**: `[2, 1, 1, 2, 5]` → High anomaly
-- **Secure**: `[0, 0, 0, 0, 5]` → Normal pattern
-- **Mixed**: `[1, 0, 1, 0, 4]` → Moderate anomaly
-
-## 🔧 Installation & Usage
+### Start the API Server
 
 ```bash
-# Clone repository
-git clone https://github.com/oguarni/terrasafe.git
-cd terrasafe
+# Local development
+make api
 
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run scanner
-python -m terrasafe.cli test_files/vulnerable.tf
+# Production (Docker)
+docker-compose up -d
 ```
 
-## 🔒 DevSecOps Features
+### Endpoints
 
-### CI/CD Security Pipeline
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/health` | No | Health check with DB status |
+| `POST` | `/scan` | API Key | Scan a Terraform file |
+| `GET` | `/metrics` | No | Prometheus metrics |
+| `GET` | `/docs` | No | OpenAPI/Swagger (dev only) |
 
-Every commit triggers:
-- ✅ SAST scanning (Bandit)
-- ✅ Dependency vulnerability checks (Safety)
-- ✅ Secret detection (GitLeaks)
-- ✅ Unit tests with 70%+ coverage
-- ✅ Docker image security scan
-
-### Security Scanning
+### Scan via curl
 
 ```bash
-# Run all security checks
-make security-scan
-
-# Check dependencies only
-make security-deps
-
-# SAST only
-make security-sast
-
-# Set up pre-commit hooks
-make setup-hooks
+curl -X POST \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -F "file=@terraform.tf" \
+  http://localhost:8000/scan
 ```
 
-### Production Deployment
+### Scan via Python
+
+```python
+import requests
+
+response = requests.post(
+    "http://localhost:8000/scan",
+    headers={"X-API-Key": "YOUR_API_KEY"},
+    files={"file": open("terraform.tf", "rb")}
+)
+print(response.json())
+```
+
+### Response Format
+
+```json
+{
+  "file": "vulnerable.tf",
+  "score": 85,
+  "rule_based_score": 90,
+  "ml_score": 75.5,
+  "confidence": "HIGH",
+  "vulnerabilities": [
+    {
+      "severity": "CRITICAL",
+      "points": 20,
+      "message": "Hardcoded AWS credentials detected",
+      "resource": "aws_instance.web",
+      "remediation": "Use AWS IAM roles or environment variables"
+    }
+  ],
+  "summary": { "critical": 1, "high": 2, "medium": 0, "low": 0 },
+  "performance": { "scan_time_seconds": 0.234, "file_size_kb": 1.5, "from_cache": false }
+}
+```
+
+> 📘 Generate API keys with `python scripts/generate_api_key.py`. See **[QUICKSTART.md](QUICKSTART.md)** for full API setup.
+
+---
+
+## 📊 Quality Metrics
+
+> All metrics from the latest full local run — **February 22, 2026**.
+
+| Category | Metric | Result |
+|----------|--------|--------|
+| **Testing** | Test suite | **272 passed**, 1 skipped — 19.31s |
+| **Testing** | Benchmark (scan) | 34.68 µs mean, 28,837 ops/s |
+| **Testing** | Benchmark (parser) | 1.96 ms mean, 510 ops/s |
+| **Code Quality** | Pylint score | **9.24 / 10** |
+| **Code Quality** | Codebase size | 3,098 lines (application code) |
+| **Security** | SAST (Bandit) | **0 issues** — 0 High, 0 Medium, 0 Low |
+| **Security** | Dependencies (Safety) | **0 vulnerabilities** across 139 packages |
+| **Performance** | Scan time | ~**0.027s** per Terraform file |
+
+---
+
+## 🛡️ DevSecOps Pipeline
+
+GitHub Actions pipeline with 5 stages:
+
+```mermaid
+graph LR
+    A[Security Scan] --> B[Unit Tests]
+    B --> C[Integration Scan]
+    B --> D[Docker Build + Trivy]
+    C --> E[Deploy Staging]
+    D --> E
+
+    style A fill:#ffebee,stroke:#c62828,color:#b71c1c
+    style B fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    style C fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    style D fill:#fff3e0,stroke:#ef6c00,color:#e65100
+    style E fill:#f3e5f5,stroke:#7b1fa2,color:#4a148c
+```
+
+| Stage | Tool | Purpose |
+|-------|------|---------|
+| **SAST** | Bandit | Static code analysis for Python security issues |
+| **Dependencies** | Safety | Known vulnerability check for all pip packages |
+| **Secrets** | GitLeaks | Detect hardcoded secrets and credentials |
+| **Container** | Trivy | Docker image vulnerability scanning |
+| **Coverage** | Codecov | Test coverage tracking and reporting |
+
+### Local Security Scanning
 
 ```bash
-# Build Docker image
+make security-scan   # Run all security checks
+make security-deps   # Dependency vulnerabilities only
+make security-sast   # SAST only
+make setup-hooks     # Install pre-commit hooks
+```
+
+---
+
+## 🐳 Docker Deployment
+
+### Quick Run
+
+```bash
+# Build and scan
 docker build -t terrasafe:latest .
-
-# Run security scan
-docker run --rm aquasec/trivy image terrasafe:latest
-
-# Deploy
-docker run -d \
-  --name terrasafe \
-  --read-only \
-  --security-opt=no-new-privileges:true \
-  -v /path/to/terraform:/scan:ro \
-  terrasafe:latest /scan/main.tf
+docker run --rm -v /path/to/terraform:/scan:ro terrasafe:latest /scan/main.tf
 ```
 
-### Compliance
+### Full Stack (docker-compose)
 
-- **OWASP**: Follows Top 10 secure coding practices
-- **NIST**: Aligns with Cybersecurity Framework
-- **CIS**: Container hardening applied
-- **GDPR**: No PII collection
+```bash
+docker-compose up -d
+```
 
-### Security Metrics
+| Service | Port | Purpose |
+|---------|------|---------|
+| **terrasafe-api** | 8000 | FastAPI application |
+| **PostgreSQL** | 5432 | Persistent scan storage |
+| **Redis** | 6379 | Caching & rate limiting |
+| **Prometheus** | 9090 | Metrics collection |
+| **Grafana** | 3000 | Dashboards & visualization |
 
-| Metric | Status |
-|--------|--------|
-| Test Coverage | Measured via `make coverage` |
-| SAST Issues | 0 Critical |
-| Dependencies | No Known Vulns |
-| Docker Scan | Pass |
+The Docker image runs as a **non-root user** with `--read-only` filesystem and `--security-opt=no-new-privileges` recommended.
+
+---
+
+## 📈 Monitoring & Observability
+
+- **Prometheus** scrapes `/metrics` every 10s — scan rates, cache hits, latencies, error rates
+- **Grafana** dashboard (`TerraSafe Overview`) with pre-configured panels:
+  - Scan rate & cache hit ratio
+  - Vulnerability distribution by severity and category
+  - P95/P99 scan duration
+  - API request latency & error rates
+- **Structured JSON logging** with correlation IDs for request tracing
+- **Health check** endpoint at `/health` with database connectivity status
+
+---
+
+## 💻 Technology Stack
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| Language | Python 3.10+ | ML ecosystem, clean syntax |
+| ML Framework | scikit-learn (Isolation Forest) | Anomaly detection model |
+| Parser | python-hcl2 | Native Terraform HCL2 parsing |
+| API Framework | FastAPI + Uvicorn | Async REST API with OpenAPI docs |
+| Database | PostgreSQL + SQLAlchemy (async) | Scan history persistence |
+| Cache | Redis | LRU caching, rate limiting |
+| Auth | bcrypt | API key hashing |
+| Monitoring | Prometheus + Grafana | Metrics & dashboards |
+| Containers | Docker + Docker Compose | Multi-service deployment |
+| CI/CD | GitHub Actions | DevSecOps automation |
+| Numerical | NumPy | Feature vector operations |
+| Model Persistence | Joblib | Serialized scikit-learn models |
+
+---
 
 ## 📸 Screenshots
 
 <p align="center">
-  <h3>1. Vulnerability Detection</h3>
+  <h3>Vulnerability Detection</h3>
   <img src="screenshots/vulnerable_scan.png" alt="Vulnerable Scan Output" width="800">
 </p>
 
 <p align="center">
-  <h3>2. Secure Infrastructure</h3>
+  <h3>Secure Infrastructure Analysis</h3>
   <img src="screenshots/secure_scan.png" alt="Secure Scan Output" width="800">
 </p>
 
 <p align="center">
-  <h3>3. ML Model Training</h3>
+  <h3>ML Model Training</h3>
   <img src="screenshots/ml_training.png" alt="ML Training Output" width="800">
 </p>
 
-## 🎓 Academic Information
+---
 
-**Course**: Sistemas Inteligentes  
-**Institution**: UTFPR  
-**Semester**: 7th - Software Engineering  
-**Type**: Proof of Concept - Intelligent System Application
+## 🎓 Academic Context
 
-## 📈 Innovation Aspects
+| | |
+|---|---|
+| **Course** | Sistemas Inteligentes (Intelligent Systems) |
+| **Institution** | UTFPR — Universidade Tecnológica Federal do Paraná |
+| **Program** | Software Engineering, 7th Semester |
+| **Type** | Proof of Concept — Intelligent System Application |
 
-1. **Hybrid Approach**: Combines deterministic and probabilistic methods
-2. **Self-Learning**: Model improves with more configurations analyzed
-3. **Explainable AI**: Features and confidence levels provide transparency
-4. **Real-time Analysis**: Sub-second scanning performance
+### Why Isolation Forest?
+
+- **Unsupervised** — doesn't require labeled attack datasets
+- **Efficient** — fast training and inference on structured configuration data  
+- **Small data friendly** — works well with synthetic security baselines
+- **Explainable** — feature importance and anomaly scores provide transparency
+
+### Why Not Other Algorithms?
+
+| Algorithm | Reason Not Selected |
+|-----------|-------------------|
+| Neural Networks | Overkill for structured config data; requires large training sets |
+| Genetic Algorithms | Suited for optimization problems, not anomaly detection |
+| Decision Trees | Too rigid; poor at detecting novel anomaly patterns |
+
+### Innovation Aspects
+
+1. **Hybrid approach** — Combines deterministic rules with probabilistic ML for defence in depth
+2. **Self-learning** — Model improves as more configurations are analyzed
+3. **Explainable AI** — Feature vectors and confidence levels provide full transparency
+4. **Real-time** — Sub-second scanning performance suitable for CI/CD integration
+
+---
 
 ## ⚠️ Limitations & Future Work
 
 ### Current Limitations
-- Limited training data (using synthetic baseline)
-- No support for Terraform modules
-- English-only vulnerability descriptions
+- Training data based on synthetic security baselines
+- No support for Terraform modules or remote state
+- Vulnerability descriptions in English only
 
-### Future Enhancements
-- Deep Learning for complex pattern recognition
-- Integration with CI/CD pipelines
-- Multi-cloud support (Azure, GCP)
+### Roadmap
+- Deep learning models for complex pattern recognition
+- Multi-cloud support (Azure, GCP)  
 - Custom policy definition language
-
-## 📚 References
-
-- Gartner (2024). "Cloud Security Failures Report"
-- IBM Security (2024). "Cost of a Data Breach Report"
-- HashiCorp. "Terraform Security Best Practices"
-- Liu, F. T., Ting, K. M., & Zhou, Z. H. (2008). "Isolation Forest"
-
-## License
-
-This project is licensed under the **CC BY-NC-SA 4.0**. This license covers all current and historical commits in this repository. See the [LICENSE](LICENSE) file for details.
+- Terraform module and provider analysis
+- Integration with cloud provider security APIs
 
 ---
 
-*Developed by Gabriel Felipe Guarnieri - UTFPR Software Engineering*
+## 📚 References
+
+- Gartner (2024). *Cloud Security Failures Report*
+- IBM Security (2024). *Cost of a Data Breach Report*
+- HashiCorp. *Terraform Security Best Practices*
+- Liu, F. T., Ting, K. M., & Zhou, Z. H. (2008). *Isolation Forest*
+
+---
+
+## 📄 License
+
+This project is licensed under **CC BY-NC-SA 4.0**. This license covers all current and historical commits. See the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+
+  Developed by **Gabriel Felipe Guarnieri** — UTFPR Software Engineering
+
+  [Quick Start Guide](QUICKSTART.md) · [API Documentation](http://localhost:8000/docs) · [Report an Issue](https://github.com/oguarni/terrasafe/issues)
+
+</div>
