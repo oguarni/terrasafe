@@ -18,19 +18,19 @@
 - Tests mock via `patch('terrasafe.infrastructure.database.get_settings', return_value=mock_settings)`
 
 ### `models.py` — ORM Models
-- Models: `Scan`, `Vulnerability`, `ScanHistory`, `MLModelVersion`
-- `ScanHistory` is defined but **never used** anywhere in the codebase
+- Models: `Scan`, `Vulnerability`, `MLModelVersion`
+- `ScanHistory` was removed — it was never used anywhere in the codebase
 
 ### `repositories.py`
 - Imports domain `Vulnerability` as `DomainVulnerability` to avoid naming collision with ORM model
 - `ScanRepository.create()` accepts both dataclass and dict vulnerabilities despite type hint
 
-### `cache.py` — `SecureCache`
-- Async Redis with SHA-256 key hashing
-- **Completely unused** in the codebase — scanner uses instance dicts; API uses slowapi/FallbackRateLimiter
+### `cache.py`
+- `SecureCache` was removed — it was never integrated into the scan pipeline
+- File now contains only a stub comment explaining the removal
 
 ### `rate_limiter.py` — `FallbackRateLimiter`
-- `cleanup_old_entries()` public method exists but is **never called** from any code
+- `cleanup_old_entries()` was removed — superseded by `_cleanup_locked()` (called every 100 checks)
 - Periodic cleanup every 100 calls via internal `_cleanup_locked()`
 
 ### `validation.py`
@@ -52,4 +52,3 @@
 
 - Never call `get_settings()` at module level
 - Never bypass path traversal checks in parser
-- Never instantiate `SecureCache` expecting it to integrate — it is currently dead code

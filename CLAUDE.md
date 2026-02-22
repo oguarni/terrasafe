@@ -119,16 +119,16 @@ Subdirectory CLAUDE.md files provide focused instructions per architectural laye
 
 ## Known Issues
 
-Findings from a comprehensive diagnostic of the codebase:
+All previously documented issues have been resolved:
 
-- `SecureCache` (`infrastructure/cache.py`) is **completely unused** — scanner uses instance dicts
-- `FallbackRateLimiter.cleanup_old_entries()` is **never called** from any code
-- `ScanHistory` ORM model is **defined but never used** anywhere
-- `settings.model_path` field is **never read** — `ModelManager` hardcodes the path
-- `check_iam_policies()` in `SecurityRuleEngine` has **zero test coverage**
-- `config/logging.py` has **zero test coverage**
-- No `INFO` severity level in domain `Severity` enum despite references elsewhere
-- `update_model_with_feedback()` has documented catastrophic forgetting risk
+- `SecureCache` removed from `infrastructure/cache.py` — file replaced with a stub comment
+- `FallbackRateLimiter.cleanup_old_entries()` removed — superseded by `_cleanup_locked()`
+- `ScanHistory` ORM model removed from `models.py` and `alembic/env.py`
+- `settings.model_path` now wired to `ModelManager.__init__` (default: `models/isolation_forest.pkl`)
+- `check_iam_policies()` covered by `tests/test_security_rules_iam.py` (7 test cases)
+- `config/logging.py` covered by `tests/test_config_logging.py` (9 test cases)
+- `Severity.INFO = "INFO"` added to domain enum; `POINTS_INFO = 2` added to `security_rules.py`
+- `update_model_with_feedback()` rewrites to combine historical + new data (no more catastrophic forgetting)
 
 ## Contributing
 

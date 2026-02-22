@@ -9,6 +9,7 @@ class Severity(Enum):
     HIGH = "HIGH"
     MEDIUM = "MEDIUM"
     LOW = "LOW"
+    INFO = "INFO"
 
 
 @dataclass

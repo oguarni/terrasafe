@@ -114,10 +114,10 @@ class TestModelManager:
         assert manager.metadata_path.exists()
 
     def test_update_model_with_feedback_existing_metadata(self, tmp_path):
-        """Test updating model with feedback (existing metadata)"""
+        """Test updating model with feedback combines historical + new data."""
         manager = ModelManager(str(tmp_path / "models"))
 
-        # Create initial model and metadata
+        # Create initial model and persist training_data alongside it
         model = IsolationForest(random_state=42, contamination=0.1)
         scaler = StandardScaler()
         initial_data = np.array([[1, 2, 3, 4, 5], [2, 3, 4, 5, 6]])
@@ -125,9 +125,9 @@ class TestModelManager:
         model.fit(scaler.transform(initial_data))
 
         initial_metadata = {"total_samples": 2}
-        manager.save_model(model, scaler, initial_metadata)
+        manager.save_model(model, scaler, initial_metadata, training_data=initial_data)
 
-        # Update with new data
+        # Update with new data — should combine 2 historical + 2 new = 4 total
         new_data = np.array([[3, 4, 5, 6, 7], [4, 5, 6, 7, 8]])
         metadata = {"version": "1.2"}
         manager.update_model_with_feedback(model, scaler, new_data, metadata)
@@ -135,7 +135,7 @@ class TestModelManager:
         # Verify metadata updated
         with open(manager.metadata_path) as f:
             updated_metadata = json.load(f)
-        assert updated_metadata['total_samples'] == 4  # 2 + 2
+        assert updated_metadata['total_samples'] == 4  # 2 historical + 2 new
         assert updated_metadata['feedback_samples_added'] == 2
 
     @patch('sklearn.ensemble.IsolationForest.fit', side_effect=ValueError("Fit error"))

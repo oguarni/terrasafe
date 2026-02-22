@@ -16,7 +16,7 @@ from alembic import context
 from terrasafe.config.settings import get_settings
 from terrasafe.infrastructure.database import Base
 from terrasafe.infrastructure.models import (
-    Scan, Vulnerability, ScanHistory, MLModelVersion
+    Scan, Vulnerability, MLModelVersion
 )
 
 # Load settings

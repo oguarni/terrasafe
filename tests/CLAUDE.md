@@ -70,9 +70,6 @@ Use `TestClient` from `starlette.testclient` (`test_api.py`, `test_security.py`)
 
 | Gap | Location |
 |---|---|
-| Zero tests | `config/logging.py` |
-| Untested | `SecurityRuleEngine.check_iam_policies()` |
-| Untested | `ScanHistory` ORM model |
 | Silent skip | Integration tests if `test_files/` directory missing |
 | Requires extra packages | Performance tests need `pytest-benchmark` + `psutil` |
 

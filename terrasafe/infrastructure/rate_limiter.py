@@ -115,27 +115,3 @@ class FallbackRateLimiter:
             else:
                 self.requests.clear()
                 logger.info("Rate limit reset for all clients")
-
-    def cleanup_old_entries(self):
-        """
-        Cleanup old entries to prevent memory leaks.
-        Should be called periodically.
-        """
-        with self.lock:
-            now = datetime.now(timezone.utc)
-            cleaned = 0
-
-            # Remove empty entries and old timestamps
-            for client_ip in list(self.requests.keys()):
-                self.requests[client_ip] = [
-                    req_time for req_time in self.requests[client_ip]
-                    if now - req_time < self.window
-                ]
-
-                # Remove entry if no requests in window
-                if not self.requests[client_ip]:
-                    del self.requests[client_ip]
-                    cleaned += 1
-
-            if cleaned > 0:
-                logger.debug("Cleaned %s old rate limit entries", cleaned)

@@ -63,16 +63,6 @@ class TestFallbackRateLimiter:
         assert limiter.get_remaining("10.0.0.1") == 2
         assert limiter.get_remaining("10.0.0.2") == 2
 
-    def test_cleanup_old_entries(self):
-        """cleanup_old_entries should not error and should clean stale data."""
-        limiter = FallbackRateLimiter(max_requests=10, window_seconds=1)
-        limiter.check_rate_limit("10.0.0.1")
-        # Manually age the entry
-        import time
-        time.sleep(1.1)
-        limiter.cleanup_old_entries()
-        assert limiter.get_remaining("10.0.0.1") == 10
-
     def test_periodic_cleanup_on_check(self):
         """Internal cleanup should trigger every 100 checks."""
         limiter = FallbackRateLimiter(max_requests=200, window_seconds=60)

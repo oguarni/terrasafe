@@ -7,13 +7,12 @@ This layer is **dependency-free** (stdlib only: `re`, `enum`, `dataclasses`). Ne
 ## Files
 
 ### `models.py`
-- `Severity` enum: `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`
+- `Severity` enum: `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `INFO`
 - `Vulnerability` dataclass: `severity`, `points`, `message`, `resource`, `remediation`
 - **Naming collision**: `Vulnerability` here conflicts with the ORM model in `infrastructure/models.py`. Repositories import it as `DomainVulnerability` alias.
-- Known gap: no `INFO` severity level despite infrastructure comments referencing it.
 
 ### `security_rules.py`
-- `SecurityRuleEngine` — 5 rule checks, point constants: `CRITICAL=30`, `HIGH=20`, `MEDIUM=10`, `LOW=5`
+- `SecurityRuleEngine` — 5 rule checks, point constants: `CRITICAL=30`, `HIGH=20`, `MEDIUM=10`, `LOW=5`, `INFO=2`
 - `analyze(tf_content, raw_content)` aggregates all checks — **new rules must be added here**
 
 ## Rule Inventory
@@ -34,7 +33,6 @@ This layer is **dependency-free** (stdlib only: `re`, `enum`, `dataclasses`). Ne
 
 ## Coverage Gaps (untested)
 
-- `check_iam_policies()` — **completely untested**
 - RDP port branch (3389) in `check_open_security_groups()`
 - HTTP/HTTPS port branches (80/443)
 - EBS encryption check

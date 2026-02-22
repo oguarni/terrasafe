@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     )
     model_version: str = Field(default="1.0.0", description="ML model version")
     model_path: str = Field(
-        default="models/terrasafe_model.pkl",
+        default="models/isolation_forest.pkl",
         description="Path to ML model file"
     )
 

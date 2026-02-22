@@ -26,17 +26,22 @@ class ModelNotTrainedError(Exception):
 class ModelManager:
     """Manages ML model persistence, loading, and versioning with rollback support"""
 
-    def __init__(self, model_dir: str = "models"):
+    def __init__(self, model_dir: str = "models", model_filename: Optional[str] = None):
         self.model_dir = Path(model_dir)
         self.model_dir.mkdir(exist_ok=True)
         self.versions_dir = self.model_dir / "versions"
         self.versions_dir.mkdir(exist_ok=True)
-        self.model_path = self.model_dir / "isolation_forest.pkl"
+        if model_filename:
+            self.model_path = self.model_dir / model_filename
+        else:
+            self.model_path = self.model_dir / Path(get_settings().model_path).name
         self.scaler_path = self.model_dir / "scaler.pkl"
         self.metadata_path = self.model_dir / "training_metadata.json"
         self.current_version_file = self.model_dir / "current_version.txt"
+        self.training_data_path = self.model_dir / "training_data.npy"
 
-    def save_model(self, model: IsolationForest, scaler: StandardScaler, metadata: dict, version: Optional[str] = None):
+    def save_model(self, model: IsolationForest, scaler: StandardScaler, metadata: dict,
+                   version: Optional[str] = None, training_data: Optional[np.ndarray] = None):
         """
         Save trained model, scaler, and metadata with versioning support.
 
@@ -45,6 +50,7 @@ class ModelManager:
             scaler: Fitted StandardScaler
             metadata: Training metadata dictionary
             version: Optional version string (auto-generated if None)
+            training_data: Optional full training dataset to persist for future incremental updates
 
         Raises:
             Exception: Re-raised if persistence fails, so callers know the save did not succeed
@@ -64,6 +70,10 @@ class ModelManager:
             with open(self.metadata_path, 'w', encoding='utf-8') as f:
                 json.dump(metadata, f, indent=2)
 
+            # Persist training data if provided (enables safe incremental updates)
+            if training_data is not None:
+                self._save_training_data(training_data)
+
             # Save versioned backup for rollback capability
             version_dir = self.versions_dir / version
             version_dir.mkdir(exist_ok=True)
@@ -80,6 +90,23 @@ class ModelManager:
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error("Error saving model: %s", e)
             raise
+
+    def _save_training_data(self, data: np.ndarray) -> None:
+        """Persist the full training dataset alongside the model."""
+        np.save(self.training_data_path, data)
+        logger.debug("Training data saved to %s (%s samples)", self.training_data_path, len(data))
+
+    def _load_training_data(self) -> Optional[np.ndarray]:
+        """Load persisted training dataset, or return None if not found."""
+        if not self.training_data_path.exists():
+            return None
+        try:
+            data: np.ndarray = np.load(self.training_data_path)
+            logger.debug("Training data loaded from %s (%s samples)", self.training_data_path, len(data))
+            return data
+        except (OSError, ValueError) as e:
+            logger.warning("Could not load training data: %s", e)
+            return None
 
     def load_model(self) -> Tuple[IsolationForest, StandardScaler]:
         """Load saved model and scaler, raising an error if not found."""
@@ -242,35 +269,44 @@ class ModelManager:
     def update_model_with_feedback(self, model: IsolationForest, scaler: StandardScaler,
                                    new_data: np.ndarray, metadata: dict):
         """
-        Update model using only the new feedback data.
+        Update model by combining historical training data with new feedback data.
 
-        NOTE: This is a simplified incremental update that refits exclusively on new_data
-        (catastrophic forgetting). It does NOT combine with historical training data.
-        For production use, consider more sophisticated continual learning strategies.
+        Loads the persisted training dataset, stacks it with new_data, refits a fresh
+        StandardScaler and IsolationForest on the combined set, then saves everything.
+        This prevents catastrophic forgetting of previously learned patterns.
+
+        If no historical training data is found, logs a warning and fits on new_data only.
         """
         try:
-            # Scale new data
-            scaled_new_data = scaler.transform(new_data)
+            historical = self._load_training_data()
+            if historical is not None:
+                combined = np.vstack([historical, new_data])
+                logger.info(
+                    "Combining %s historical + %s new samples (%s total)",
+                    len(historical), len(new_data), len(combined)
+                )
+            else:
+                logger.warning(
+                    "No historical training data found at %s — fitting on new_data only. "
+                    "Run train-model first to enable full incremental updates.",
+                    self.training_data_path
+                )
+                combined = new_data
 
-            # Load existing training data if metadata exists
-            if self.metadata_path.exists():
-                with open(self.metadata_path, 'r', encoding='utf-8') as f:
-                    old_metadata = json.load(f)
-                    old_samples = old_metadata.get('total_samples', 0)
-                    new_total = old_samples + len(new_data)
-                    metadata['total_samples'] = new_total
-                    metadata['feedback_samples_added'] = len(new_data)
+            # Fit a fresh scaler on the full combined dataset
+            new_scaler = StandardScaler()
+            scaled_combined = new_scaler.fit_transform(combined)
 
-            # Retrain model on new data only (simplified approach — catastrophic forgetting applies)
-            # In production, consider more sophisticated incremental learning
-            logger.warning(
-                "update_model_with_feedback refits only on new_data; historical patterns are lost."
-            )
-            model.fit(scaled_new_data)
+            # Refit the model on the full combined dataset
+            model.fit(scaled_combined)
 
-            # Save updated model
-            self.save_model(model, scaler, metadata)
-            logger.info("Model updated with %s new samples", len(new_data))
+            # Update metadata
+            metadata['total_samples'] = len(combined)
+            metadata['feedback_samples_added'] = len(new_data)
+
+            # Save model, updated scaler, and full training data for future updates
+            self.save_model(model, new_scaler, metadata, training_data=combined)
+            logger.info("Model updated with %s new samples (%s total)", len(new_data), len(combined))
         except (ValueError, OSError) as e:
             logger.error("Error updating model: %s", e)
 
@@ -419,6 +455,6 @@ class MLPredictor:
             }
         }
 
-        # Save model with metadata
-        self.model_manager.save_model(self.model, self.scaler, training_stats)
+        # Save model with metadata and persist training data for future incremental updates
+        self.model_manager.save_model(self.model, self.scaler, training_stats, training_data=augmented_data)
         logger.info("Enhanced ML model trained successfully with %s samples", len(augmented_data))

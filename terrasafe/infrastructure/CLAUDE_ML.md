@@ -44,16 +44,20 @@ Fallback on any error: returns `(50.0, "LOW")`
 
 ```
 models/
-  isolation_forest.pkl
+  isolation_forest.pkl      ← path driven by settings.model_path
   scaler.pkl
   training_metadata.json
-  versions/<version>/     ← versioned backups
+  training_data.npy         ← full training set for safe incremental updates
+  versions/<version>/       ← versioned backups
 ```
 
-## Known Issues
+## Incremental Updates
 
-- `settings.model_path` field is **never read** — `ModelManager` hardcodes `models/isolation_forest.pkl`
-- `update_model_with_feedback()`: incremental learning exists but has documented catastrophic forgetting risk
+`update_model_with_feedback()` loads `training_data.npy`, stacks historical + new data, refits a
+fresh `StandardScaler` and `IsolationForest` on the combined set. No catastrophic forgetting.
+
+`_train_baseline_model()` passes `training_data=augmented_data` to `save_model()` so the initial
+dataset is persisted immediately after the first training run (`make train-model`).
 
 ## Drift Detection
 
