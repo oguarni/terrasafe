@@ -98,7 +98,7 @@ class TestScanPerformance:
         assert 'performance' in result
 
         # Performance expectations
-        assert result['performance']['scan_time_seconds'] < 2.0, "Scan should complete in under 2 seconds"
+        assert result['performance']['scan_time_seconds'] < 0.05, "Scan should complete in under 50ms"
 
     def test_scan_time_single_file(self, scanner, temp_tf_file):
         """Test scan time for a single file."""
@@ -107,7 +107,7 @@ class TestScanPerformance:
         scan_time = time.time() - start_time
 
         assert result['score'] >= 0
-        assert scan_time < 2.0, f"Scan took {scan_time}s, expected < 2s"
+        assert scan_time < 0.05, f"Scan took {scan_time}s, expected < 0.05s"
         print(f"\nSingle file scan time: {scan_time:.3f}s")
 
     def test_scan_time_with_cache(self, scanner, temp_tf_file):
@@ -209,7 +209,7 @@ class TestConcurrentRequests:
             print(f"Average per file: {total_time/num_files:.3f}s")
 
             # Should complete in reasonable time
-            assert total_time < 10.0, f"Concurrent scans took {total_time}s, expected < 10s"
+            assert total_time < 0.5, f"Concurrent scans took {total_time}s, expected < 0.5s"
 
         finally:
             # Cleanup
@@ -312,7 +312,7 @@ class TestScalability:
 
             print(f"\nSmall file scan time: {scan_time:.3f}s")
             assert result['score'] >= 0
-            assert scan_time < 1.0, "Small file should scan very quickly"
+            assert scan_time < 0.05, "Small file should scan very quickly"
 
         finally:
             Path(temp_path).unlink(missing_ok=True)
@@ -345,7 +345,7 @@ class TestScalability:
             print(f"\nLarge file scan time: {scan_time:.3f}s")
             print(f"File size: {Path(temp_path).stat().st_size / 1024:.2f}KB")
             assert result['score'] >= 0
-            assert scan_time < 5.0, f"Large file scan took {scan_time}s, expected < 5s"
+            assert scan_time < 0.5, f"Large file scan took {scan_time}s, expected < 0.5s"
 
         finally:
             Path(temp_path).unlink(missing_ok=True)
@@ -376,7 +376,7 @@ class TestFeatureExtractionPerformance:
 
         print(f"\nFeature extraction time for 100 vulnerabilities: {extraction_time:.4f}s")
         assert features is not None
-        assert extraction_time < 0.1, f"Feature extraction took {extraction_time}s, expected < 0.1s"
+        assert extraction_time < 0.05, f"Feature extraction took {extraction_time}s, expected < 0.05s"
 
 
 # Pytest benchmark plugin configuration
