@@ -313,8 +313,8 @@ print(response.json())
 | Category | Metric | Result |
 |----------|--------|--------|
 | **Testing** | Test suite | **272 passed**, 1 skipped — 19.31s |
-| **Testing** | Benchmark (scan) | 34.68 µs mean, 28,837 ops/s |
-| **Testing** | Benchmark (parser) | 1.96 ms mean, 510 ops/s |
+| **Testing** | Benchmark (scan) | ~27 ms mean |
+| **Testing** | Benchmark (parser) | 34.68 µs mean, 28,837 ops/s |
 | **Code Quality** | Pylint score | **9.24 / 10** |
 | **Code Quality** | Codebase size | 3,098 lines (application code) |
 | **Security** | SAST (Bandit) | **0 issues** — 0 High, 0 Medium, 0 Low |
