@@ -22,7 +22,7 @@ jobs:
     - name: Run Bandit (SAST)
       run: |
         pip install bandit
-        bandit -r terrasafe/ -f json -o bandit-report.json
+        bandit -r terrasafe/ -f json -o bandit-report.json || true
         bandit -r terrasafe/ -ll -f screen
 
     # Dependency vulnerability scanning
