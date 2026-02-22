@@ -95,11 +95,11 @@ echo "---------------------------"
 print_info "Running Alembic migrations..."
 
 # Check current migration status
-current_version=$(alembic current 2>/dev/null || echo "none")
+current_version=$(PYTHONPATH=. alembic current 2>/dev/null || echo "none")
 print_info "Current migration: $current_version"
 
 # Run migrations
-if alembic upgrade head; then
+if PYTHONPATH=. alembic upgrade head; then
     print_info "Database migrations completed ✓"
 else
     print_error "Migration failed!"
@@ -107,7 +107,7 @@ else
 fi
 
 # Verify migration
-new_version=$(alembic current 2>/dev/null || echo "none")
+new_version=$(PYTHONPATH=. alembic current 2>/dev/null || echo "none")
 print_info "New migration version: $new_version"
 
 # Step 4: Start API and Monitoring Services
