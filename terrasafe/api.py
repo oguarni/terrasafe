@@ -230,8 +230,8 @@ app = FastAPI(
     title="TerraSafe API",
     description="Intelligent Terraform Security Scanner with hybrid 60% rules + 40% ML approach",
     version="1.0.0",
-    docs_url="/docs" if not settings.is_production() else None,
-    redoc_url="/redoc" if not settings.is_production() else None,
+    docs_url="/docs",
+    redoc_url="/redoc",
     debug=settings.debug,
     lifespan=lifespan
 )
