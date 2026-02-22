@@ -4,7 +4,6 @@ import os
 import tempfile
 import asyncio
 import hashlib
-from pathlib import Path
 from typing import Dict, Any
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
@@ -47,6 +46,7 @@ logger = get_logger(__name__)
 # API Key Authentication with bcrypt
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
+
 def hash_api_key(api_key: str) -> str:
     """
     Hash an API key using bcrypt.
@@ -58,6 +58,7 @@ def hash_api_key(api_key: str) -> str:
         Bcrypt hashed API key
     """
     return bcrypt.hashpw(api_key.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
 
 def verify_api_key_hash(api_key: str, hashed_key: str) -> bool:
     """
@@ -75,6 +76,7 @@ def verify_api_key_hash(api_key: str, hashed_key: str) -> bool:
     except Exception as e:
         logger.error(f"Error verifying API key: {e}")
         return False
+
 
 async def verify_api_key(api_key: str = Security(api_key_header)):
     """
@@ -152,6 +154,7 @@ fallback_limiter = FallbackRateLimiter(
     window_seconds=settings.rate_limit_window_seconds
 )
 
+
 # Middleware for fallback rate limiting
 async def check_fallback_rate_limit(request: Request):
     """Check rate limit using fallback limiter if needed"""
@@ -163,6 +166,7 @@ async def check_fallback_rate_limit(request: Request):
                 detail=f"Rate limit exceeded: {settings.rate_limit_requests} requests per {settings.rate_limit_window_seconds}s"
             )
 
+
 # Create conditional rate limit decorator
 def rate_limit(limit_string: str):
     """Conditional rate limiting decorator"""
@@ -171,6 +175,7 @@ def rate_limit(limit_string: str):
             return limiter.limit(limit_string)(func)
         return func
     return decorator
+
 
 # Initialize scanner components (singleton pattern) - before app initialization
 parser = HCLParser()
@@ -247,6 +252,7 @@ app.add_middleware(
 if RATE_LIMITING_AVAILABLE:
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 # Middleware for correlation IDs
 @app.middleware("http")

@@ -75,6 +75,29 @@ pytest --cov=terrasafe --cov-report=html
 pytest tests/test_application_scanner.py -v
 ```
 
+### Code Quality
+
+```bash
+# Linting (flake8) — exclude E402 (dotenv load order) and E501 (marginal line length)
+flake8 terrasafe/ --max-line-length=120 --exclude=__pycache__ --ignore=E402,E501
+
+# Type checking
+mypy terrasafe/ --ignore-missing-imports
+
+# Security scan (uses .bandit config — skips B101)
+bandit -r terrasafe/ -c .bandit -f screen
+
+# Formatting
+black terrasafe/ tests/
+```
+
+### Linting Standards
+
+- **Max line length**: 120 characters (flake8 + pylint)
+- **E402 exceptions**: `api.py` and `cli.py` call `load_dotenv()` before imports (intentional)
+- **Bandit config**: `.bandit` file skips B101 (`assert_used`) project-wide
+- **Pre-commit hooks**: Configured in `.pre-commit-config.yaml` (black, isort, flake8, bandit, detect-secrets)
+
 ## Security Notes
 
 - **Secrets**: Production credentials via AWS Secrets Manager (see `terrasafe/config/settings.py`)

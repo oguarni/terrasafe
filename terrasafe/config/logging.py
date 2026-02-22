@@ -75,13 +75,7 @@ def setup_logging(
         log_format: Format type ("json" or "text")
         log_file: Optional file path for log output
     """
-    # Choose formatter based on format type
-    formatter: logging.Formatter
-    if log_format == "json":
-        formatter = StructuredFormatter()
-    else:
-        formatter = TextFormatter()
-
+    # Formatter is selected via the dictConfig below based on format type
     # Configure handlers
     handlers: dict[str, Any] = {
         "console": {

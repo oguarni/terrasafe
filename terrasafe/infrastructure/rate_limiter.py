@@ -127,7 +127,6 @@ class FallbackRateLimiter:
 
             # Remove empty entries and old timestamps
             for client_ip in list(self.requests.keys()):
-                old_count = len(self.requests[client_ip])
                 self.requests[client_ip] = [
                     req_time for req_time in self.requests[client_ip]
                     if now - req_time < self.window

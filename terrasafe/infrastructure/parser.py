@@ -170,7 +170,7 @@ class HCLParser:
                 raw_content = f.read()
         except PermissionError as e:
             raise TerraformParseError(f"Permission denied reading file {filepath}: {e}")
-        except UnicodeDecodeError as e:
+        except UnicodeDecodeError:
             raise TerraformParseError(f"File encoding error in {filepath}: Not a valid UTF-8 text file")
         except Exception as e:
             raise TerraformParseError(f"Cannot read file {filepath}: {type(e).__name__} - {e}")

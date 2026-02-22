@@ -5,7 +5,6 @@ Provides async caching with TTL, size limits, and proper error handling.
 
 import hashlib
 import json
-import logging
 from datetime import timedelta
 from typing import Any, Optional
 
@@ -154,7 +153,8 @@ class SecureCache:
         hashed_key = self._hash_key(key)
 
         try:
-            assert self._redis is not None
+            if self._redis is None:
+                raise CacheError("Redis connection not established")
             value = await self._redis.get(hashed_key)
             if value is None:
                 logger.debug(f"Cache miss for key: {key}")
@@ -208,7 +208,8 @@ class SecureCache:
             ttl_seconds = self.default_ttl
 
         try:
-            assert self._redis is not None
+            if self._redis is None:
+                raise CacheError("Redis connection not established")
             serialized_value = self._serialize(value)
             await self._redis.setex(hashed_key, ttl_seconds, serialized_value)
             logger.debug(f"Cached value for key: {key} (TTL: {ttl_seconds}s)")
@@ -240,7 +241,8 @@ class SecureCache:
         hashed_key = self._hash_key(key)
 
         try:
-            assert self._redis is not None
+            if self._redis is None:
+                raise CacheError("Redis connection not established")
             result = await self._redis.delete(hashed_key)
             if result > 0:
                 logger.debug(f"Deleted cache key: {key}")
@@ -270,7 +272,8 @@ class SecureCache:
         hashed_key = self._hash_key(key)
 
         try:
-            assert self._redis is not None
+            if self._redis is None:
+                raise CacheError("Redis connection not established")
             result = await self._redis.exists(hashed_key)
             return result > 0
 
@@ -302,7 +305,8 @@ class SecureCache:
             full_pattern = f"{self.key_prefix}*"
 
         try:
-            assert self._redis is not None
+            if self._redis is None:
+                raise CacheError("Redis connection not established")
             # Use scan_iter for memory-efficient iteration
             deleted = 0
             async for key in self._redis.scan_iter(match=full_pattern, count=100):
@@ -335,7 +339,8 @@ class SecureCache:
         hashed_key = self._hash_key(key)
 
         try:
-            assert self._redis is not None
+            if self._redis is None:
+                raise CacheError("Redis connection not established")
             ttl = await self._redis.ttl(hashed_key)
             # TTL returns -2 if key doesn't exist, -1 if no expiry
             if ttl < 0:
@@ -366,7 +371,8 @@ class SecureCache:
         hashed_key = self._hash_key(key)
 
         try:
-            assert self._redis is not None
+            if self._redis is None:
+                raise CacheError("Redis connection not established")
             result = await self._redis.incrby(hashed_key, amount)
             return result
 

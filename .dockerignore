@@ -25,6 +25,19 @@ Makefile
 README.md
 *.md
 screenshots/
+docs/
+models/
+
+# Claude AI
+.claude/
+CLAUDE.md
+
+# Config files not needed in container
+.pre-commit-config.yaml
+.bandit
+.coveragerc
+mypy.ini
+pytest.ini
 
 # IDE
 .vscode/

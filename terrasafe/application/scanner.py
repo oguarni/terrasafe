@@ -183,7 +183,7 @@ class IntelligentSecurityScanner:
                 'error_type': 'TerraformParseError',
                 'file': filepath
             }
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             logger.error(f"File not found: {filepath}")
             return {
                 'score': -1,

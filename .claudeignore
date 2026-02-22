@@ -1,19 +1,46 @@
 # Claude Code Ignore File
 
-# Files to ignore
+# Version control
+.git/
 
-# Folders to ignore (with all contents)
+# Python bytecode
+*.pyc
+__pycache__/
+
+# Virtual environments
 venv/
 .venv/
-__pycache__/
+
+# Testing & coverage
 .pytest_cache/
 htmlcov/
 .coverage
-*.egg-info/
+.benchmarks/
+
+# ML models (binary files)
 models/*.pkl
 models/*.joblib
+
+# Type checking cache
 .mypy_cache/
-.benchmarks/
+
+# Build artifacts
+*.egg-info/
+
+# Generated scan artifacts
 scan_results/
+scan_results_*.json
+scan_history.json
+bandit-report.json
+
+# Documentation & screenshots
 docs/
 screenshots/
+
+# Environment & config
+.env
+config/production.yaml
+config/local.yaml
+
+# Logs
+*.log

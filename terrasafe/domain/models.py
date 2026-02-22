@@ -2,12 +2,14 @@
 from enum import Enum
 from dataclasses import dataclass
 
+
 class Severity(Enum):
     """Security severity levels"""
     CRITICAL = "CRITICAL"
     HIGH = "HIGH"
     MEDIUM = "MEDIUM"
     LOW = "LOW"
+
 
 @dataclass
 class Vulnerability:

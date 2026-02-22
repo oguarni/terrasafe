@@ -178,9 +178,9 @@ class Settings(BaseSettings):
         if not boto3:
             logger.warning("boto3 not installed, cannot fetch secrets from AWS Secrets Manager")
             return {}
-            
+
         region_name = "us-east-1"
-        
+
         session = boto3.session.Session()
         client = session.client(
             service_name='secretsmanager',
@@ -215,7 +215,7 @@ class Settings(BaseSettings):
                     return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{dbname}"
             except Exception as e:
                 logger.warning(f"Failed to resolve database credentials from secrets: {e}")
-        
+
         return self.database_url or ""
 
 

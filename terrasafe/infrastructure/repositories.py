@@ -5,12 +5,12 @@ Provides clean abstraction over database operations.
 
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import select, func, desc, and_
+from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
-from terrasafe.infrastructure.models import Scan, Vulnerability, ScanHistory, MLModelVersion
-from terrasafe.domain.models import Vulnerability as DomainVulnerability, Severity
+from terrasafe.infrastructure.models import Scan, Vulnerability, MLModelVersion
+from terrasafe.domain.models import Vulnerability as DomainVulnerability
 from terrasafe.infrastructure.validation import validate_file_hash, validate_scan_id, sanitize_filename
 from terrasafe.infrastructure.utils import categorize_vulnerability
 
@@ -423,7 +423,7 @@ class MLModelVersionRepository:
         """
         result = await self.session.execute(
             select(MLModelVersion)
-            .where(MLModelVersion.is_active == True)
+            .where(MLModelVersion.is_active.is_(True))
             .order_by(desc(MLModelVersion.deployed_at))
             .limit(1)
         )
@@ -441,7 +441,7 @@ class MLModelVersionRepository:
         """
         # Deactivate all versions
         result = await self.session.execute(
-            select(MLModelVersion).where(MLModelVersion.is_active == True)
+            select(MLModelVersion).where(MLModelVersion.is_active.is_(True))
         )
         for model in result.scalars().all():
             model.is_active = False

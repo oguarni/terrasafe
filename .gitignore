@@ -124,6 +124,7 @@ pip-wheel-metadata/
 # Security & CI/CD Reports
 # ===================================
 bandit.json
+bandit-report.json
 safety-report.txt
 trivy-report.json
 sbom.json
