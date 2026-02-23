@@ -444,10 +444,10 @@ The Docker image runs as a **non-root user** with `--read-only` filesystem and `
 
 | | |
 |---|---|
-| **Course** | Sistemas Inteligentes (Intelligent Systems) |
-| **Institution** | UTFPR — Universidade Tecnológica Federal do Paraná |
-| **Program** | Software Engineering, 7th Semester |
-| **Type** | Proof of Concept — Intelligent System Application |
+| **Course** | Capstone Project I and II |
+| **Institution** | Federal University of Technology - Paraná (UTFPR) |
+| **Program** | B.S. in Software Engineering, 8th Semester |
+| **Type** | Technical Report |
 
 ### Why Isolation Forest?
 
