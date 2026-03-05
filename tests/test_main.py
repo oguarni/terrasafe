@@ -14,20 +14,36 @@ class TestMainCLI:
     """Test suite for main CLI entry point"""
 
     def test_main_missing_arguments(self, capsys):
-        """Test main with no arguments"""
+        """Test main with no arguments exits with code 2 (argparse error)"""
         with patch.object(sys, 'argv', ['terrasafe']):
             with pytest.raises(SystemExit) as exc_info:
                 main()
-            assert exc_info.value.code == 1
+            assert exc_info.value.code == 2
             captured = capsys.readouterr()
-            assert 'Usage:' in captured.out
+            # argparse writes usage to stderr
+            assert 'usage' in captured.err.lower() or 'error' in captured.err.lower()
 
-    def test_main_too_many_arguments(self, capsys):
-        """Test main with too many arguments"""
-        with patch.object(sys, 'argv', ['terrasafe', 'file1.tf', 'file2.tf']):
+    def test_main_multi_file_is_valid(self):
+        """Multiple files are now accepted (multi-file scan mode)"""
+        import io
+        from unittest.mock import MagicMock
+        from terrasafe import cli
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan.side_effect = [
+            {'score': -1, 'error': 'not found', 'file': 'file1.tf'},
+            {'score': -1, 'error': 'not found', 'file': 'file2.tf'},
+        ]
+
+        with patch.object(sys, 'argv', ['terrasafe', 'file1.tf', 'file2.tf']), \
+             patch.object(cli, '_build_scanner', return_value=mock_scanner), \
+             patch('sys.stdout', io.StringIO()), \
+             patch('sys.stderr', io.StringIO()):
             with pytest.raises(SystemExit) as exc_info:
                 main()
-            assert exc_info.value.code == 1
+            # Both files error → exit 0 for text mode (single file used), or 2 for CI mode
+            # Text mode uses only first file; score=-1 → exit 2
+            assert exc_info.value.code == 2
 
     @patch('terrasafe.cli.MLPredictor')
     @patch('terrasafe.cli.IntelligentSecurityScanner')

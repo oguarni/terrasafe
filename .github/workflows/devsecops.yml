@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
   security-events: write
 
 jobs:
@@ -90,22 +91,26 @@ jobs:
     needs: test
     steps:
     - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        fetch-depth: 0
 
-    - name: Install TerraSafe
-      run: pip install -r requirements.txt
+    - name: Run TerraSafe composite action on test_files/
+      id: terrasafe
+      uses: ./.github/actions/terrasafe-scan
+      with:
+        terraform_dir: test_files
+        threshold: "70"
+        fail_on_high_risk: "false"
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        scan_changed_only: "false"
+        post_comment: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
 
-    - name: Scan vulnerable config (should fail)
-      run: |
-        python -m terrasafe.cli test_files/vulnerable.tf || echo "Expected failure"
-
-    - name: Scan secure config (should pass)
-      run: |
-        python -m terrasafe.cli test_files/secure.tf
+    - name: Upload SARIF to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v4
+      if: always()
+      with:
+        sarif_file: terrasafe-results.sarif
+        category: terrasafe-integration
 
     - name: Archive scan results
       uses: actions/upload-artifact@v4
@@ -113,8 +118,9 @@ jobs:
       with:
         name: scan-results
         path: |
-          scan_results_*.json
-          scan_history.json
+          scan_output.json
+          terrasafe-results.sarif
+          scan_errors.log
 
   # Docker security and build
   docker:

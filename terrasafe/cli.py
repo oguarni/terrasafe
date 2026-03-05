@@ -6,6 +6,7 @@ import sys
 import os
 import json
 import logging
+import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
@@ -18,41 +19,32 @@ from terrasafe.infrastructure.ml_model import ModelManager, MLPredictor
 from terrasafe.domain.security_rules import SecurityRuleEngine
 from terrasafe.application.scanner import IntelligentSecurityScanner
 from terrasafe.cli_formatter import format_results_for_display
+from terrasafe.sarif_formatter import results_to_sarif
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
-def main():
-    """Main entry point with unique output and scan history tracking."""
-    if len(sys.argv) != 2:
-        print("Usage: python -m terrasafe.main <terraform_file.tf>")
-        print("\nExample:")
-        print("  python -m terrasafe.main test_files/vulnerable.tf")
-        sys.exit(1)
-
-    filepath = sys.argv[1]
-
-    # Dependency Injection (Clean Architecture)
+def _build_scanner():
     parser = HCLParser()
     rule_analyzer = SecurityRuleEngine()
     model_manager = ModelManager()
     ml_predictor = MLPredictor(model_manager)
-    scanner = IntelligentSecurityScanner(parser, rule_analyzer, ml_predictor)
+    return IntelligentSecurityScanner(parser, rule_analyzer, ml_predictor)
 
-    print("🔐 TerraSafe - Intelligent Terraform Security Scanner")
-    print("🤖 Using hybrid approach: Rules (60%) + ML Anomaly Detection (40%)")
 
-    results = scanner.scan(filepath)
+def _configure_logging(output_format: str) -> None:
+    """Redirect logging to stderr in CI modes to keep stdout pure."""
+    handler = logging.StreamHandler(sys.stderr if output_format in ("json", "sarif") else sys.stdout)
+    handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    root = logging.getLogger()
+    root.handlers.clear()
+    root.addHandler(handler)
+    root.setLevel(logging.INFO)
 
-    print(format_results_for_display(results))
 
-    # Construct unique output filename (scan_results_<stem>.json)
+def _save_history(results: dict, filepath: str) -> None:
     input_stem = Path(filepath).stem
     json_output = Path(f"scan_results_{input_stem}.json")
-
-    # Persist individual scan result
     try:
         with open(json_output, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2, default=str)
@@ -60,7 +52,6 @@ def main():
     except (OSError, TypeError, ValueError) as e:
         logger.error("Failed writing scan output %s: %s", json_output, e)
 
-    # Append to consolidated history with rotation
     history_path = Path("scan_history.json")
     MAX_HISTORY_SIZE = int(os.getenv("TERRASAFE_MAX_HISTORY_SIZE", "100"))
 
@@ -76,13 +67,9 @@ def main():
         else:
             history = {"scans": []}
 
-        # Add new scan and rotate if needed
         history['scans'].append(results_with_meta)
-
-        # Keep only last MAX_HISTORY_SIZE scans
         if len(history['scans']) > MAX_HISTORY_SIZE:
             history['scans'] = history['scans'][-MAX_HISTORY_SIZE:]
-            logger.info("Rotated scan history to keep last %s entries", MAX_HISTORY_SIZE)
 
         with open(history_path, 'w', encoding='utf-8') as hf:
             json.dump(history, hf, indent=2, default=str)
@@ -90,15 +77,115 @@ def main():
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as e:
         logger.error("Failed updating history file: %s", e)
 
-    # Severity-based exit codes (Task 3)
-    if results['score'] == -1:
-        sys.exit(2)  # Parse/scan error
-    elif results['score'] >= 90:
-        sys.exit(3)  # Critical risk
-    elif results['score'] >= 70:
-        sys.exit(1)  # High risk
+
+def _text_exit_code(score: int, threshold: int) -> int:
+    """Classic 4-level exit codes for text mode (single-file, backward-compat)."""
+    if score == -1:
+        return 2
+    elif score >= 90:
+        return 3
+    elif score >= threshold:
+        return 1
     else:
-        sys.exit(0)  # Acceptable risk
+        return 0
+
+
+def _ci_exit_code(results_list: list, threshold: int) -> int:
+    """Binary exit codes for json/sarif CI mode."""
+    has_error = any(r.get("score") == -1 for r in results_list)
+    has_exceeded = any(r.get("score", 0) >= threshold for r in results_list if r.get("score", -1) != -1)
+    if has_error:
+        return 2
+    elif has_exceeded:
+        return 1
+    else:
+        return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="python -m terrasafe.cli",
+        description="TerraSafe - Intelligent Terraform Security Scanner",
+    )
+    parser.add_argument(
+        "files",
+        nargs="+",
+        metavar="file.tf",
+        help="One or more Terraform files to scan",
+    )
+    parser.add_argument(
+        "--output-format",
+        choices=["text", "json", "sarif"],
+        default="text",
+        dest="output_format",
+        help="Output format (default: text)",
+    )
+    parser.add_argument(
+        "--threshold",
+        type=int,
+        default=70,
+        metavar="N",
+        help="Risk score threshold 0-100 (default: 70)",
+    )
+    parser.add_argument(
+        "--no-history",
+        action="store_true",
+        dest="no_history",
+        help="Skip writing scan_results_*.json and scan_history.json",
+    )
+
+    args = parser.parse_args()
+    _configure_logging(args.output_format)
+
+    output_format = args.output_format
+    threshold = max(0, min(100, args.threshold))
+
+    scanner = _build_scanner()
+
+    if output_format == "text":
+        # Single-file legacy mode (backward-compat)
+        filepath = args.files[0]
+
+        if output_format == "text":
+            print("🔐 TerraSafe - Intelligent Terraform Security Scanner")
+            print("🤖 Using hybrid approach: Rules (60%) + ML Anomaly Detection (40%)")
+
+        results = scanner.scan(filepath)
+        print(format_results_for_display(results))
+
+        if not args.no_history:
+            _save_history(results, filepath)
+
+        sys.exit(_text_exit_code(results['score'], threshold))
+
+    else:
+        # CI mode: multi-file, pure stdout JSON/SARIF
+        all_results = []
+        for fp in args.files:
+            all_results.append(scanner.scan(fp))
+
+        if output_format == "json":
+            valid_scores = [r['score'] for r in all_results if r.get('score', -1) != -1]
+            max_score = max(valid_scores) if valid_scores else 0
+            passed = sum(1 for s in valid_scores if s < threshold)
+            failed = sum(1 for s in valid_scores if s >= threshold)
+
+            output = {
+                "results": all_results,
+                "summary": {
+                    "total_files": len(all_results),
+                    "passed": passed,
+                    "failed": failed,
+                    "max_score": max_score,
+                    "threshold": threshold,
+                },
+            }
+            sys.stdout.write(json.dumps(output, indent=2, default=str) + "\n")
+
+        elif output_format == "sarif":
+            sys.stdout.write(results_to_sarif(all_results) + "\n")
+
+        sys.exit(_ci_exit_code(all_results, threshold))
 
 
 if __name__ == "__main__":
