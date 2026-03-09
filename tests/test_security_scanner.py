@@ -196,9 +196,9 @@ def test_detect_open_ssh_port(rule_engine):
         'resource': [{'aws_security_group': [{'test_sg': {'ingress': [{'from_port': 22, 'to_port': 22, 'protocol': 'tcp', 'cidr_blocks': ['0.0.0.0/0']}]}}]}]
     }
     vulnerabilities = rule_engine.analyze(tf_content, "")
-    assert len(vulnerabilities) == 1
-    assert vulnerabilities[0].severity == Severity.CRITICAL
-    assert 'SSH' in vulnerabilities[0].message.upper()
+    ssh_vulns = [v for v in vulnerabilities if 'SSH' in v.message.upper()]
+    assert len(ssh_vulns) == 1
+    assert ssh_vulns[0].severity == Severity.CRITICAL
 
 
 def test_detect_hardcoded_password(rule_engine):
@@ -215,9 +215,10 @@ def test_detect_unencrypted_rds(rule_engine):
         'resource': [{'aws_db_instance': [{'test_db': {'engine': 'mysql', 'storage_encrypted': False}}]}]
     }
     vulnerabilities = rule_engine.analyze(tf_content, "")
-    assert len(vulnerabilities) == 1
-    assert vulnerabilities[0].severity == Severity.HIGH
-    assert 'unencrypted' in vulnerabilities[0].message.lower()
+    rds_vulns = [v for v in vulnerabilities if 'unencrypted' in v.message.lower() and 'rds' in v.message.lower()]
+    assert len(rds_vulns) == 1
+    assert rds_vulns[0].severity == Severity.HIGH
+    assert 'unencrypted' in rds_vulns[0].message.lower()
 
 
 def test_detect_public_s3_bucket(rule_engine):
@@ -231,17 +232,24 @@ def test_detect_public_s3_bucket(rule_engine):
         }}]}]
     }
     vulnerabilities = rule_engine.analyze(tf_content, "")
-    assert len(vulnerabilities) == 1
-    assert vulnerabilities[0].severity == Severity.HIGH
+    s3_vulns = [v for v in vulnerabilities if 's3' in v.message.lower()]
+    assert len(s3_vulns) == 1
+    assert s3_vulns[0].severity == Severity.HIGH
 
 
 def test_no_vulnerabilities_secure_config(rule_engine):
-    """Test that secure configurations don't trigger false positives"""
+    """Test that secure configurations don't trigger encryption false positives"""
     tf_content = {
-        'resource': [{'aws_db_instance': [{'secure_db': {'engine': 'mysql', 'storage_encrypted': True}}]}]
+        'resource': [
+            {'aws_db_instance': [{'secure_db': {'engine': 'mysql', 'storage_encrypted': True}}]},
+            {'aws_cloudtrail': [{'trail': {'name': 'audit-trail', 's3_bucket_name': 'audit-bucket'}}]},
+        ]
     }
     vulnerabilities = rule_engine.analyze(tf_content, "")
-    assert len(vulnerabilities) == 0
+    # No encryption, SSH, S3, IAM, or logging vulnerabilities expected
+    unwanted_vulns = [v for v in vulnerabilities if 'missing logging' not in v.message.lower()
+                      and 'flow log' not in v.message.lower()]
+    assert len(unwanted_vulns) == 0
 
 
 # ============================================================================
@@ -387,8 +395,9 @@ def test_feature_extraction(scanner_with_mocks):
 
     features = scanner_with_mocks._extract_features(vulnerabilities)
 
-    # Expected: [1 open_port, 1 secret, 1 public_access, 1 unencrypted, 4 resources]
-    expected = np.array([[1, 1, 1, 1, 4]])
+    # Expected: [1 open_port, 1 secret, 1 public_access, 1 unencrypted, 0 missing_logging,
+    #            0 missing_flow_logs, 4 resources]
+    expected = np.array([[1, 1, 1, 1, 0, 0, 4]])
     np.testing.assert_array_equal(features, expected)
 
 
@@ -427,7 +436,7 @@ def test_vulnerability_to_dict(scanner_with_mocks):
 
 def test_format_features(scanner_with_mocks):
     """Test feature formatting"""
-    features = np.array([[2, 1, 0, 3, 10]])
+    features = np.array([[2, 1, 0, 3, 1, 0, 10]])
     formatted = scanner_with_mocks._format_features(features)
 
     expected = {
@@ -435,6 +444,8 @@ def test_format_features(scanner_with_mocks):
         'hardcoded_secrets': 1,
         'public_access': 0,
         'unencrypted_storage': 3,
+        'missing_logging': 1,
+        'missing_flow_logs': 0,
         'total_resources': 10
     }
 
@@ -664,8 +675,8 @@ def test_predict_risk_with_features(ml_predictor):
     IMPROVED: Now includes relative score comparisons.
     """
     # Test with different feature patterns
-    low_risk_features = np.array([[0, 0, 0, 0, 5]])
-    high_risk_features = np.array([[3, 2, 2, 3, 20]])
+    low_risk_features = np.array([[0, 0, 0, 0, 0, 0, 5]])
+    high_risk_features = np.array([[3, 2, 2, 3, 1, 1, 20]])
 
     low_score, low_conf = ml_predictor.predict_risk(low_risk_features)
     high_score, high_conf = ml_predictor.predict_risk(high_risk_features)
@@ -692,8 +703,8 @@ def test_predict_risk_anomaly_detected(ml_predictor):
     IMPROVED: Strengthened assertions for anomaly detection.
     """
     # Create a pattern that should be flagged as high risk
-    very_high_risk_features = np.array([[5, 5, 5, 5, 50]])  # Many vulnerabilities
-    moderate_risk_features = np.array([[1, 0, 1, 0, 10]])   # Few vulnerabilities
+    very_high_risk_features = np.array([[5, 5, 5, 5, 1, 1, 50]])  # Many vulnerabilities
+    moderate_risk_features = np.array([[1, 0, 1, 0, 0, 0, 10]])   # Few vulnerabilities
 
     very_high_score, very_high_conf = ml_predictor.predict_risk(very_high_risk_features)
     moderate_score, moderate_conf = ml_predictor.predict_risk(moderate_risk_features)
@@ -710,7 +721,7 @@ def test_predict_risk_anomaly_detected(ml_predictor):
 def test_predict_risk_edge_cases(ml_predictor):
     """Test risk prediction with edge case inputs"""
     # Empty features (no vulnerabilities)
-    empty_features = np.array([[0, 0, 0, 0, 0]])
+    empty_features = np.array([[0, 0, 0, 0, 0, 0, 0]])
     score, confidence = ml_predictor.predict_risk(empty_features)
 
     assert score >= 0

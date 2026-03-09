@@ -60,3 +60,12 @@ resource "aws_s3_bucket" "main_bucket" {
     Environment = "test"
   }
 }
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"  # HIGH: No aws_flow_log present — VPC traffic is unmonitored
+  tags = {
+    Name = "vulnerable-vpc"
+  }
+}
+# NOTE: no aws_cloudtrail, no aws_cloudwatch_log_group → triggers missing_logging rule
+# NOTE: no aws_flow_log → triggers missing_vpc_flow_logs rule

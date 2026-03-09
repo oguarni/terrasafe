@@ -2,6 +2,7 @@
 import re
 from typing import List, Dict
 from .models import Vulnerability, Severity
+from ..config.settings import get_settings
 
 
 # Constants for severity points (Clean Code: No magic numbers)
@@ -258,6 +259,67 @@ class SecurityRuleEngine:
 
         return vulns
 
+    def check_missing_logging(self, tf_content: Dict) -> List[Vulnerability]:
+        """Check for missing CloudTrail/CloudWatch logging resources.
+
+        If infrastructure resources exist but no logging resources are present,
+        flag as HIGH severity.
+        """
+        vulns: List[Vulnerability] = []
+
+        if 'resource' not in tf_content:
+            return vulns
+
+        resources = tf_content.get('resource', [])
+        all_resource_types = set()
+        for resource_block in resources:
+            all_resource_types.update(resource_block.keys())
+
+        # Only flag if there are infrastructure resources to log
+        infra_types = all_resource_types - {'aws_cloudtrail', 'aws_cloudwatch_log_group'}
+        has_infra = bool(infra_types)
+        has_logging = 'aws_cloudtrail' in all_resource_types or 'aws_cloudwatch_log_group' in all_resource_types
+
+        if has_infra and not has_logging:
+            vulns.append(Vulnerability(
+                severity=Severity.HIGH,
+                points=POINTS_HIGH,
+                message="[HIGH] Missing logging - no CloudTrail or CloudWatch log group detected",
+                resource="Logging",
+                remediation="Add aws_cloudtrail or aws_cloudwatch_log_group to enable audit logging"
+            ))
+
+        return vulns
+
+    def check_missing_vpc_flow_logs(self, tf_content: Dict) -> List[Vulnerability]:
+        """Check for VPC resources without corresponding flow logs.
+
+        If an aws_vpc resource exists but no aws_flow_log is found, flag as MEDIUM.
+        """
+        vulns: List[Vulnerability] = []
+
+        if 'resource' not in tf_content:
+            return vulns
+
+        resources = tf_content.get('resource', [])
+        all_resource_types = set()
+        for resource_block in resources:
+            all_resource_types.update(resource_block.keys())
+
+        has_vpc = 'aws_vpc' in all_resource_types
+        has_flow_log = 'aws_flow_log' in all_resource_types
+
+        if has_vpc and not has_flow_log:
+            vulns.append(Vulnerability(
+                severity=Severity.MEDIUM,
+                points=POINTS_MEDIUM,
+                message="[MEDIUM] Missing VPC flow logs - aws_vpc present but no aws_flow_log detected",
+                resource="VPC",
+                remediation="Add an aws_flow_log resource to enable VPC traffic logging"
+            ))
+
+        return vulns
+
     def analyze(self, tf_content: Dict, raw_content: str) -> List[Vulnerability]:
         """Run all security checks"""
         all_vulns = []
@@ -268,5 +330,23 @@ class SecurityRuleEngine:
         all_vulns.extend(self.check_encryption(tf_content))
         all_vulns.extend(self.check_public_s3(tf_content))
         all_vulns.extend(self.check_iam_policies(tf_content))
+        all_vulns.extend(self.check_missing_logging(tf_content))
+        all_vulns.extend(self.check_missing_vpc_flow_logs(tf_content))
+
+        # Apply severity overrides from config
+        overrides = get_settings().severity_overrides
+        if overrides:
+            severity_map = {s.value: s for s in Severity}
+            rule_key_map = {
+                'missing_logging': '[HIGH] Missing logging',
+                'missing_flow_logs': '[MEDIUM] Missing VPC flow logs',
+            }
+            for vuln in all_vulns:
+                for rule_name, override_level in overrides.items():
+                    fragment = rule_key_map.get(rule_name)
+                    if fragment and fragment in vuln.message:
+                        new_severity = severity_map.get(override_level.upper())
+                        if new_severity:
+                            vuln.severity = new_severity
 
         return all_vulns

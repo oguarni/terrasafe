@@ -63,3 +63,18 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+resource "aws_vpc" "app_vpc" {
+  cidr_block = "10.0.0.0/16"  # MEDIUM: No aws_flow_log present
+  tags = {
+    Name = "mixed-vpc"
+  }
+}
+
+resource "aws_cloudtrail" "app_trail" {
+  name           = "app-trail"
+  s3_bucket_name = aws_s3_bucket.app_bucket.bucket
+  # CloudTrail present — satisfies missing_logging rule
+}
+# NOTE: aws_cloudtrail present → no missing_logging vuln
+# NOTE: no aws_flow_log → triggers missing_vpc_flow_logs rule only

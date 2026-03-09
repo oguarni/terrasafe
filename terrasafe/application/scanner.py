@@ -219,9 +219,10 @@ class IntelligentSecurityScanner:
             Validated feature array with values clipped to acceptable bounds
         """
         # Define acceptable bounds for each feature
-        # [open_ports, hardcoded_secrets, public_access, unencrypted_storage, total_resources]
-        min_bounds = np.array([0, 0, 0, 0, 0], dtype=np.int32)
-        max_bounds = np.array([100, 100, 100, 100, 10000], dtype=np.int32)
+        # [open_ports, hardcoded_secrets, public_access, unencrypted_storage,
+        #  missing_logging, missing_flow_logs, total_resources]
+        min_bounds = np.array([0, 0, 0, 0, 0, 0, 0], dtype=np.int32)
+        max_bounds = np.array([100, 100, 100, 100, 100, 100, 10000], dtype=np.int32)
 
         # Clip features to acceptable ranges
         validated = np.clip(features, min_bounds, max_bounds)
@@ -244,11 +245,11 @@ class IntelligentSecurityScanner:
             vulnerabilities: List of detected vulnerabilities
 
         Returns:
-            Numpy array of features (shape: 1x5)
+            Numpy array of features (shape: 1x7)
         """
         if not vulnerabilities:
             # Return default feature vector for empty vulnerability list
-            return np.array([[0, 0, 0, 0, 1]], dtype=np.int32)
+            return np.array([[0, 0, 0, 0, 0, 0, 1]], dtype=np.int32)
 
         # Count unique resources
         unique_resources = len(set(v.resource for v in vulnerabilities))
@@ -270,12 +271,18 @@ class IntelligentSecurityScanner:
 
         unencrypted_mask = np.char.find(messages, 'unencrypted') >= 0
 
+        missing_logging_mask = np.char.find(messages, 'missing logging') >= 0
+
+        missing_flow_logs_mask = np.char.find(messages, 'missing vpc flow logs') >= 0
+
         # Count matches using numpy sum (faster than Python loops)
         features = np.array([
             np.sum(open_ports_mask),
             np.sum(hardcoded_mask),
             np.sum(public_access_mask),
             np.sum(unencrypted_mask),
+            np.sum(missing_logging_mask),
+            np.sum(missing_flow_logs_mask),
             unique_resources
         ], dtype=np.int32).reshape(1, -1)
 
@@ -288,7 +295,10 @@ class IntelligentSecurityScanner:
         return summary
 
     def _format_features(self, features: np.ndarray) -> Dict[str, int]:
-        feature_names = ['open_ports', 'hardcoded_secrets', 'public_access', 'unencrypted_storage', 'total_resources']
+        feature_names = [
+            'open_ports', 'hardcoded_secrets', 'public_access', 'unencrypted_storage',
+            'missing_logging', 'missing_flow_logs', 'total_resources'
+        ]
         return {name: int(val) for name, val in zip(feature_names, features[0])}
 
     def _vulnerability_to_dict(self, vuln: Vulnerability) -> Dict[str, Any]:
