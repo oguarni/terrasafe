@@ -67,6 +67,10 @@ class Settings(BaseSettings):
         default="models/isolation_forest.pkl",
         description="Path to ML model file"
     )
+    severity_overrides: Dict[str, str] = Field(
+        default={},
+        description="Override severity for specific rules, e.g. {'missing_logging': 'MEDIUM'}"
+    )
 
     # Security Configuration
     max_file_size_mb: int = Field(

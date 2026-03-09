@@ -73,3 +73,35 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+  tags = {
+    Name = "secure-vpc"
+  }
+}
+
+resource "aws_flow_log" "main" {
+  vpc_id          = aws_vpc.main.id
+  traffic_type    = "ALL"
+  iam_role_arn    = var.flow_log_role_arn
+  log_destination = aws_cloudwatch_log_group.flow_logs.arn
+}
+
+resource "aws_cloudwatch_log_group" "flow_logs" {
+  name              = "/aws/vpc/flow-logs"
+  retention_in_days = 90
+}
+
+resource "aws_cloudtrail" "main" {
+  name                          = "secure-trail"
+  s3_bucket_name                = aws_s3_bucket.main_bucket.bucket
+  include_global_service_events = true
+  is_multi_region_trail         = true
+  enable_log_file_validation    = true
+}
+
+variable "flow_log_role_arn" {
+  description = "IAM role ARN for VPC flow logs"
+  type        = string
+}

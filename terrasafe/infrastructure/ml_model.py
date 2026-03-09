@@ -364,33 +364,33 @@ class MLPredictor:
         rng = np.random.default_rng(42)
 
         # Enhanced baseline patterns representing secure configurations
-        # Features: [open_ports, secrets, public_access, unencrypted, resource_count]
+        # Features: [open_ports, secrets, public_access, unencrypted, missing_logging, missing_flow_logs, resource_count]
         baseline_patterns = [
             # Fully secure configurations
-            [0, 0, 0, 0, 5],   # Small secure microservice
-            [0, 0, 0, 0, 10],  # Medium secure application
-            [0, 0, 0, 0, 15],  # Large secure infrastructure
-            [0, 0, 0, 0, 25],  # Enterprise secure setup
-            [0, 0, 0, 0, 3],   # Minimal secure Lambda function
+            [0, 0, 0, 0, 0, 0, 5],    # Small secure microservice
+            [0, 0, 0, 0, 0, 0, 10],   # Medium secure application
+            [0, 0, 0, 0, 0, 0, 15],   # Large secure infrastructure
+            [0, 0, 0, 0, 0, 0, 25],   # Enterprise secure setup
+            [0, 0, 0, 0, 0, 0, 3],    # Minimal secure Lambda function
 
             # Web applications (acceptable public exposure)
-            [1, 0, 0, 0, 8],   # Simple web app with HTTP
-            [2, 0, 0, 0, 12],  # Web app with HTTP/HTTPS
-            [2, 0, 1, 0, 20],  # E-commerce with CDN (public S3)
-            [1, 0, 1, 0, 15],  # Static site with S3 hosting
-            [2, 0, 2, 0, 30],  # Multi-region web platform
+            [1, 0, 0, 0, 0, 0, 8],    # Simple web app with HTTP
+            [2, 0, 0, 0, 0, 0, 12],   # Web app with HTTP/HTTPS
+            [2, 0, 1, 0, 0, 0, 20],   # E-commerce with CDN (public S3)
+            [1, 0, 1, 0, 0, 0, 15],   # Static site with S3 hosting
+            [2, 0, 2, 0, 0, 0, 30],   # Multi-region web platform
 
             # Development environments (slightly relaxed)
-            [1, 0, 0, 1, 6],   # Dev env with one unencrypted volume
-            [2, 0, 0, 1, 10],  # Staging with test data
-            [1, 0, 1, 1, 8],   # QA environment
-            [0, 0, 0, 2, 12],  # Test cluster with temp storage
+            [1, 0, 0, 1, 0, 0, 6],    # Dev env with one unencrypted volume
+            [2, 0, 0, 1, 0, 0, 10],   # Staging with test data
+            [1, 0, 1, 1, 0, 0, 8],    # QA environment
+            [0, 0, 0, 2, 0, 0, 12],   # Test cluster with temp storage
 
             # Microservices architectures
-            [3, 0, 0, 0, 40],  # Service mesh with multiple endpoints
-            [4, 0, 1, 0, 50],  # Kubernetes cluster with ingress
-            [2, 0, 0, 0, 35],  # Docker swarm setup
-            [3, 0, 2, 0, 45],  # Multi-service with CDN
+            [3, 0, 0, 0, 0, 0, 40],   # Service mesh with multiple endpoints
+            [4, 0, 1, 0, 0, 0, 50],   # Kubernetes cluster with ingress
+            [2, 0, 0, 0, 0, 0, 35],   # Docker swarm setup
+            [3, 0, 2, 0, 0, 0, 45],   # Multi-service with CDN
         ]
 
         baseline_features = np.array(baseline_patterns)
@@ -401,7 +401,7 @@ class MLPredictor:
         # Add noise variations for each pattern
         for pattern in baseline_features:
             for _ in range(3):  # Create 3 variations per pattern
-                noise = rng.normal(0, 0.15, 5)
+                noise = rng.normal(0, 0.15, 7)
                 augmented = pattern + noise
                 augmented = np.maximum(augmented, 0)  # Ensure non-negative
                 # Round discrete features
@@ -410,11 +410,11 @@ class MLPredictor:
 
         # Add edge cases representing acceptable boundaries
         edge_cases = np.array([
-            [5, 0, 0, 0, 60],  # Large microservices
-            [0, 0, 5, 0, 40],  # Content delivery network
-            [3, 0, 3, 2, 50],  # Legacy migration
-            [0, 0, 0, 3, 25],  # Development cluster
-            [6, 0, 2, 0, 70],  # API gateway with multiple services
+            [5, 0, 0, 0, 0, 0, 60],   # Large microservices
+            [0, 0, 5, 0, 0, 0, 40],   # Content delivery network
+            [3, 0, 3, 2, 0, 0, 50],   # Legacy migration
+            [0, 0, 0, 3, 0, 0, 25],   # Development cluster
+            [6, 0, 2, 0, 0, 0, 70],   # API gateway with multiple services
         ])
 
         augmented_data = np.vstack([augmented_data, edge_cases])
@@ -446,7 +446,9 @@ class MLPredictor:
                 'hardcoded_secrets': {'min': int(augmented_data[:, 1].min()), 'max': int(augmented_data[:, 1].max())},
                 'public_access': {'min': int(augmented_data[:, 2].min()), 'max': int(augmented_data[:, 2].max())},
                 'unencrypted_storage': {'min': int(augmented_data[:, 3].min()), 'max': int(augmented_data[:, 3].max())},
-                'total_resources': {'min': int(augmented_data[:, 4].min()), 'max': int(augmented_data[:, 4].max())},
+                'missing_logging': {'min': int(augmented_data[:, 4].min()), 'max': int(augmented_data[:, 4].max())},
+                'missing_flow_logs': {'min': int(augmented_data[:, 5].min()), 'max': int(augmented_data[:, 5].max())},
+                'total_resources': {'min': int(augmented_data[:, 6].min()), 'max': int(augmented_data[:, 6].max())},
             },
             'model_parameters': {
                 'contamination': 0.1,
