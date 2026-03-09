@@ -1,0 +1,5 @@
+# Core scanning dependencies for the TerraSafe composite action
+python-hcl2==4.3.2
+scikit-learn==1.6.1
+numpy==1.26.4
+joblib==1.4.2
