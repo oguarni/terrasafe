@@ -1,0 +1,75 @@
+name: TerraSafe Terraform Security Scan
+
+on:
+  workflow_call:
+    inputs:
+      terraform_dir:
+        description: Directory containing Terraform files
+        type: string
+        required: false
+        default: "."
+      threshold:
+        description: Risk score threshold (0-100)
+        type: string
+        required: false
+        default: "70"
+      fail_on_high_risk:
+        description: Fail workflow if any file exceeds threshold
+        type: string
+        required: false
+        default: "true"
+      python_version:
+        description: Python version to use
+        type: string
+        required: false
+        default: "3.10"
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  terrasafe:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout calling repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout TerraSafe action
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          path: _terrasafe_action
+
+      - name: Run TerraSafe scan
+        id: scan
+        uses: ./_terrasafe_action/.github/actions/terrasafe-scan
+        with:
+          terraform_dir: ${{ inputs.terraform_dir }}
+          threshold: ${{ inputs.threshold }}
+          fail_on_high_risk: ${{ inputs.fail_on_high_risk }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          scan_changed_only: "true"
+          post_comment: "true"
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('terrasafe-results.sarif') != ''
+        continue-on-error: true
+        with:
+          sarif_file: terrasafe-results.sarif
+          category: terrasafe
+
+      - name: Upload scan artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: terrasafe-scan-results
+          path: |
+            scan_output.json
+            terrasafe-results.sarif
+            scan_errors.log
