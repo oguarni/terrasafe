@@ -4,9 +4,10 @@
 
 TerraSafe is a hybrid Terraform security scanner implementing Clean Architecture with:
 - **Architecture**: Clean Architecture layers (domain → application → infrastructure)
-- **Security Approach**: 60% rule-based detection + 40% ML anomaly detection
+- **Security Approach**: 60% rule-based detection (7 rules) + 40% ML anomaly detection (7-dim feature vector)
 - **Tech Stack**: FastAPI, PostgreSQL, Redis, Isolation Forest ML, Prometheus/Grafana
 - **Language**: Python 3.10+
+- **Health**: 319 tests (89% coverage), 0 lint issues, 0 bandit findings, 0 mypy errors
 
 ## Quick Start
 
@@ -32,9 +33,14 @@ make coverage
 ### Clean Architecture Layers
 
 ```
-domain/          → Business entities and rules (security rules, validators)
-application/     → Use cases and orchestration (scanner, ML predictor)
-infrastructure/  → External services (database, ML models, parsers, API)
+terrasafe/
+  domain/          → Business entities and rules (security rules, severity enum)
+  application/     → Use cases and orchestration (scanner, feature extraction)
+  infrastructure/  → External services (database, ML models, parser, rate limiter)
+  config/          → Settings (Pydantic) and structured logging
+  api.py           → FastAPI REST API
+  cli.py           → Command-line interface (text/json/sarif output)
+  metrics.py       → Prometheus metrics and track_metrics decorator
 ```
 
 ### Key Patterns
@@ -60,6 +66,7 @@ uvicorn terrasafe.api:app --reload
 
 # CLI usage
 python -m terrasafe.cli path/to/file.tf
+python -m terrasafe.cli --output-format json --threshold 50 file1.tf file2.tf
 ```
 
 ### Testing
@@ -72,7 +79,11 @@ pytest
 pytest --cov=terrasafe --cov-report=html
 
 # Run specific test module
-pytest tests/test_application_scanner.py -v
+pytest tests/test_security_scanner.py -v
+
+# Run by marker
+pytest -m unit
+pytest -m ml
 ```
 
 ### Code Quality
@@ -111,11 +122,13 @@ Subdirectory CLAUDE.md files provide focused instructions per architectural laye
 
 | Layer | File | Topics |
 |---|---|---|
-| Domain | `terrasafe/domain/CLAUDE.md` | Security rules, severity model, rule inventory, coverage gaps |
-| Application | `terrasafe/application/CLAUDE.md` | Scan pipeline, scoring, caching, feature extraction |
+| Entry Points | `terrasafe/CLAUDE.md` | API, CLI, formatters, metrics, middleware |
+| Config | `terrasafe/config/CLAUDE.md` | Settings (Pydantic), structured logging, correlation IDs |
+| Domain | `terrasafe/domain/CLAUDE.md` | 7 security rules, severity model, rule inventory, severity overrides |
+| Application | `terrasafe/application/CLAUDE.md` | Scan pipeline, scoring, caching, 7-dim feature extraction |
 | Infrastructure | `terrasafe/infrastructure/CLAUDE.md` | DB, cache, parser, repositories, rate limiter |
 | ML System | `terrasafe/infrastructure/CLAUDE_ML.md` | IsolationForest, training, drift detection, model files |
-| Tests | `tests/CLAUDE.md` | Fixtures, markers, mocking patterns, coverage gaps |
+| Tests | `tests/CLAUDE.md` | 319 tests, fixtures, markers, mocking patterns, per-module coverage |
 
 ## Known Issues
 
@@ -125,8 +138,8 @@ All previously documented issues have been resolved:
 - `FallbackRateLimiter.cleanup_old_entries()` removed — superseded by `_cleanup_locked()`
 - `ScanHistory` ORM model removed from `models.py` and `alembic/env.py`
 - `settings.model_path` now wired to `ModelManager.__init__` (default: `models/isolation_forest.pkl`)
-- `check_iam_policies()` covered by `tests/test_security_rules_iam.py` (7 test cases)
-- `config/logging.py` covered by `tests/test_config_logging.py` (9 test cases)
+- `check_iam_policies()` covered by `tests/test_security_rules_iam.py` (8 test cases)
+- `config/logging.py` covered by `tests/test_config_logging.py` (13 test cases)
 - `Severity.INFO = "INFO"` added to domain enum; `POINTS_INFO = 2` added to `security_rules.py`
 - `update_model_with_feedback()` rewrites to combine historical + new data (no more catastrophic forgetting)
 

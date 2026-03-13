@@ -2,7 +2,7 @@
 
 ## Scope
 
-This layer is **dependency-free** (stdlib only: `re`, `enum`, `dataclasses`). Never import from `application` or `infrastructure`.
+This layer defines business entities and detection logic. It depends only on `config.settings` (for `severity_overrides`) — never import from `application` or `infrastructure`.
 
 ## Files
 
@@ -12,28 +12,39 @@ This layer is **dependency-free** (stdlib only: `re`, `enum`, `dataclasses`). Ne
 - **Naming collision**: `Vulnerability` here conflicts with the ORM model in `infrastructure/models.py`. Repositories import it as `DomainVulnerability` alias.
 
 ### `security_rules.py`
-- `SecurityRuleEngine` — 5 rule checks, point constants: `CRITICAL=30`, `HIGH=20`, `MEDIUM=10`, `LOW=5`, `INFO=2`
-- `analyze(tf_content, raw_content)` aggregates all checks — **new rules must be added here**
+- `SecurityRuleEngine` — 7 rule checks, point constants: `CRITICAL=30`, `HIGH=20`, `MEDIUM=10`, `LOW=5`, `INFO=2`
+- `analyze(tf_content, raw_content)` aggregates all checks and applies `severity_overrides` from settings — **new rules must be registered here**
 
 ## Rule Inventory
 
-| Rule | Method | Notes |
-|---|---|---|
-| Open security groups | `check_open_security_groups()` | Port-specific severity (22/3389 → CRITICAL, 80/443 → MEDIUM) |
-| Hardcoded secrets | `check_hardcoded_secrets()` | Regex patterns; excludes `var.` and `${` interpolations |
-| Encryption | `check_encryption()` | RDS (`storage_encrypted`) + EBS (`encrypted`) |
-| Public S3 | `check_public_s3()` | 4 boolean settings checked |
-| IAM policies | `check_iam_policies()` | Wildcard actions + full admin (`*`/`*`) detection |
+| # | Rule | Method | Severity | Notes |
+|---|---|---|---|---|
+| 1 | Open security groups | `check_open_security_groups()` | CRITICAL/HIGH/MEDIUM | Port-specific: SSH(22)/RDP(3389) → CRITICAL, HTTP(80/443) → MEDIUM, other → HIGH |
+| 2 | Hardcoded secrets | `check_hardcoded_secrets()` | CRITICAL | Regex: password, api_key, secret_key, token; excludes `var.` and `${` refs |
+| 3 | Unencrypted storage | `check_encryption()` | HIGH | RDS (`storage_encrypted`) + EBS (`encrypted`) |
+| 4 | Public S3 | `check_public_s3()` | HIGH/MEDIUM | 4 boolean settings; >=3 disabled → HIGH, >0 → MEDIUM |
+| 5 | IAM policies | `check_iam_policies()` | CRITICAL | Wildcard actions + full admin (`*`/`*`) detection |
+| 6 | Missing logging | `check_missing_logging()` | HIGH | Flags if infra resources exist but no CloudTrail/CloudWatch |
+| 7 | Missing VPC flow logs | `check_missing_vpc_flow_logs()` | MEDIUM | Flags if `aws_vpc` exists but no `aws_flow_log` |
+
+### Severity Overrides
+
+`analyze()` checks `get_settings().severity_overrides` dict. Supported keys:
+- `missing_logging` — overrides `[HIGH] Missing logging` findings
+- `missing_flow_logs` — overrides `[MEDIUM] Missing VPC flow logs` findings
 
 ## Conventions
 
 - New rule functions: `def check_<name>(self, tf_content: dict, raw_content: str = "") -> List[Vulnerability]`
 - Add call to `analyze()` to include the rule in scoring
 - Return `[]` (not `None`) if no vulnerabilities found
+- If the new rule needs severity overrides, add its key to `rule_key_map` in `analyze()`
+- When adding a new rule, also add corresponding feature extraction in `application/scanner.py:_extract_features()`
 
-## Coverage Gaps (untested)
+## Coverage (96.25%)
 
-- RDP port branch (3389) in `check_open_security_groups()`
-- HTTP/HTTPS port branches (80/443)
-- EBS encryption check
-- Partial S3 access control paths
+Untested lines:
+- Line 53: RDP port (3389) vulnerability creation branch
+- Lines 110-112: Individual secret type detection loop body (api_key, secret_key, token patterns)
+- Line 154: EBS volume dict-to-list conversion (non-list input path)
+- Line 232: IAM policy dict-to-list conversion (non-list input path)
