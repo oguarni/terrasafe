@@ -732,3 +732,176 @@ def test_predict_risk_edge_cases(ml_predictor):
     # (though ML might flag lack of resources as anomalous)
     assert score <= 70, \
         "Empty feature vector should not produce very high scores"
+
+
+# ============================================================================
+# TEST CACHE EVICTION AND EDGE CASES
+# ============================================================================
+
+@pytest.mark.unit
+def test_hash_cache_eviction(scanner_with_mocks):
+    """Hash cache is capped at 100 entries; oldest entry is evicted on overflow."""
+    scanner = scanner_with_mocks
+    for i in range(100):
+        scanner._hash_cache[(f"file_{i}.tf", float(i))] = f"hash_{i}"
+    assert len(scanner._hash_cache) == 100
+    with patch('builtins.open', mock_open(read_data=b"content")):
+        scanner._get_file_hash_cached("new_file.tf", 999.0)
+    assert len(scanner._hash_cache) == 100
+
+
+@pytest.mark.unit
+def test_get_file_hash_stat_fails_fallback(scanner_with_mocks):
+    """When Path.stat() raises OSError, _get_file_hash falls back to direct hash."""
+    import hashlib
+    scanner = scanner_with_mocks
+    with patch('pathlib.Path.stat', side_effect=OSError("no stat")):
+        with patch('builtins.open', mock_open(read_data=b"file content")):
+            result = scanner._get_file_hash("somefile.tf")
+    expected = hashlib.sha256(b"file content").hexdigest()
+    assert result == expected
+
+
+@pytest.mark.unit
+def test_scan_cache_eviction(scanner_with_mocks, mock_scanner_components):
+    """Scan cache is capped at 100 entries; oldest entry is evicted on overflow."""
+    scanner = scanner_with_mocks
+    mock_parser = mock_scanner_components['parser']
+    mock_rule_analyzer = mock_scanner_components['rule_analyzer']
+    mock_ml_predictor = mock_scanner_components['ml_predictor']
+
+    mock_parser.parse.return_value = ({}, "")
+    mock_rule_analyzer.analyze.return_value = []
+    mock_ml_predictor.predict_risk.return_value = (20.0, "LOW")
+
+    dummy_result = {'file': 'x', 'score': 0, 'rule_based_score': 0, 'ml_score': 0.0,
+                    'confidence': 'LOW', 'vulnerabilities': [], 'summary': {}, 'features_analyzed': {}}
+    for i in range(100):
+        scanner._scan_cache[(f"file_{i}.tf", f"hash_{i}", float(i))] = (dummy_result, 0.1)
+    assert len(scanner._scan_cache) == 100
+
+    with mock_filesystem(file_content=b'resource "aws_instance" "x" {}', file_size=50):
+        scanner.scan("new_file.tf")
+    assert len(scanner._scan_cache) == 100
+
+
+@pytest.mark.unit
+def test_validate_features_out_of_bounds(scanner_with_mocks):
+    """Features with values > 100 are clipped and warning is logged."""
+    scanner = scanner_with_mocks
+    features = np.array([[200, 0, 0, 0, 0, 0, 5]], dtype=np.int32)
+    validated = scanner._validate_features(features)
+    assert validated[0][0] == 100
+
+
+@pytest.mark.unit
+def test_scan_cache_hit_returns_from_cache_true(scanner_with_mocks, mock_scanner_components):
+    """Scanning same file twice returns from_cache=True on second call."""
+    scanner = scanner_with_mocks
+    mock_parser = mock_scanner_components['parser']
+    mock_rule_analyzer = mock_scanner_components['rule_analyzer']
+    mock_ml_predictor = mock_scanner_components['ml_predictor']
+
+    mock_parser.parse.return_value = ({}, "")
+    mock_rule_analyzer.analyze.return_value = []
+    mock_ml_predictor.predict_risk.return_value = (10.0, "LOW")
+
+    with mock_filesystem(file_content=b'resource "aws_instance" "x" {}', file_size=50):
+        result1 = scanner.scan("myfile.tf")
+        result2 = scanner.scan("myfile.tf")
+
+    assert result1['performance']['from_cache'] is False
+    assert result2['performance']['from_cache'] is True
+
+
+@pytest.mark.unit
+def test_extract_features_empty_list(scanner_with_mocks):
+    """_extract_features with empty list returns default [0,0,0,0,0,0,1]."""
+    scanner = scanner_with_mocks
+    features = scanner._extract_features([])
+    expected = np.array([[0, 0, 0, 0, 0, 0, 1]], dtype=np.int32)
+    np.testing.assert_array_equal(features, expected)
+
+
+@pytest.mark.unit
+def test_extract_features_missing_logging_and_flow_logs(scanner_with_mocks):
+    """_extract_features counts missing_logging and missing_flow_logs features."""
+    scanner = scanner_with_mocks
+    vulns = [
+        Vulnerability(Severity.HIGH, 20, "[HIGH] Missing logging configuration detected", "aws_cloudtrail"),
+        Vulnerability(Severity.MEDIUM, 10, "[MEDIUM] Missing VPC flow logs for aws_vpc.main", "aws_vpc"),
+    ]
+    features = scanner._extract_features(vulns)
+    assert features[0][4] == 1
+    assert features[0][5] == 1
+
+
+# ============================================================================
+# TEST SECURITY RULE ENGINE - ADDITIONAL COVERAGE
+# ============================================================================
+
+@pytest.mark.unit
+def test_detect_rdp_port_3389(rule_engine):
+    """RDP port 3389 open to internet triggers CRITICAL vulnerability."""
+    tf_content = {
+        'resource': [{'aws_security_group': [{'rdp_sg': {'ingress': [
+            {'from_port': 3389, 'to_port': 3389, 'protocol': 'tcp', 'cidr_blocks': ['0.0.0.0/0']}
+        ]}}]}]
+    }
+    vulns = rule_engine.check_open_security_groups(tf_content)
+    rdp_vulns = [v for v in vulns if 'RDP' in v.message]
+    assert len(rdp_vulns) == 1
+    assert rdp_vulns[0].severity == Severity.CRITICAL
+    assert rdp_vulns[0].points == 30
+
+
+@pytest.mark.unit
+def test_detect_hardcoded_api_key(rule_engine):
+    """api_key = 'AKIA...' triggers CRITICAL vulnerability."""
+    raw_content = 'api_key = "AKIAIOSFODNN7EXAMPLE"'
+    vulns = rule_engine.check_hardcoded_secrets(raw_content)
+    assert len(vulns) == 1
+    assert vulns[0].severity == Severity.CRITICAL
+    assert "API key" in vulns[0].message
+
+
+@pytest.mark.unit
+def test_detect_hardcoded_secret_key(rule_engine):
+    """secret_key = 'wJalr...' triggers CRITICAL vulnerability."""
+    raw_content = 'secret_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCY"'
+    vulns = rule_engine.check_hardcoded_secrets(raw_content)
+    assert len(vulns) == 1
+    assert vulns[0].severity == Severity.CRITICAL
+    assert "Secret key" in vulns[0].message
+
+
+@pytest.mark.unit
+def test_detect_hardcoded_token(rule_engine):
+    """token = 'eyJh...' triggers CRITICAL vulnerability."""
+    raw_content = 'token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"'
+    vulns = rule_engine.check_hardcoded_secrets(raw_content)
+    assert len(vulns) == 1
+    assert vulns[0].severity == Severity.CRITICAL
+    assert "Token" in vulns[0].message
+
+
+@pytest.mark.unit
+def test_ebs_volume_dict_not_list(rule_engine):
+    """aws_ebs_volume as dict (not list) is still processed correctly."""
+    tf_content = {
+        'resource': [{'aws_ebs_volume': {'data_vol': {'encrypted': False}}}]
+    }
+    vulns = rule_engine.check_encryption(tf_content)
+    ebs_vulns = [v for v in vulns if 'EBS' in v.message]
+    assert len(ebs_vulns) == 1
+    assert ebs_vulns[0].severity == Severity.HIGH
+
+
+@pytest.mark.unit
+def test_iam_policy_dict_not_list(rule_engine):
+    """aws_iam_role_policy as dict (not list) is still processed."""
+    tf_content = {
+        'resource': [{'aws_iam_role_policy': {'admin_policy': {'policy': '{"Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}'}}}]
+    }
+    vulns = rule_engine.check_iam_policies(tf_content)
+    assert len(vulns) >= 1

@@ -168,3 +168,74 @@ class TestGetLogger:
         """get_logger_with_context must return a LoggerAdapter instance."""
         adapter = get_logger_with_context("terrasafe.test.ctx")
         assert isinstance(adapter, LoggerAdapter)
+
+
+@pytest.mark.unit
+class TestLoggerAdapterProcess:
+    """Tests for LoggerAdapter.process()"""
+
+    def setup_method(self):
+        clear_correlation_id()
+
+    def teardown_method(self):
+        clear_correlation_id()
+
+    def test_process_adds_correlation_id(self):
+        """process() injects correlation_id into kwargs['extra'] when CID is set."""
+        set_correlation_id("req-abc-123")
+        adapter = get_logger_with_context("terrasafe.test.adapter")
+        msg, kwargs = adapter.process("hello", {})
+        assert "extra" in kwargs
+        assert kwargs["extra"]["correlation_id"] == "req-abc-123"
+
+    def test_process_without_correlation_id(self):
+        """process() leaves kwargs unchanged when no CID is set."""
+        clear_correlation_id()
+        adapter = get_logger_with_context("terrasafe.test.adapter")
+        msg, kwargs = adapter.process("hello", {})
+        assert "extra" not in kwargs or "correlation_id" not in kwargs.get("extra", {})
+
+    def test_process_preserves_existing_extra(self):
+        """process() adds correlation_id to an already-present extra dict."""
+        set_correlation_id("cid-xyz")
+        adapter = get_logger_with_context("terrasafe.test.adapter")
+        kwargs = {"extra": {"my_key": "my_val"}}
+        msg, new_kwargs = adapter.process("msg", kwargs)
+        assert new_kwargs["extra"]["my_key"] == "my_val"
+        assert new_kwargs["extra"]["correlation_id"] == "cid-xyz"
+
+
+@pytest.mark.unit
+class TestSetupLoggingFileHandler:
+    """Tests for setup_logging() with file handler."""
+
+    def test_setup_logging_with_file_handler(self, tmp_path):
+        """setup_logging with log_file creates a file handler without errors."""
+        log_file = str(tmp_path / "test.log")
+        setup_logging(log_level="INFO", log_format="json", log_file=log_file)
+        root = logging.getLogger()
+        assert root.level == logging.INFO
+
+
+@pytest.mark.unit
+class TestStructuredFormatterExtraFields:
+    """Tests for StructuredFormatter extra_fields support."""
+
+    def test_structured_formatter_extra_fields(self):
+        """Extra fields on the record are merged into JSON output."""
+        import json as _json
+        clear_correlation_id()
+        formatter = StructuredFormatter()
+        record = logging.LogRecord(
+            name="test",
+            level=logging.INFO,
+            pathname=__file__,
+            lineno=1,
+            msg="test message",
+            args=(),
+            exc_info=None,
+        )
+        record.extra_fields = {"custom_key": "custom_val", "request_id": "42"}
+        data = _json.loads(formatter.format(record))
+        assert data.get("custom_key") == "custom_val"
+        assert data.get("request_id") == "42"

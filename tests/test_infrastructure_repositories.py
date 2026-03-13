@@ -104,6 +104,30 @@ class TestScanRepository:
         assert len(add_calls) >= 3  # 1 scan + 2 vulnerabilities
 
     @pytest.mark.asyncio
+    async def test_create_scan_with_domain_vulnerability_objects(self, scan_repo, mock_session, sample_scan_data):
+        """ScanRepository.create() handles DomainVulnerability dataclass instances (not dicts)."""
+        sample_scan_data['vulnerabilities'] = [
+            DomainVulnerability(
+                severity=Severity.CRITICAL,
+                points=30,
+                message="[CRITICAL] Open security group - SSH port 22 exposed",
+                resource="web_sg",
+                remediation="Restrict SSH access"
+            ),
+            DomainVulnerability(
+                severity=Severity.HIGH,
+                points=20,
+                message="[HIGH] Unencrypted EBS volume",
+                resource="data_vol",
+                remediation="Enable encrypted = true"
+            ),
+        ]
+        scan = await scan_repo.create(**sample_scan_data)
+        assert mock_session.add.call_count >= 3
+        scan_obj = mock_session.add.call_args_list[0][0][0]
+        assert isinstance(scan_obj, Scan)
+
+    @pytest.mark.asyncio
     async def test_create_scan_with_optional_fields(self, scan_repo, mock_session, sample_scan_data):
         """Test creating a scan with optional fields."""
         sample_scan_data.update({

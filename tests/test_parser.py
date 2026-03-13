@@ -114,3 +114,40 @@ class TestHCLParser:
         tf_content, raw_content = parser.parse("test_files/vulnerable.tf")
         assert isinstance(raw_content, str)
         # Should not raise encoding errors
+
+    def test_parse_non_list_resource_handling(self, tmp_path):
+        """Parser handles resource block as dict not list."""
+        content = 'resource "aws_instance" "test" { ami = "ami-12345678" instance_type = "t2.micro" }'
+        tf_file = tmp_path / "dict_resource.tf"
+        tf_file.write_text(content)
+        parser = HCLParser()
+        tf_content, raw_content = parser.parse(str(tf_file))
+        assert isinstance(tf_content, dict)
+
+    def test_parse_file_size_limit(self, tmp_path):
+        """File exceeding max size raises FileSizeLimitError."""
+        from terrasafe.infrastructure.parser import FileSizeLimitError
+        tf_file = tmp_path / "large.tf"
+        tf_file.write_text("x" * 100)
+        parser = HCLParser(max_file_size_bytes=10)
+        with pytest.raises(FileSizeLimitError):
+            parser.parse(str(tf_file))
+
+    def test_parse_binary_content(self, tmp_path):
+        """Non-UTF8 binary content raises TerraformParseError."""
+        tf_file = tmp_path / "binary.tf"
+        tf_file.write_bytes(b"\xff\xfe binary content that is not utf-8 valid \x80\x81")
+        parser = HCLParser()
+        with pytest.raises(TerraformParseError) as exc_info:
+            parser.parse(str(tf_file))
+        assert "encoding" in str(exc_info.value).lower() or "utf" in str(exc_info.value).lower()
+
+    def test_parse_permission_denied(self, tmp_path):
+        """PermissionError on open raises TerraformParseError."""
+        tf_file = tmp_path / "restricted.tf"
+        tf_file.write_text('resource "aws_instance" "test" {}')
+        parser = HCLParser()
+        with patch('builtins.open', side_effect=PermissionError("access denied")):
+            with pytest.raises(TerraformParseError) as exc_info:
+                parser.parse(str(tf_file))
+        assert "Permission denied" in str(exc_info.value)

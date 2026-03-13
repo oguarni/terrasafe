@@ -153,6 +153,117 @@ class TestModelManager:
         # Should not raise, just log error
         manager.update_model_with_feedback(model, scaler, new_data, metadata)
 
+    def test_load_training_data_oserror(self, tmp_path):
+        """OSError during np.load returns None"""
+        manager = ModelManager(str(tmp_path / "models"))
+        # Create training data file so path exists
+        manager.training_data_path.parent.mkdir(exist_ok=True)
+        manager.training_data_path.touch()
+        with patch('numpy.load', side_effect=OSError("disk error")):
+            result = manager._load_training_data()
+        assert result is None
+
+    def test_load_training_data_value_error(self, tmp_path):
+        """ValueError during np.load returns None"""
+        manager = ModelManager(str(tmp_path / "models"))
+        manager.training_data_path.parent.mkdir(exist_ok=True)
+        manager.training_data_path.touch()
+        with patch('numpy.load', side_effect=ValueError("corrupt")):
+            result = manager._load_training_data()
+        assert result is None
+
+    def test_detect_drift_model_too_old(self, tmp_path):
+        """Model older than 30 days returns True"""
+        from datetime import datetime, timedelta
+        manager = ModelManager(str(tmp_path / "models"))
+        old_date = (datetime.now() - timedelta(days=60)).strftime('%Y-%m-%d %H:%M:%S')
+        metadata = {'saved_at': old_date}
+        assert manager._detect_drift(metadata) is True
+
+    def test_detect_drift_model_fresh(self, tmp_path):
+        """Model 5 days old returns False"""
+        from datetime import datetime, timedelta
+        manager = ModelManager(str(tmp_path / "models"))
+        fresh_date = (datetime.now() - timedelta(days=5)).strftime('%Y-%m-%d %H:%M:%S')
+        metadata = {'saved_at': fresh_date}
+        assert manager._detect_drift(metadata) is False
+
+    def test_detect_drift_bad_timestamp(self, tmp_path):
+        """Bad timestamp string returns False (logs warning)"""
+        manager = ModelManager(str(tmp_path / "models"))
+        metadata = {'saved_at': 'not-a-date'}
+        assert manager._detect_drift(metadata) is False
+
+    def test_detect_drift_none_timestamp(self, tmp_path):
+        """None saved_at returns False"""
+        manager = ModelManager(str(tmp_path / "models"))
+        metadata = {'saved_at': None}
+        assert manager._detect_drift(metadata) is False
+
+    def test_get_current_version_exists(self, tmp_path):
+        """Returns version string from file"""
+        manager = ModelManager(str(tmp_path / "models"))
+        manager.current_version_file.write_text("v20240101_120000")
+        assert manager.get_current_version() == "v20240101_120000"
+
+    def test_get_current_version_no_file(self, tmp_path):
+        """Returns None when file doesn't exist"""
+        manager = ModelManager(str(tmp_path / "models"))
+        assert manager.get_current_version() is None
+
+    def test_get_current_version_oserror(self, tmp_path):
+        """Returns None on OSError"""
+        manager = ModelManager(str(tmp_path / "models"))
+        manager.current_version_file.write_text("v1")
+        with patch('builtins.open', side_effect=OSError("permission denied")):
+            result = manager.get_current_version()
+        assert result is None
+
+    def test_list_versions_returns_sorted(self, tmp_path):
+        """Returns versions sorted descending"""
+        manager = ModelManager(str(tmp_path / "models"))
+        for v in ["v20240101_000000", "v20240201_000000", "v20240301_000000"]:
+            vdir = manager.versions_dir / v
+            vdir.mkdir(parents=True, exist_ok=True)
+            (vdir / "model.pkl").touch()
+        versions = manager.list_versions()
+        assert versions == ["v20240301_000000", "v20240201_000000", "v20240101_000000"]
+
+    def test_list_versions_oserror(self, tmp_path):
+        """Returns empty list on OSError"""
+        manager = ModelManager(str(tmp_path / "models"))
+        mock_versions_dir = Mock()
+        mock_versions_dir.exists.return_value = True
+        mock_versions_dir.iterdir.side_effect = OSError("error")
+        with patch.object(manager, 'versions_dir', mock_versions_dir):
+            result = manager.list_versions()
+        assert result == []
+
+    def test_rollback_to_version_not_found(self, tmp_path):
+        """Raises ModelNotTrainedError for unknown version"""
+        manager = ModelManager(str(tmp_path / "models"))
+        with pytest.raises(ModelNotTrainedError) as exc_info:
+            manager.rollback_to_version("v99991231_235959")
+        assert "not found" in str(exc_info.value)
+
+    def test_rollback_to_version_success(self, tmp_path):
+        """Rollback to a previously saved version succeeds"""
+        from sklearn.ensemble import IsolationForest
+        from sklearn.preprocessing import StandardScaler
+        import numpy as np
+        manager = ModelManager(str(tmp_path / "models"))
+        model = IsolationForest(random_state=42)
+        scaler = StandardScaler()
+        data = np.array([[1, 2, 3, 4, 5], [2, 3, 4, 5, 6]])
+        scaler.fit(data)
+        model.fit(scaler.transform(data))
+        manager.save_model(model, scaler, {"info": "v1"}, version="v20240101_000000")
+        loaded_model, loaded_scaler = manager.rollback_to_version("v20240101_000000")
+        assert loaded_model is not None
+        assert loaded_scaler is not None
+        # Current version file should be updated
+        assert manager.get_current_version() == "v20240101_000000"
+
 
 @pytest.mark.unit
 @pytest.mark.ml

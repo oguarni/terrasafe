@@ -434,5 +434,109 @@ def test_concurrent_scan_requests(client, api_headers, mock_settings):
     assert successful_requests > 0, "All requests were rate limited"
 
 
+# ============================================================================
+# LIFESPAN AND SERVER TESTS
+# ============================================================================
+
+@pytest.mark.unit
+def test_lifespan_no_api_key_raises():
+    """lifespan raises RuntimeError when api_key_hash is None."""
+    from terrasafe.api import lifespan, app as _app
+
+    with patch('terrasafe.api.settings') as mock_s:
+        mock_s.api_key_hash = None
+        mock_s.database_url = None
+
+        async def run():
+            async with lifespan(_app):
+                pass
+
+        with pytest.raises(RuntimeError, match="TERRASAFE_API_KEY_HASH"):
+            asyncio.run(run())
+
+
+@pytest.mark.unit
+def test_lifespan_with_database_url():
+    """lifespan connects to database when database_url is configured."""
+    from terrasafe.api import lifespan, app as _app, db_manager
+
+    valid_hash = "$2b$12$" + "x" * 53
+    with patch('terrasafe.api.settings') as mock_s:
+        mock_s.api_key_hash = valid_hash
+        mock_s.database_url = "postgresql+asyncpg://test:test@localhost/test"
+        with patch.object(db_manager, 'connect', new_callable=AsyncMock) as mock_connect:
+            with patch.object(db_manager, 'disconnect', new_callable=AsyncMock):
+                async def run():
+                    async with lifespan(_app):
+                        pass
+                asyncio.run(run())
+        mock_connect.assert_called_once()
+
+
+@pytest.mark.unit
+def test_lifespan_without_database_url():
+    """lifespan skips DB connection when database_url is None."""
+    from terrasafe.api import lifespan, app as _app, db_manager
+
+    valid_hash = "$2b$12$" + "x" * 53
+    with patch('terrasafe.api.settings') as mock_s:
+        mock_s.api_key_hash = valid_hash
+        mock_s.database_url = None
+        with patch.object(db_manager, 'connect', new_callable=AsyncMock) as mock_connect:
+            with patch.object(db_manager, 'disconnect', new_callable=AsyncMock):
+                async def run():
+                    async with lifespan(_app):
+                        pass
+                asyncio.run(run())
+        mock_connect.assert_not_called()
+
+
+@pytest.mark.unit
+def test_lifespan_database_connect_fails():
+    """lifespan logs warning but continues when database connect raises."""
+    from terrasafe.api import lifespan, app as _app, db_manager
+
+    valid_hash = "$2b$12$" + "x" * 53
+    with patch('terrasafe.api.settings') as mock_s:
+        mock_s.api_key_hash = valid_hash
+        mock_s.database_url = "postgresql+asyncpg://test:test@localhost/test"
+        with patch.object(db_manager, 'connect', new_callable=AsyncMock, side_effect=Exception("conn refused")):
+            with patch.object(db_manager, 'disconnect', new_callable=AsyncMock):
+                async def run():
+                    async with lifespan(_app):
+                        pass
+                asyncio.run(run())
+
+
+@pytest.mark.unit
+def test_lifespan_shutdown_disconnect_error():
+    """lifespan shutdown logs error when disconnect raises."""
+    from terrasafe.api import lifespan, app as _app, db_manager
+
+    valid_hash = "$2b$12$" + "x" * 53
+    with patch('terrasafe.api.settings') as mock_s:
+        mock_s.api_key_hash = valid_hash
+        mock_s.database_url = None
+        with patch.object(db_manager, 'connect', new_callable=AsyncMock):
+            with patch.object(db_manager, 'disconnect', new_callable=AsyncMock, side_effect=Exception("disconnect error")):
+                async def run():
+                    async with lifespan(_app):
+                        pass
+                asyncio.run(run())
+
+
+@pytest.mark.unit
+def test_main_calls_uvicorn():
+    """main() in api.py calls uvicorn.run."""
+    import uvicorn
+    import terrasafe.api as api_module
+    if hasattr(api_module, 'main'):
+        with patch.object(uvicorn, 'run') as mock_run:
+            api_module.main()
+        mock_run.assert_called_once()
+    else:
+        pytest.skip("No main() function in api.py")
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
