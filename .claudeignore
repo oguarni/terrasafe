@@ -20,6 +20,9 @@ htmlcov/
 # ML models (binary files)
 models/*.pkl
 models/*.joblib
+models/*.npy
+models/*.json
+models/versions/
 
 # Type checking cache
 .mypy_cache/
@@ -39,8 +42,31 @@ screenshots/
 
 # Environment & config
 .env
+.env.*
 config/production.yaml
 config/local.yaml
+
+# Security reports
+*.sarif
+safety-report.txt
+trivy-report.json
+sbom.json
+sbom.xml
+gitleaks-report.*
+.secrets.baseline
+
+# Private keys & certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Build artifacts
+build/
+dist/
+
+# Coverage
+coverage.xml
 
 # Logs
 *.log

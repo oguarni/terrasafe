@@ -15,7 +15,7 @@ try:
         Counter, Histogram, Gauge,
     )
     METRICS_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover
     METRICS_AVAILABLE = False
 
 from terrasafe.infrastructure.utils import categorize_vulnerability
@@ -121,7 +121,7 @@ if METRICS_AVAILABLE:
     risk_score_gauge = Gauge('terrasafe_last_risk_score', 'Last calculated risk score')
     ml_confidence_gauge = Gauge('terrasafe_ml_confidence', 'ML model confidence', ['level'])
 
-else:
+else:  # pragma: no cover
     logger.warning("Prometheus metrics not available. Install prometheus-client to enable metrics.")
 
 

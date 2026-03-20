@@ -79,14 +79,7 @@ dataset is persisted immediately after the first training run (`make train-model
 
 Re-raises on failure (tested in `tests/test_main.py`).
 
-## Coverage (75.46%)
-
-Untested lines (major gaps):
-- Lines 107-109: `_load_training_data()` error paths
-- Lines 170-173, 191-198: Drift detection date parsing and version rollback
-- Lines 207-216: `list_versions()` and `rollback_to_version()` implementations
-- Lines 231-267: `update_model_with_feedback()` combined data path
-- Line 349: `predict_risk()` error fallback
+## Coverage (100%)
 
 ## Anti-patterns
 

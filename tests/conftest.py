@@ -9,7 +9,7 @@ import pytest
 
 # Set up environment variables before any imports
 # This prevents validation errors when modules are imported
-os.environ['TERRASAFE_API_KEY_HASH'] = 'REDACTED_HASH'
+os.environ['TERRASAFE_API_KEY_HASH'] = '$2b$12$c4dkSX9x2RbksUcaTWgpAuGc3YbAGhwYiiHI6pLiSBviheWuzrWLi'
 os.environ['TERRASAFE_ENVIRONMENT'] = 'development'
 os.environ['TERRASAFE_DATABASE_URL'] = 'postgresql+asyncpg://test:test@localhost:5432/test'
 os.environ['TERRASAFE_REDIS_URL'] = 'redis://localhost:6379'

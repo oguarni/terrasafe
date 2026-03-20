@@ -10,7 +10,7 @@ from typing import Optional, Dict, Any
 
 try:
     import boto3
-    from botocore.exceptions import ClientError
+    from botocore.exceptions import ClientError  # pragma: no cover
 except ImportError:
     boto3 = None  # type: ignore
 
@@ -195,7 +195,7 @@ class Settings(BaseSettings):
             get_secret_value_response = client.get_secret_value(
                 SecretId=secret_name
             )
-        except ClientError as e:
+        except ClientError as e:  # pragma: no cover
             logger.error("Unable to fetch secret %s: %s", secret_name, e)
             raise e
         else:

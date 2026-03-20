@@ -23,12 +23,27 @@ env.bak/
 venv.bak/
 
 # ===================================
-# Environment Variables
+# Environment Variables & Secrets
 # ===================================
 .env
 .env.local
 .env.*.local
 .env.production
+.env.staging
+
+# ===================================
+# Private Keys & Certificates
+# ===================================
+*.pem
+*.key
+*.p12
+*.pfx
+*.der
+*.csr
+*.crt
+id_rsa
+id_ed25519
+*.pub
 
 # ===================================
 # OS-specific Files
@@ -105,11 +120,6 @@ shot_*.html
 # ===================================
 # Documentation Artifacts
 # ===================================
-screenshots/*.txt
-screenshots/*.png
-screenshots/*.jpg
-screenshots/*.jpeg
-screenshots/*.gif
 docs/*
 
 # ===================================
@@ -132,6 +142,13 @@ safety-report.txt
 trivy-report.json
 sbom.json
 sbom.xml
+gitleaks-report.json
+gitleaks-report.sarif
+
+# ===================================
+# Secret Scanner Artifacts
+# ===================================
+.secrets.baseline
 
 # ===================================
 # Logs

@@ -2,10 +2,9 @@
 
 ## Suite Summary
 
-- **319 tests** collected (318 passed, 1 skipped)
-- **89% overall coverage** (1536 statements, 169 missed)
-- **0 failures**, 0 errors, 82 warnings (deprecation)
-- Benchmarks: `test_scan_time_benchmark` (~93us), `test_parser_performance` (~4.2ms)
+- **397 tests** collected (395 passed, 0 failed, 2 skipped)
+- **100% overall coverage** (1518 statements, 0 missed)
+- Benchmarks: `test_scan_time_benchmark` (~230us), `test_parser_performance` (~5.4ms)
 
 ## Environment Setup (critical ordering)
 
@@ -46,33 +45,30 @@ class TestMLFeature:
 
 | Test File | Tests | Covers |
 |---|---|---|
-| `test_api.py` | 14 | `api.py` (73.57%) |
-| `test_cli_args.py` | 19 | `cli.py` (98.10%) |
+| `test_api.py` | 14 | `api.py` (100%) |
+| `test_cli_args.py` | 19 | `cli.py` (100%) |
 | `test_cli_formatter.py` | 21 | `cli_formatter.py` (100%) |
-| `test_config_logging.py` | 13 | `config/logging.py` (84.31%) |
+| `test_config_logging.py` | 13 | `config/logging.py` (100%) |
+| `test_coverage_gaps.py` | 22 | Cross-module coverage gap tests |
 | `test_infrastructure_database.py` | 25 | `infrastructure/database.py` (100%) |
-| `test_infrastructure_repositories.py` | 25 | `infrastructure/repositories.py` (95.45%) |
-| `test_main.py` | 10 | `main.py` (0%), model save errors |
-| `test_metrics.py` | 35 | `metrics.py` (96.15%) |
-| `test_ml_model.py` | 22 | `infrastructure/ml_model.py` (75.46%) |
-| `test_parser.py` | 12 | `infrastructure/parser.py` (89.74%) |
+| `test_infrastructure_repositories.py` | 25 | `infrastructure/repositories.py` (100%) |
+| `test_main.py` | 10 | `main.py` (100%), model save errors |
+| `test_metrics.py` | 35 | `metrics.py` (100%) |
+| `test_ml_model.py` | 22 | `infrastructure/ml_model.py` (100%) |
+| `test_parser.py` | 12 | `infrastructure/parser.py` (100%) |
 | `test_performance.py` | 13 | Benchmarks, resource usage |
-| `test_rate_limiter.py` | 9 | `infrastructure/rate_limiter.py` (97.67%) |
+| `test_rate_limiter.py` | 9 | `infrastructure/rate_limiter.py` (100%) |
 | `test_sarif_formatter.py` | 15 | `sarif_formatter.py` (100%) |
 | `test_security.py` | 23 (1 skip) | API security, auth, CORS |
-| `test_security_rules_iam.py` | 8 | `domain/security_rules.py` IAM checks |
+| `test_security_rules_iam.py` | 8 | `domain/security_rules.py` IAM checks (100%) |
 | `test_security_rules_logging.py` | 12 | Logging + VPC flow log rules |
-| `test_security_scanner.py` | 27 | `application/scanner.py` (93.28%) |
+| `test_security_scanner.py` | 27 | `application/scanner.py` (100%) |
+| `test_settings.py` | — | `config/settings.py` (100%) |
 | `test_validation.py` | 16 | `infrastructure/validation.py` (100%) |
 
-## Low-Coverage Modules
+## All Modules at 100% Coverage
 
-| Module | Coverage | Gaps |
-|---|---|---|
-| `main.py` | 0% | Entry point — never executed in tests |
-| `config/settings.py` | 72.97% | AWS Secrets Manager resolution, production paths |
-| `api.py` | 73.57% | Rate limiting setup, Redis connection, lifespan startup |
-| `infrastructure/ml_model.py` | 75.46% | Rollback, incremental updates, drift detection |
+All 24 modules now have 100% coverage (1518 statements, 0 missed).
 
 ## Mocking Patterns
 

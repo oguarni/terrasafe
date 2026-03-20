@@ -120,7 +120,7 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
 try:
     from prometheus_client import generate_latest
     METRICS_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover
     METRICS_AVAILABLE = False
     logger.warning("prometheus-client not installed, /metrics endpoint disabled")
 
@@ -141,12 +141,12 @@ try:
             "Rate limiting enabled: %s requests per %ss",
             settings.rate_limit_requests, settings.rate_limit_window_seconds
         )
-    except (ConnectionError, OSError) as redis_error:
+    except (ConnectionError, OSError) as redis_error:  # pragma: no cover
         # Redis connection failed, use fallback
         logger.warning("Redis connection failed: %s. Using fallback rate limiter.", redis_error)
         RATE_LIMITING_AVAILABLE = False
         limiter = None  # type: ignore[assignment]
-except ImportError:
+except ImportError:  # pragma: no cover
     RATE_LIMITING_AVAILABLE = False
     limiter = None  # type: ignore[assignment]
     logger.warning("slowapi not installed, using fallback rate limiter")

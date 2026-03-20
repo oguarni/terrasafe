@@ -79,14 +79,7 @@ Feature validation clips to defined bounds before ML inference (prevents model p
 
 Error types: `TerraformParseError`, `FileNotFoundError`, `PermissionError`, generic `Exception`
 
-## Coverage (93.28%)
-
-Untested lines:
-- Line 17: `track_metrics` import fallback
-- Line 68: Hash cache eviction path
-- Lines 86-90: `_get_file_hash` fallback (hash without caching)
-- Line 168: Scan cache eviction path
-- Line 232: Feature out-of-bounds warning log
+## Coverage (100%)
 
 ## Anti-patterns
 

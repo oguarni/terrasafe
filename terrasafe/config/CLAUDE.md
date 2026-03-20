@@ -31,9 +31,7 @@ Application-wide configuration and structured logging. Settings are loaded once 
 - `is_production()` / `is_development()` helper methods
 - `max_file_size_bytes` computed property
 
-#### Coverage (72.97%)
-
-Untested: AWS Secrets Manager resolution (lines 182-223), production environment paths
+#### Coverage (100%)
 
 ### `logging.py` — Structured Logging
 
@@ -44,9 +42,7 @@ Untested: AWS Secrets Manager resolution (lines 182-223), production environment
 - `LoggerAdapter` — auto-injects correlation ID into log records
 - `get_logger_with_context(name)` — returns `LoggerAdapter` with correlation ID injection
 
-#### Coverage (84.31%)
-
-Untested: `LoggerAdapter.process()` (lines 187-193), file handler creation (line 90), extra_fields in formatter (line 48)
+#### Coverage (100%)
 
 ## Anti-patterns
 

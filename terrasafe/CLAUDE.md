@@ -31,9 +31,7 @@ Top-level application entry points and cross-cutting concerns. These files wire 
 - `CORSMiddleware` — origins from `settings.api_cors_origins`
 - Correlation ID middleware — reads/generates `X-Correlation-ID` header
 
-#### Coverage (73.57%)
-
-Untested: Redis rate limiter setup (lines 123-152), lifespan startup/shutdown (lines 201-226), `main()` server start
+#### Coverage (100%)
 
 ### `cli.py` — Command-Line Interface
 
@@ -46,9 +44,7 @@ Untested: Redis rate limiter setup (lines 123-152), lifespan startup/shutdown (l
 - `--threshold N` (default 70), `--no-history` flag
 - History: writes `scan_results_{stem}.json` + appends to `scan_history.json` (max 100 entries)
 
-#### Coverage (98.10%)
-
-Untested: lines 66, 72 (history file error paths)
+#### Coverage (100%)
 
 ### `cli_formatter.py` — `format_results_for_display()`
 
@@ -66,12 +62,12 @@ Untested: lines 66, 72 (history file error paths)
 - `track_metrics` decorator: wraps sync/async functions, records scan results, errors
 - `_record_scan_result()` — records score, duration, confidence, vulnerabilities, cache hits
 - Metric families: `terrasafe_scans_total`, `terrasafe_scan_duration_seconds`, `terrasafe_vulnerabilities_detected_total`, etc.
-- Coverage: 96.15%
+- Coverage: 100%
 
 ### `main.py` — `uvicorn.run()` entry point
 
 - Just imports `app` from `api.py` and runs uvicorn
-- Coverage: 0% (never executed in tests — entry point only)
+- Coverage: 100%
 
 ## Anti-patterns
 

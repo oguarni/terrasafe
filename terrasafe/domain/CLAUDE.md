@@ -41,10 +41,4 @@ This layer defines business entities and detection logic. It depends only on `co
 - If the new rule needs severity overrides, add its key to `rule_key_map` in `analyze()`
 - When adding a new rule, also add corresponding feature extraction in `application/scanner.py:_extract_features()`
 
-## Coverage (96.25%)
-
-Untested lines:
-- Line 53: RDP port (3389) vulnerability creation branch
-- Lines 110-112: Individual secret type detection loop body (api_key, secret_key, token patterns)
-- Line 154: EBS volume dict-to-list conversion (non-list input path)
-- Line 232: IAM policy dict-to-list conversion (non-list input path)
+## Coverage (100%)

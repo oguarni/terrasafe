@@ -53,4 +53,23 @@ scan_history.json
 
 # Local
 .env
+.env.*
 .DS_Store
+
+# Private keys & certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Logs
+*.log
+logs/
+
+# Secret scanner
+.secrets.baseline
+gitleaks-report.*
+
+# Git backup
+.git.backup/
+.git.bak/

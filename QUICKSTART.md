@@ -1,8 +1,10 @@
 # TerraSafe Quick Start Guide
 
-## 🚀 Quick Setup (5 Minutes)
+## Quick Setup (5 Minutes)
 
-This guide will help you get TerraSafe up and running with database persistence and monitoring.
+This guide covers the full-stack deployment: API server, database, caching, and monitoring.
+
+For CLI-only usage without infrastructure dependencies, see the [README Quick Start](README.md#quick-start).
 
 ---
 
@@ -16,40 +18,34 @@ This guide will help you get TerraSafe up and running with database persistence 
 
 ## Automated Setup (Recommended)
 
-We've created an automated setup script that handles everything:
+The setup script handles infrastructure provisioning, migrations, and service health verification in a single step:
 
 ```bash
-# Run the setup script
 ./scripts/setup_infrastructure.sh
 ```
 
 This script will:
-1. ✅ Check/generate API key
-2. ✅ Start Redis and PostgreSQL
-3. ✅ Run database migrations
-4. ✅ Start API, Prometheus, and Grafana
-5. ✅ Verify all services are healthy
+1. Generate or verify API key
+2. Start Redis and PostgreSQL
+3. Run database migrations
+4. Start API, Prometheus, and Grafana
+5. Verify all services are healthy
 
-**Jump to [Using TerraSafe](#using-terrasafe) after running the script!**
+Once complete, proceed to [Using TerraSafe](#using-terrasafe).
 
 ---
 
 ## Manual Setup
 
-If you prefer manual setup, follow these steps:
-
 ### Step 1: API Key Setup
 
-**Your API key has already been generated!**
+Generate a new API key:
 
+```bash
+python scripts/generate_api_key.py
 ```
-Plain API Key:  REDACTED_API_KEY
-Hashed Key:     REDACTED_HASH
-```
 
-**⚠️ IMPORTANT:** Save the plain API key securely - you'll need it for API requests!
-
-The hashed key is already configured in your `.env` file.
+Save the **plain API key** securely — you will need it for all authenticated API requests. The hashed key is stored in your `.env` file automatically.
 
 ### Step 2: Start Infrastructure Services
 
@@ -57,7 +53,7 @@ The hashed key is already configured in your `.env` file.
 # Start Redis and PostgreSQL
 docker-compose up -d redis postgres
 
-# Wait for services to be healthy (about 10 seconds)
+# Wait for services to be healthy (~10 seconds)
 docker-compose ps
 ```
 
@@ -74,11 +70,6 @@ alembic upgrade head
 alembic current
 ```
 
-Expected output:
-```
-20251023_initial_schema (head)
-```
-
 ### Step 4: Start Application Services
 
 ```bash
@@ -89,31 +80,32 @@ docker-compose up -d terrasafe-api prometheus grafana
 docker-compose ps
 ```
 
-All services should show "Up (healthy)".
+All services should show `Up (healthy)`.
 
 ### Step 5: Verify Installation
 
 ```bash
-# Check API health
 curl http://localhost:8000/health
+```
 
-# Should return:
-# {
-#   "status": "healthy",
-#   "service": "TerraSafe",
-#   "version": "1.0.0",
-#   "database": {
-#     "connected": true,
-#     "healthy": true
-#   }
-# }
+Expected response:
+```json
+{
+  "status": "healthy",
+  "service": "TerraSafe",
+  "version": "1.0.0",
+  "database": {
+    "connected": true,
+    "healthy": true
+  }
+}
 ```
 
 ---
 
 ## Using TerraSafe
 
-### Access the Services
+### Service Endpoints
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
@@ -121,7 +113,7 @@ curl http://localhost:8000/health
 | **API Docs** | http://localhost:8000/docs | None (dev only) |
 | **Metrics** | http://localhost:8000/metrics | None |
 | **Prometheus** | http://localhost:9090 | None |
-| **Grafana** | http://localhost:3000 | admin/admin |
+| **Grafana** | http://localhost:3000 | admin / admin |
 
 ### Scan a Terraform File
 
@@ -129,7 +121,7 @@ curl http://localhost:8000/health
 
 ```bash
 curl -X POST \
-  -H "X-API-Key: REDACTED_API_KEY" \
+  -H "X-API-Key: <your-api-key>" \
   -F "file=@test_files/vulnerable.tf" \
   http://localhost:8000/scan
 ```
@@ -139,47 +131,17 @@ curl -X POST \
 ```python
 import requests
 
-url = "http://localhost:8000/scan"
-headers = {"X-API-Key": "REDACTED_API_KEY"}
+API_KEY = "<your-api-key>"
 
-with open("terraform.tf", "rb") as f:
-    files = {"file": f}
-    response = requests.post(url, headers=headers, files=files)
-
+response = requests.post(
+    "http://localhost:8000/scan",
+    headers={"X-API-Key": API_KEY},
+    files={"file": open("test_files/vulnerable.tf", "rb")}
+)
 print(response.json())
 ```
 
-#### Response Example:
-
-```json
-{
-  "file": "vulnerable.tf",
-  "score": 85,
-  "rule_based_score": 90,
-  "ml_score": 75.5,
-  "confidence": "HIGH",
-  "vulnerabilities": [
-    {
-      "severity": "CRITICAL",
-      "points": 20,
-      "message": "Hardcoded AWS credentials detected",
-      "resource": "aws_instance.web",
-      "remediation": "Use AWS IAM roles or environment variables"
-    }
-  ],
-  "summary": {
-    "critical": 1,
-    "high": 2,
-    "medium": 0,
-    "low": 0
-  },
-  "performance": {
-    "scan_time_seconds": 0.234,
-    "file_size_kb": 1.5,
-    "from_cache": false
-  }
-}
-```
+See the [README API section](README.md#rest-api) for the full response format.
 
 ---
 
@@ -188,23 +150,21 @@ print(response.json())
 ### Access Grafana
 
 1. Open http://localhost:3000
-2. Login with `admin` / `admin`
-3. (Optional) Change password when prompted
+2. Log in with `admin` / `admin`
+3. Change the default password when prompted
 
-### View the TerraSafe Dashboard
+### TerraSafe Overview Dashboard
 
-The **TerraSafe Overview** dashboard is pre-configured and includes:
+The pre-configured dashboard is located at **Dashboards > TerraSafe Overview** and includes:
 
-- **Scan Rate**: Real-time scan requests per second
-- **Cache Hit Rate**: Percentage of cached scans
-- **Scan Duration**: Average time to scan files
-- **Vulnerabilities by Severity**: Distribution of findings
-- **Vulnerabilities by Category**: Trend analysis
-- **High-Risk Scans**: P95/P99 percentiles
-- **API Latency**: Request performance
-- **Error Rates**: System health
-
-The dashboard is located at: **Dashboards → TerraSafe Overview**
+- **Scan Rate** — Real-time scan requests per second
+- **Cache Hit Rate** — Percentage of cached responses
+- **Scan Duration** — Average and percentile scan times
+- **Vulnerabilities by Severity** — Distribution of findings
+- **Vulnerabilities by Category** — Trend analysis over time
+- **High-Risk Scans** — P95/P99 percentiles
+- **API Latency** — Request performance
+- **Error Rates** — System health indicators
 
 ---
 
@@ -270,7 +230,7 @@ docker-compose restart terrasafe-api
 # Stop all services
 docker-compose down
 
-# Stop and remove volumes (⚠️ deletes data)
+# Stop and remove volumes (deletes all data)
 docker-compose down -v
 ```
 
@@ -312,18 +272,18 @@ pytest tests/ --cov=terrasafe --cov-report=html
 
 ### API Returns 403 (Forbidden)
 
-**Problem**: Missing or invalid API key
+**Cause**: Missing or invalid API key.
 
-**Solution**:
+**Solution**: Verify the key matches what was generated in Step 1:
 ```bash
-# Verify your API key in the request
-curl -H "X-API-Key: REDACTED_API_KEY" \
-     http://localhost:8000/health
+curl -H "X-API-Key: <your-api-key>" http://localhost:8000/health
 ```
+
+If the key was lost, generate a new one with `python scripts/generate_api_key.py` and update `.env`.
 
 ### Database Connection Failed
 
-**Problem**: PostgreSQL not running or not healthy
+**Cause**: PostgreSQL not running or not healthy.
 
 **Solution**:
 ```bash
@@ -339,7 +299,7 @@ docker-compose restart postgres
 
 ### Prometheus Not Scraping Metrics
 
-**Problem**: Prometheus can't reach the API
+**Cause**: Prometheus cannot reach the API container.
 
 **Solution**:
 ```bash
@@ -352,71 +312,34 @@ curl http://localhost:8000/metrics
 
 ### Grafana Dashboard Shows "No Data"
 
-**Problem**: No scans have been performed yet
+**Cause**: No scans have been performed yet. Metrics populate after the first scan.
 
 **Solution**:
 ```bash
 # Perform a test scan
 curl -X POST \
-  -H "X-API-Key: REDACTED_API_KEY" \
+  -H "X-API-Key: <your-api-key>" \
   -F "file=@test_files/vulnerable.tf" \
   http://localhost:8000/scan
 
-# Wait 15-30 seconds for metrics to update
-# Refresh Grafana dashboard
+# Wait 15-30 seconds for Prometheus to scrape, then refresh Grafana
 ```
 
 ---
 
-## Next Steps
+## Production Deployment
 
-### Production Deployment
+For production environments:
 
-For production deployment, you should:
-
-1. **Change default passwords**:
-   - PostgreSQL password in `.env`
-   - Grafana admin password
-   - Generate a strong API key
-
-2. **Enable HTTPS**:
-   - Use a reverse proxy (nginx, traefik)
-   - Configure SSL/TLS certificates
-
-3. **Update CORS settings**:
-   - Set proper allowed origins in `.env`
-   - Restrict to your domain
-
-4. **Configure backups**:
-   - Set up automated PostgreSQL backups
-   - Configure volume backups
-
-5. **Set up monitoring alerts**:
-   - Configure Prometheus Alertmanager
-   - Set up notification channels
-
-### Advanced Features
-
-- **ML Model Versioning**: Track and manage model versions
-- **Scan History Analysis**: Query historical trends
-- **Custom Dashboards**: Create domain-specific visualizations
-- **API Integration**: Integrate with CI/CD pipelines
+1. **Rotate default credentials** — PostgreSQL password, Grafana admin password, and API key
+2. **Enable HTTPS** — Use a reverse proxy (nginx, Traefik) with TLS certificates
+3. **Restrict CORS** — Set `API_CORS_ORIGINS` in `.env` to your domain
+4. **Configure backups** — Automated PostgreSQL and volume backups
+5. **Set up alerting** — Configure Prometheus Alertmanager with notification channels
 
 ---
 
 ## Getting Help
-
-### Check Logs
-
-```bash
-# All services
-docker-compose logs -f
-
-# Specific service
-docker-compose logs -f terrasafe-api
-docker-compose logs -f postgres
-docker-compose logs -f prometheus
-```
 
 ### Health Checks
 
@@ -433,21 +356,18 @@ docker-compose exec redis redis-cli ping
 
 ### Documentation
 
-- **API Documentation**: http://localhost:8000/docs (development only)
-- **Implementation Summary**: See `IMPLEMENTATION_SUMMARY.md`
-- **Architecture Details**: See `PRIORITY_4_5_IMPLEMENTATION.md`
+- **API Documentation**: http://localhost:8000/docs (Swagger UI, development only)
+- **Project README**: See [README.md](README.md) for architecture and usage details
 
 ---
 
 ## Summary
 
-You now have a fully operational TerraSafe installation with:
+A complete TerraSafe installation provides:
 
-✅ **Security**: Bcrypt-hashed API keys, rate limiting, input validation
-✅ **Database**: PostgreSQL with async SQLAlchemy
-✅ **Caching**: Redis-backed LRU cache
-✅ **Monitoring**: Prometheus metrics + Grafana dashboards
-✅ **Performance**: Async I/O, vectorized operations
-✅ **Production-Ready**: Health checks, logging, error handling
-
-**Happy scanning!** 🛡️
+- **Security** — Bcrypt-hashed API keys, rate limiting, input validation
+- **Persistence** — PostgreSQL with async SQLAlchemy and Alembic migrations
+- **Caching** — Redis-backed LRU cache with in-memory fallback
+- **Monitoring** — Prometheus metrics and pre-configured Grafana dashboards
+- **Performance** — Async I/O and vectorized operations for sub-second scans
+- **Reliability** — Health checks, structured logging, correlation ID tracing

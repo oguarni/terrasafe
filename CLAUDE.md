@@ -7,7 +7,7 @@ TerraSafe is a hybrid Terraform security scanner implementing Clean Architecture
 - **Security Approach**: 60% rule-based detection (7 rules) + 40% ML anomaly detection (7-dim feature vector)
 - **Tech Stack**: FastAPI, PostgreSQL, Redis, Isolation Forest ML, Prometheus/Grafana
 - **Language**: Python 3.10+
-- **Health**: 319 tests (89% coverage), 0 lint issues, 0 bandit findings, 0 mypy errors
+- **Health**: 397 tests (100% coverage), 0 lint issues, 0 bandit findings, 0 mypy errors
 
 ## Quick Start
 
@@ -128,7 +128,7 @@ Subdirectory CLAUDE.md files provide focused instructions per architectural laye
 | Application | `terrasafe/application/CLAUDE.md` | Scan pipeline, scoring, caching, 7-dim feature extraction |
 | Infrastructure | `terrasafe/infrastructure/CLAUDE.md` | DB, cache, parser, repositories, rate limiter |
 | ML System | `terrasafe/infrastructure/CLAUDE_ML.md` | IsolationForest, training, drift detection, model files |
-| Tests | `tests/CLAUDE.md` | 319 tests, fixtures, markers, mocking patterns, per-module coverage |
+| Tests | `tests/CLAUDE.md` | 375 tests, fixtures, markers, mocking patterns, per-module coverage |
 
 ## Known Issues
 
@@ -142,6 +142,19 @@ All previously documented issues have been resolved:
 - `config/logging.py` covered by `tests/test_config_logging.py` (13 test cases)
 - `Severity.INFO = "INFO"` added to domain enum; `POINTS_INFO = 2` added to `security_rules.py`
 - `update_model_with_feedback()` rewrites to combine historical + new data (no more catastrophic forgetting)
+
+## Slash Commands
+
+Project-specific slash commands for common workflows:
+
+| Command | Description |
+|---|---|
+| `/diagnostic` | Full project health check (tests, coverage, lint, bandit, mypy) |
+| `/scan-tf` | Scan Terraform files for security vulnerabilities |
+| `/security-audit` | Deep security audit of the TerraSafe codebase |
+| `/coverage-gaps` | Identify untested code and suggest targeted tests |
+| `/rules-inventory` | Audit security rules engine coverage and gaps |
+| `/ml-status` | Check ML model health, drift, and configuration |
 
 ## Contributing
 
