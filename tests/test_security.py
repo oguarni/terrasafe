@@ -320,12 +320,6 @@ class TestRateLimiting:
             response = client.get("/health")
             assert response.status_code == 200
 
-    @pytest.mark.skip(reason="Rate limiting requires Redis in test environment")
-    def test_scan_endpoint_rate_limiting(self, client):
-        """Test that scan endpoint enforces rate limits."""
-        # This test would require a Redis instance for rate limiting
-        # Skip for now, but keep as documentation
-        pass
 
 
 class TestCorrelationID:

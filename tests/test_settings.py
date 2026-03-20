@@ -6,10 +6,13 @@ from unittest.mock import Mock, patch
 
 try:
     from botocore.exceptions import ClientError
-    _BOTOCORE_AVAILABLE = True
 except ImportError:
-    _BOTOCORE_AVAILABLE = False
-    ClientError = None  # type: ignore
+    class ClientError(Exception):  # type: ignore[no-redef]
+        """Minimal stand-in for botocore.exceptions.ClientError."""
+        def __init__(self, error_response: dict, operation_name: str):
+            self.response = error_response
+            self.operation_name = operation_name
+            super().__init__(str(error_response))
 
 VALID_HASH = "$2b$12$" + "x" * 53
 
@@ -53,12 +56,12 @@ class TestGetSecret:
             result = s._get_secret("terrasafe/database")
         assert result == {}
 
-    @pytest.mark.skipif(not _BOTOCORE_AVAILABLE, reason="botocore not installed")
     def test_get_secret_client_error(self):
         from terrasafe.config.settings import Settings
         s = Settings()
         error_response = {'Error': {'Code': 'ResourceNotFoundException', 'Message': 'Secret not found'}}
-        with patch('terrasafe.config.settings.boto3') as mock_boto3:
+        with patch('terrasafe.config.settings.boto3') as mock_boto3, \
+             patch('terrasafe.config.settings.ClientError', ClientError, create=True):
             mock_session = Mock()
             mock_boto3.session.Session.return_value = mock_session
             mock_client = Mock()
