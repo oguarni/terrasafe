@@ -9,11 +9,16 @@ import pytest
 
 # Set up environment variables before any imports
 # This prevents validation errors when modules are imported
+# Must happen before get_settings() is ever called (it's @lru_cache'd)
 os.environ['TERRASAFE_API_KEY_HASH'] = '$2b$12$c4dkSX9x2RbksUcaTWgpAuGc3YbAGhwYiiHI6pLiSBviheWuzrWLi'
 os.environ['TERRASAFE_ENVIRONMENT'] = 'development'
 os.environ['TERRASAFE_DATABASE_URL'] = 'postgresql+asyncpg://test:test@localhost:5432/test'
 os.environ['TERRASAFE_REDIS_URL'] = 'redis://localhost:6379'
 os.environ['TERRASAFE_LOG_LEVEL'] = 'INFO'
+
+# Clear any previously cached settings so they pick up test env vars
+from terrasafe.config.settings import get_settings  # noqa: E402
+get_settings.cache_clear()
 
 
 @pytest.fixture(scope="session", autouse=True)

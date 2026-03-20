@@ -76,6 +76,12 @@ jobs:
         pip install -r requirements-dev.txt
 
     - name: Run tests
+      env:
+        TERRASAFE_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
+        TERRASAFE_ENVIRONMENT: "development"
+        TERRASAFE_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
+        TERRASAFE_REDIS_URL: "redis://localhost:6379"
+        TERRASAFE_LOG_LEVEL: "INFO"
       run: |
         pytest -v --cov=terrasafe --cov-report=xml
 
