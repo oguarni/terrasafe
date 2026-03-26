@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 import bcrypt
 import aiofiles
@@ -491,6 +492,10 @@ async def api_documentation() -> Dict[str, Any]:
             "vulnerabilities": "list of detected issues"
         }
     }
+
+
+# Mount the frontend directory using StaticFiles to serve the UI
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
 
 def main():
