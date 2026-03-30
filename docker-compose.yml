@@ -64,6 +64,7 @@ services:
       - "8000:8000"
     volumes:
       - ./models:/app/models:ro
+      - ./frontend:/app/frontend:ro
     env_file:
       - .env
     environment:
