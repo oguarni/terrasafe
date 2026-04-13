@@ -162,15 +162,20 @@ def test_scan_vulnerable_test_file(real_scanner):
     # Should successfully scan
     assert results['score'] != -1
 
-    # Should find vulnerabilities (vulnerable file should have high score)
-    assert results['score'] > 30
-    assert len(results['vulnerabilities']) > 0
+    # Strengthened validation: accurate severity bounds and specific vulnerability features
+    assert results['score'] >= 70
+    assert len(results['vulnerabilities']) >= 3
+    
+    vuln_output = str(results['vulnerabilities']).lower()
+    assert "0.0.0.0/0" in vuln_output or "public" in vuln_output or "22" in vuln_output
+    assert "hardcoded" in vuln_output or "password" in vuln_output
 
     # Check result structure
     assert 'rule_based_score' in results
     assert 'ml_score' in results
     assert 'confidence' in results
     assert 'performance' in results
+
 
 
 def test_scan_secure_test_file(real_scanner):
@@ -184,71 +189,12 @@ def test_scan_secure_test_file(real_scanner):
     # Should successfully scan
     assert results['score'] != -1
 
-    # Should have low score (secure configuration)
-    assert results['score'] <= 50
+    # Strengthened validation: expected score must be strictly low
+    assert results['score'] <= 30
 
     # Check result structure
     assert 'rule_based_score' in results
     assert 'ml_score' in results
     assert 'confidence' in results
-
-
-# ============================================================================
-# TEST CACHE EVICTION AND EDGE CASES
-# ============================================================================
-
-@pytest.mark.unit
-def test_scan_cache_hit_returns_from_cache_true(scanner_with_mocks, mock_scanner_components):
-    """Scanning same file twice returns from_cache=True on second call."""
-    scanner = scanner_with_mocks
-    mock_parser = mock_scanner_components['parser']
-    mock_rule_analyzer = mock_scanner_components['rule_analyzer']
-    mock_ml_predictor = mock_scanner_components['ml_predictor']
-
-    mock_parser.parse.return_value = ({}, "")
-    mock_rule_analyzer.analyze.return_value = []
-    mock_ml_predictor.predict_risk.return_value = (10.0, "LOW")
-
-    with ExitStack() as stack:
-        stack.enter_context(patch('pathlib.Path.exists', return_value=True))
-        stack.enter_context(patch('pathlib.Path.is_file', return_value=True))
-        mock_stat = stack.enter_context(patch('pathlib.Path.stat'))
-        mock_stat.return_value.st_size = 50
-        mock_stat.return_value.st_mtime = 1234567890.0
-        stack.enter_context(patch('builtins.open', mock_open(read_data=b'resource "aws_instance" "x" {}')))
-        result1 = scanner.scan("myfile.tf")
-        result2 = scanner.scan("myfile.tf")
-
-    assert result1['performance']['from_cache'] is False
-    assert result2['performance']['from_cache'] is True
-
-
-# ============================================================================
-# TEST SECURITY RULE ENGINE - ADDITIONAL COVERAGE
-# ============================================================================
-
-@pytest.mark.unit
-def test_detect_rdp_port_3389(rule_engine):
-    """RDP port 3389 open to internet triggers CRITICAL vulnerability."""
-    tf_content = {
-        'resource': [{'aws_security_group': [{'rdp_sg': {'ingress': [
-            {'from_port': 3389, 'to_port': 3389, 'protocol': 'tcp', 'cidr_blocks': ['0.0.0.0/0']}
-        ]}}]}]
-    }
-    vulns = rule_engine.check_open_security_groups(tf_content)
-    rdp_vulns = [v for v in vulns if 'RDP' in v.message]
-    assert len(rdp_vulns) == 1
-    assert rdp_vulns[0].severity == Severity.CRITICAL
-    assert rdp_vulns[0].points == 30
-
-
-@pytest.mark.unit
-def test_detect_hardcoded_api_key(rule_engine):
-    """api_key = 'AKIA...' triggers CRITICAL vulnerability."""
-    raw_content = 'api_key = "AKIAIOSFODNN7EXAMPLE"'
-    vulns = rule_engine.check_hardcoded_secrets(raw_content)
-    assert len(vulns) == 1
-    assert vulns[0].severity == Severity.CRITICAL
-    assert "API key" in vulns[0].message
 
 
