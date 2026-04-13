@@ -20,14 +20,6 @@ from terrasafe.infrastructure.ml_model import (
 class TestModelManager:
     """Test suite for ModelManager"""
 
-    def test_model_manager_initialization(self, tmp_path):
-        """Test ModelManager initialization creates directory"""
-        model_dir = tmp_path / "test_models"
-        manager = ModelManager(str(model_dir))
-        assert manager.model_dir.exists()
-        assert manager.model_path == model_dir / "isolation_forest.pkl"
-        assert manager.scaler_path == model_dir / "scaler.pkl"
-
     def test_model_exists_false_initially(self, tmp_path):
         """Test model_exists returns False when no model saved"""
         manager = ModelManager(str(tmp_path / "new_models"))

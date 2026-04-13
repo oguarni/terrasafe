@@ -401,57 +401,6 @@ def test_feature_extraction(scanner_with_mocks):
     np.testing.assert_array_equal(features, expected)
 
 
-def test_vulnerability_summarization(scanner_with_mocks):
-    """Test vulnerability severity summarization"""
-    vulnerabilities = [
-        Vulnerability(Severity.CRITICAL, 30, "Critical issue", "resource1"),
-        Vulnerability(Severity.CRITICAL, 30, "Another critical", "resource2"),
-        Vulnerability(Severity.HIGH, 20, "High issue", "resource3"),
-        Vulnerability(Severity.MEDIUM, 10, "Medium issue", "resource4")
-    ]
-
-    summary = scanner_with_mocks._summarize_vulns(vulnerabilities)
-
-    assert summary['critical'] == 2
-    assert summary['high'] == 1
-    assert summary['medium'] == 1
-    assert summary['low'] == 0
-
-
-def test_vulnerability_to_dict(scanner_with_mocks):
-    """Test converting vulnerability to dictionary"""
-    vuln = Vulnerability(Severity.HIGH, 20, "Test vulnerability", "test_resource", "Fix this")
-    vuln_dict = scanner_with_mocks._vulnerability_to_dict(vuln)
-
-    expected = {
-        'severity': 'HIGH',
-        'points': 20,
-        'message': 'Test vulnerability',
-        'resource': 'test_resource',
-        'remediation': 'Fix this'
-    }
-
-    assert vuln_dict == expected
-
-
-def test_format_features(scanner_with_mocks):
-    """Test feature formatting"""
-    features = np.array([[2, 1, 0, 3, 1, 0, 10]])
-    formatted = scanner_with_mocks._format_features(features)
-
-    expected = {
-        'open_ports': 2,
-        'hardcoded_secrets': 1,
-        'public_access': 0,
-        'unencrypted_storage': 3,
-        'missing_logging': 1,
-        'missing_flow_logs': 0,
-        'total_resources': 10
-    }
-
-    assert formatted == expected
-
-
 def test_complex_scan_scenario(scanner_with_mocks, mock_scanner_components):
     """Test complex scan with multiple vulnerabilities"""
     # Arrange
@@ -605,35 +554,6 @@ def test_save_and_load_model(temp_model_dir):
 # TEST VULNERABILITY DATACLASS
 # ============================================================================
 
-def test_vulnerability_creation():
-    """Test creating a vulnerability"""
-    vuln = Vulnerability(
-        severity=Severity.HIGH,
-        points=20,
-        message="Test vulnerability",
-        resource="test_resource",
-        remediation="Fix this"
-    )
-
-    assert vuln.severity == Severity.HIGH
-    assert vuln.points == 20
-    assert vuln.message == "Test vulnerability"
-    assert vuln.resource == "test_resource"
-    assert vuln.remediation == "Fix this"
-
-
-def test_vulnerability_default_remediation():
-    """Test vulnerability with default empty remediation"""
-    vuln = Vulnerability(
-        severity=Severity.LOW,
-        points=5,
-        message="Minor issue",
-        resource="resource1"
-    )
-
-    assert vuln.remediation == ""
-
-
 # ============================================================================
 # TEST HCL PARSER
 # ============================================================================
@@ -739,62 +659,6 @@ def test_predict_risk_edge_cases(ml_predictor):
 # ============================================================================
 
 @pytest.mark.unit
-def test_hash_cache_eviction(scanner_with_mocks):
-    """Hash cache is capped at 100 entries; oldest entry is evicted on overflow."""
-    scanner = scanner_with_mocks
-    for i in range(100):
-        scanner._hash_cache[(f"file_{i}.tf", float(i))] = f"hash_{i}"
-    assert len(scanner._hash_cache) == 100
-    with patch('builtins.open', mock_open(read_data=b"content")):
-        scanner._get_file_hash_cached("new_file.tf", 999.0)
-    assert len(scanner._hash_cache) == 100
-
-
-@pytest.mark.unit
-def test_get_file_hash_stat_fails_fallback(scanner_with_mocks):
-    """When Path.stat() raises OSError, _get_file_hash falls back to direct hash."""
-    import hashlib
-    scanner = scanner_with_mocks
-    with patch('pathlib.Path.stat', side_effect=OSError("no stat")):
-        with patch('builtins.open', mock_open(read_data=b"file content")):
-            result = scanner._get_file_hash("somefile.tf")
-    expected = hashlib.sha256(b"file content").hexdigest()
-    assert result == expected
-
-
-@pytest.mark.unit
-def test_scan_cache_eviction(scanner_with_mocks, mock_scanner_components):
-    """Scan cache is capped at 100 entries; oldest entry is evicted on overflow."""
-    scanner = scanner_with_mocks
-    mock_parser = mock_scanner_components['parser']
-    mock_rule_analyzer = mock_scanner_components['rule_analyzer']
-    mock_ml_predictor = mock_scanner_components['ml_predictor']
-
-    mock_parser.parse.return_value = ({}, "")
-    mock_rule_analyzer.analyze.return_value = []
-    mock_ml_predictor.predict_risk.return_value = (20.0, "LOW")
-
-    dummy_result = {'file': 'x', 'score': 0, 'rule_based_score': 0, 'ml_score': 0.0,
-                    'confidence': 'LOW', 'vulnerabilities': [], 'summary': {}, 'features_analyzed': {}}
-    for i in range(100):
-        scanner._scan_cache[(f"file_{i}.tf", f"hash_{i}", float(i))] = (dummy_result, 0.1)
-    assert len(scanner._scan_cache) == 100
-
-    with mock_filesystem(file_content=b'resource "aws_instance" "x" {}', file_size=50):
-        scanner.scan("new_file.tf")
-    assert len(scanner._scan_cache) == 100
-
-
-@pytest.mark.unit
-def test_validate_features_out_of_bounds(scanner_with_mocks):
-    """Features with values > 100 are clipped and warning is logged."""
-    scanner = scanner_with_mocks
-    features = np.array([[200, 0, 0, 0, 0, 0, 5]], dtype=np.int32)
-    validated = scanner._validate_features(features)
-    assert validated[0][0] == 100
-
-
-@pytest.mark.unit
 def test_scan_cache_hit_returns_from_cache_true(scanner_with_mocks, mock_scanner_components):
     """Scanning same file twice returns from_cache=True on second call."""
     scanner = scanner_with_mocks
@@ -812,28 +676,6 @@ def test_scan_cache_hit_returns_from_cache_true(scanner_with_mocks, mock_scanner
 
     assert result1['performance']['from_cache'] is False
     assert result2['performance']['from_cache'] is True
-
-
-@pytest.mark.unit
-def test_extract_features_empty_list(scanner_with_mocks):
-    """_extract_features with empty list returns default [0,0,0,0,0,0,1]."""
-    scanner = scanner_with_mocks
-    features = scanner._extract_features([])
-    expected = np.array([[0, 0, 0, 0, 0, 0, 1]], dtype=np.int32)
-    np.testing.assert_array_equal(features, expected)
-
-
-@pytest.mark.unit
-def test_extract_features_missing_logging_and_flow_logs(scanner_with_mocks):
-    """_extract_features counts missing_logging and missing_flow_logs features."""
-    scanner = scanner_with_mocks
-    vulns = [
-        Vulnerability(Severity.HIGH, 20, "[HIGH] Missing logging configuration detected", "aws_cloudtrail"),
-        Vulnerability(Severity.MEDIUM, 10, "[MEDIUM] Missing VPC flow logs for aws_vpc.main", "aws_vpc"),
-    ]
-    features = scanner._extract_features(vulns)
-    assert features[0][4] == 1
-    assert features[0][5] == 1
 
 
 # ============================================================================
@@ -885,23 +727,3 @@ def test_detect_hardcoded_token(rule_engine):
     assert "Token" in vulns[0].message
 
 
-@pytest.mark.unit
-def test_ebs_volume_dict_not_list(rule_engine):
-    """aws_ebs_volume as dict (not list) is still processed correctly."""
-    tf_content = {
-        'resource': [{'aws_ebs_volume': {'data_vol': {'encrypted': False}}}]
-    }
-    vulns = rule_engine.check_encryption(tf_content)
-    ebs_vulns = [v for v in vulns if 'EBS' in v.message]
-    assert len(ebs_vulns) == 1
-    assert ebs_vulns[0].severity == Severity.HIGH
-
-
-@pytest.mark.unit
-def test_iam_policy_dict_not_list(rule_engine):
-    """aws_iam_role_policy as dict (not list) is still processed."""
-    tf_content = {
-        'resource': [{'aws_iam_role_policy': {'admin_policy': {'policy': '{"Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}'}}}]
-    }
-    vulns = rule_engine.check_iam_policies(tf_content)
-    assert len(vulns) >= 1

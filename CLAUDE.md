@@ -7,7 +7,7 @@ TerraSafe is a hybrid Terraform security scanner implementing Clean Architecture
 - **Security Approach**: 60% rule-based detection (7 rules) + 40% ML anomaly detection (7-dim feature vector)
 - **Tech Stack**: FastAPI, PostgreSQL, Redis, Isolation Forest ML, Prometheus/Grafana
 - **Language**: Python 3.10+
-- **Health**: 397 tests (100% coverage), 0 lint issues, 0 bandit findings, 0 mypy errors
+- **Health**: focused test suite (~200 tests) on security rules, scan pipeline, API contract, and ML predictions; 0 lint issues, 0 bandit findings, 0 mypy errors
 
 ## Quick Start
 
