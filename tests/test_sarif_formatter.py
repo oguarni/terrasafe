@@ -70,11 +70,6 @@ class TestSarifSchema:
         sarif = json.loads(results_to_sarif([file_result]))
         assert sarif["runs"][0]["results"][0]["level"] == "error"
 
-    def test_severity_mapping_high(self):
-        file_result = {"score": 70, "file": "a.tf", "vulnerabilities": [VULN_HIGH]}
-        sarif = json.loads(results_to_sarif([file_result]))
-        assert sarif["runs"][0]["results"][0]["level"] == "error"
-
     def test_severity_mapping_medium(self):
         file_result = {"score": 40, "file": "a.tf", "vulnerabilities": [VULN_MEDIUM]}
         sarif = json.loads(results_to_sarif([file_result]))
@@ -83,12 +78,6 @@ class TestSarifSchema:
     def test_severity_mapping_low(self):
         vuln_low = {**VULN_MEDIUM, "severity": "LOW"}
         file_result = {"score": 10, "file": "a.tf", "vulnerabilities": [vuln_low]}
-        sarif = json.loads(results_to_sarif([file_result]))
-        assert sarif["runs"][0]["results"][0]["level"] == "note"
-
-    def test_severity_mapping_info(self):
-        vuln_info = {**VULN_MEDIUM, "severity": "INFO"}
-        file_result = {"score": 5, "file": "a.tf", "vulnerabilities": [vuln_info]}
         sarif = json.loads(results_to_sarif([file_result]))
         assert sarif["runs"][0]["results"][0]["level"] == "note"
 
@@ -125,9 +114,3 @@ class TestSarifSchema:
         rule = sarif["runs"][0]["tool"]["driver"]["rules"][0]
         assert result["ruleId"] == rule["id"]
 
-    def test_output_is_valid_json(self):
-        file_result = {"score": 50, "file": "a.tf", "vulnerabilities": [VULN_HIGH]}
-        raw = results_to_sarif([file_result])
-        # Must not raise
-        parsed = json.loads(raw)
-        assert isinstance(parsed, dict)

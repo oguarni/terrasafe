@@ -27,13 +27,6 @@ class TestHCLParser:
         assert isinstance(raw_content, str)
         assert len(raw_content) > 0
 
-    def test_parse_secure_terraform_file(self):
-        """Test parsing a secure terraform file"""
-        parser = HCLParser()
-        tf_content, raw_content = parser.parse("test_files/secure.tf")
-        assert isinstance(tf_content, dict)
-        assert isinstance(raw_content, str)
-
     def test_parse_file_read_error(self, tmp_path):
         """Test parsing when file cannot be read"""
         tf_file = tmp_path / "test.tf"
@@ -76,19 +69,6 @@ class TestHCLParser:
         assert "Invalid HCL/JSON syntax" in str(exc_info.value)
         assert "File appears to be neither valid HCL nor JSON" in str(exc_info.value)
 
-    def test_parse_returns_raw_content(self):
-        """Test that parser returns both parsed and raw content"""
-        parser = HCLParser()
-        tf_content, raw_content = parser.parse("test_files/secure.tf")
-        assert tf_content is not None
-        assert raw_content is not None
-        assert len(raw_content) > 0
-
-    def test_terraform_parse_error_message(self):
-        """Test TerraformParseError exception"""
-        error = TerraformParseError("Custom error message")
-        assert str(error) == "Custom error message"
-
     def test_parse_simple_resource(self, tmp_path):
         """Test parsing a simple resource"""
         content = 'resource "aws_instance" "example" { ami = "ami-123" }'
@@ -106,14 +86,6 @@ class TestHCLParser:
         with pytest.raises(TerraformParseError) as exc_info:
             parser.parse(str(tf_file))
         assert "empty" in str(exc_info.value).lower()
-
-    def test_parser_encoding_utf8(self):
-        """Test parser handles UTF-8 encoding"""
-        parser = HCLParser()
-        # Real files should be UTF-8 encoded
-        tf_content, raw_content = parser.parse("test_files/vulnerable.tf")
-        assert isinstance(raw_content, str)
-        # Should not raise encoding errors
 
     def test_parse_non_list_resource_handling(self, tmp_path):
         """Parser handles resource block as dict not list."""

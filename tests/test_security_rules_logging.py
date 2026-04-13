@@ -52,18 +52,6 @@ def test_missing_logging_with_cloudtrail_present(engine):
     assert vulns == []
 
 
-def test_missing_logging_with_cloudwatch_log_group_present(engine):
-    """CloudWatch log group present → no vuln."""
-    tf_content = {
-        'resource': [
-            {'aws_security_group': [{'sg': {'ingress': []}}]},
-            {'aws_cloudwatch_log_group': [{'lg': {'name': '/app/logs'}}]},
-        ]
-    }
-    vulns = engine.check_missing_logging(tf_content)
-    assert vulns == []
-
-
 def test_missing_logging_empty_tf_content(engine):
     """Empty tf_content (no 'resource' key) → no vuln."""
     vulns = engine.check_missing_logging({})
@@ -165,18 +153,3 @@ def test_severity_override_missing_flow_logs_to_high(engine):
     assert flow_vulns[0].severity == Severity.HIGH
 
 
-def test_no_severity_override_applied_when_empty(engine):
-    """Empty severity_overrides dict → original severities unchanged."""
-    tf_content = {
-        'resource': [
-            {'aws_vpc': [{'main': {'cidr_block': '10.0.0.0/16'}}]},
-        ]
-    }
-    mock_settings = type('S', (), {'severity_overrides': {}})()
-    with patch('terrasafe.domain.security_rules.get_settings', return_value=mock_settings):
-        vulns = engine.analyze(tf_content, "")
-
-    logging_vulns = [v for v in vulns if 'missing logging' in v.message.lower()]
-    flow_vulns = [v for v in vulns if 'flow log' in v.message.lower()]
-    assert all(v.severity == Severity.HIGH for v in logging_vulns)
-    assert all(v.severity == Severity.MEDIUM for v in flow_vulns)

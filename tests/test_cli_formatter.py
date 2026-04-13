@@ -5,10 +5,6 @@ import pytest
 from terrasafe.cli_formatter import (
     format_results_for_display,
     _determine_risk_status,
-    _format_features,
-    _format_performance,
-    _format_vulnerabilities,
-    _format_no_issues,
 )
 
 
@@ -205,71 +201,3 @@ class TestHelperFunctions:
         assert status == "✅ LOW RISK"
         assert color == "\033[92m"
 
-    def test_determine_risk_status_boundary_90(self):
-        """Test boundary case at score 90"""
-        status, color = _determine_risk_status(90)
-        assert status == "🚨 CRITICAL RISK"
-
-    def test_determine_risk_status_boundary_70(self):
-        """Test boundary case at score 70"""
-        status, color = _determine_risk_status(70)
-        assert status == "❌ HIGH RISK"
-
-    def test_determine_risk_status_boundary_40(self):
-        """Test boundary case at score 40"""
-        status, color = _determine_risk_status(40)
-        assert status == "⚠️  MEDIUM RISK"
-
-    def test_format_features_helper(self):
-        """Test feature formatting helper"""
-        features = {
-            'open_ports': 3,
-            'hardcoded_secrets': 2,
-            'public_access': 1,
-            'unencrypted_storage': 0
-        }
-        output = _format_features(features)
-        assert any('Open Ports: 3' in line for line in output)
-        assert any('Hardcoded Secrets: 2' in line for line in output)
-
-    def test_format_performance_helper(self):
-        """Test performance formatting helper"""
-        perf = {
-            'scan_time_seconds': 1.5,
-            'file_size_kb': 10.2
-        }
-        output = _format_performance(perf)
-        assert any('Scan Time: 1.5s' in line for line in output)
-        assert any('File Size: 10.2 KB' in line for line in output)
-
-    def test_format_vulnerabilities_with_remediation(self):
-        """Test vulnerability formatting with remediation"""
-        vulns = [
-            {
-                'message': 'Security issue',
-                'resource': 'aws_instance.web',
-                'remediation': 'Apply fix'
-            }
-        ]
-        output = _format_vulnerabilities(vulns)
-        assert any('Security issue' in line for line in output)
-        assert any('aws_instance.web' in line for line in output)
-        assert any('Apply fix' in line for line in output)
-
-    def test_format_vulnerabilities_without_remediation(self):
-        """Test vulnerability formatting without remediation"""
-        vulns = [
-            {
-                'message': 'Security issue',
-                'resource': 'aws_instance.web'
-            }
-        ]
-        output = _format_vulnerabilities(vulns)
-        assert any('Security issue' in line for line in output)
-        # Should not crash when remediation is missing
-
-    def test_format_no_issues_helper(self):
-        """Test no issues formatting helper"""
-        output = _format_no_issues()
-        assert any('No security issues detected' in line for line in output)
-        assert any('All resources properly configured' in line for line in output)

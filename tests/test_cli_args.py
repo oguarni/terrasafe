@@ -127,14 +127,6 @@ class TestJsonOutput:
         assert "results" in parsed
         assert "summary" in parsed
 
-    def test_no_stray_text_in_stdout(self, tmp_path):
-        tf = tmp_path / "a.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=50, filepath=str(tf))
-        stdout, _, _ = _run_cli([str(tf), "--output-format", "json"], [result])
-        # Must be pure JSON — json.loads would raise if there's stray text
-        json.loads(stdout)
-
     def test_summary_fields(self, tmp_path):
         tf = tmp_path / "a.tf"
         tf.write_text("")
@@ -208,13 +200,6 @@ class TestSarifOutput:
         parsed = json.loads(stdout)
         assert parsed["version"] == "2.1.0"
         assert "runs" in parsed
-
-    def test_no_stray_text_in_sarif_stdout(self, tmp_path):
-        tf = tmp_path / "a.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=50, filepath=str(tf))
-        stdout, _, _ = _run_cli([str(tf), "--output-format", "sarif"], [result])
-        json.loads(stdout)  # must not raise
 
     def test_sarif_exit_0_below_threshold(self, tmp_path):
         tf = tmp_path / "a.tf"

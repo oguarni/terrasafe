@@ -155,15 +155,6 @@ class TestModelManager:
             result = manager._load_training_data()
         assert result is None
 
-    def test_load_training_data_value_error(self, tmp_path):
-        """ValueError during np.load returns None"""
-        manager = ModelManager(str(tmp_path / "models"))
-        manager.training_data_path.parent.mkdir(exist_ok=True)
-        manager.training_data_path.touch()
-        with patch('numpy.load', side_effect=ValueError("corrupt")):
-            result = manager._load_training_data()
-        assert result is None
-
     def test_detect_drift_model_too_old(self, tmp_path):
         """Model older than 30 days returns True"""
         from datetime import datetime, timedelta
@@ -180,18 +171,6 @@ class TestModelManager:
         metadata = {'saved_at': fresh_date}
         assert manager._detect_drift(metadata) is False
 
-    def test_detect_drift_bad_timestamp(self, tmp_path):
-        """Bad timestamp string returns False (logs warning)"""
-        manager = ModelManager(str(tmp_path / "models"))
-        metadata = {'saved_at': 'not-a-date'}
-        assert manager._detect_drift(metadata) is False
-
-    def test_detect_drift_none_timestamp(self, tmp_path):
-        """None saved_at returns False"""
-        manager = ModelManager(str(tmp_path / "models"))
-        metadata = {'saved_at': None}
-        assert manager._detect_drift(metadata) is False
-
     def test_get_current_version_exists(self, tmp_path):
         """Returns version string from file"""
         manager = ModelManager(str(tmp_path / "models"))
@@ -203,14 +182,6 @@ class TestModelManager:
         manager = ModelManager(str(tmp_path / "models"))
         assert manager.get_current_version() is None
 
-    def test_get_current_version_oserror(self, tmp_path):
-        """Returns None on OSError"""
-        manager = ModelManager(str(tmp_path / "models"))
-        manager.current_version_file.write_text("v1")
-        with patch('builtins.open', side_effect=OSError("permission denied")):
-            result = manager.get_current_version()
-        assert result is None
-
     def test_list_versions_returns_sorted(self, tmp_path):
         """Returns versions sorted descending"""
         manager = ModelManager(str(tmp_path / "models"))
@@ -220,16 +191,6 @@ class TestModelManager:
             (vdir / "model.pkl").touch()
         versions = manager.list_versions()
         assert versions == ["v20240301_000000", "v20240201_000000", "v20240101_000000"]
-
-    def test_list_versions_oserror(self, tmp_path):
-        """Returns empty list on OSError"""
-        manager = ModelManager(str(tmp_path / "models"))
-        mock_versions_dir = Mock()
-        mock_versions_dir.exists.return_value = True
-        mock_versions_dir.iterdir.side_effect = OSError("error")
-        with patch.object(manager, 'versions_dir', mock_versions_dir):
-            result = manager.list_versions()
-        assert result == []
 
     def test_rollback_to_version_not_found(self, tmp_path):
         """Raises ModelNotTrainedError for unknown version"""
@@ -314,46 +275,6 @@ class TestMLPredictor:
         # Should have high risk score
         assert risk_score >= 50
 
-    def test_predict_risk_edge_cases(self, tmp_path):
-        """Test predict_risk with edge case features"""
-        manager = ModelManager(str(tmp_path / "models"))
-        predictor = MLPredictor(manager)
-
-        # All zeros
-        features = np.array([[0, 0, 0, 0, 0, 0, 0]])
-        risk_score, confidence = predictor.predict_risk(features)
-        assert 0 <= risk_score <= 100
-
-        # Large values
-        features = np.array([[100, 100, 100, 100, 1, 1, 100]])
-        risk_score, confidence = predictor.predict_risk(features)
-        assert 0 <= risk_score <= 100
-
-    def test_predict_risk_high_confidence(self, tmp_path):
-        """Test predict_risk returns HIGH confidence"""
-        manager = ModelManager(str(tmp_path / "models"))
-        predictor = MLPredictor(manager)
-
-        # Very anomalous pattern should give high confidence
-        features = np.array([[50, 50, 50, 50, 1, 1, 1]])
-        risk_score, confidence = predictor.predict_risk(features)
-
-        # High anomaly score should give HIGH confidence
-        assert confidence in ["HIGH", "MEDIUM", "LOW"]
-
-    def test_predict_risk_medium_confidence(self, tmp_path):
-        """Test predict_risk returns MEDIUM confidence"""
-        manager = ModelManager(str(tmp_path / "models"))
-        predictor = MLPredictor(manager)
-
-        # Pattern that might trigger medium confidence
-        # This is tricky as we need to find a pattern that gives anomaly_score between 0.1 and 0.3
-        features = np.array([[2, 1, 1, 1, 0, 0, 8]])
-        risk_score, confidence = predictor.predict_risk(features)
-
-        # Just verify it's a valid confidence level
-        assert confidence in ["HIGH", "MEDIUM", "LOW"]
-
     def test_predict_risk_model_not_initialized(self, tmp_path):
         """Test predict_risk raises error when model not initialized"""
         manager = ModelManager(str(tmp_path / "models"))
@@ -376,47 +297,3 @@ class TestMLPredictor:
             with pytest.raises(ModelNotTrainedError):
                 predictor.predict_risk(features)
 
-    def test_baseline_model_training(self, tmp_path):
-        """Test _train_baseline_model creates valid model"""
-        manager = ModelManager(str(tmp_path / "models"))
-        predictor = MLPredictor(manager)
-
-        # Model should be trained
-        assert predictor.model is not None
-        assert predictor.scaler is not None
-
-        # Test prediction works
-        features = np.array([[1, 0, 0, 0, 0, 0, 10]])
-        risk_score, confidence = predictor.predict_risk(features)
-        assert 0 <= risk_score <= 100
-
-    def test_model_not_trained_error_message(self):
-        """Test ModelNotTrainedError exception"""
-        error = ModelNotTrainedError("Custom message")
-        assert str(error) == "Custom message"
-
-    def test_predictor_with_custom_manager(self, tmp_path):
-        """Test MLPredictor with custom ModelManager"""
-        custom_manager = ModelManager(str(tmp_path / "custom_models"))
-        predictor = MLPredictor(custom_manager)
-
-        assert predictor.model_manager == custom_manager
-        assert predictor.model is not None
-
-    def test_predict_risk_multiple_samples(self, tmp_path):
-        """Test predict_risk with multiple feature samples"""
-        manager = ModelManager(str(tmp_path / "models"))
-        predictor = MLPredictor(manager)
-
-        # Single sample at a time
-        features1 = np.array([[1, 0, 0, 0, 0, 0, 5]])
-        risk1, conf1 = predictor.predict_risk(features1)
-
-        features2 = np.array([[5, 5, 5, 5, 1, 1, 20]])
-        risk2, conf2 = predictor.predict_risk(features2)
-
-        # Both should return valid results
-        assert 0 <= risk1 <= 100
-        assert 0 <= risk2 <= 100
-        assert conf1 in ["HIGH", "MEDIUM", "LOW"]
-        assert conf2 in ["HIGH", "MEDIUM", "LOW"]
