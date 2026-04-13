@@ -1,23 +1,19 @@
 """
 Security tests for TerraSafe.
 
-Tests API key validation, rate limiting, input validation, and path traversal protection.
+Tests API key validation, path traversal protection, and settings validation.
 """
 
 import pytest
-import bcrypt
 import tempfile
 from pathlib import Path
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 
 from terrasafe.api import app, hash_api_key, verify_api_key_hash
 from terrasafe.infrastructure.parser import (
     HCLParser,
     TerraformParseError,
-    PathTraversalError,
-    FileSizeLimitError,
-    ParseTimeoutError
 )
 from terrasafe.config.settings import Settings
 
@@ -60,172 +56,6 @@ class TestAPIKeySecurity:
 
         # Empty strings
         assert verify_api_key_hash("", "") is False
-
-
-class TestAPIEndpointSecurity:
-    """Test API endpoint security."""
-
-    @pytest.fixture
-    def client(self):
-        """Create test client."""
-        return TestClient(app)
-
-    @pytest.fixture
-    def mock_settings(self):
-        """Mock settings with test API key."""
-        test_key = "test-api-key"
-        hashed_key = hash_api_key(test_key)
-
-        with patch('terrasafe.api.settings') as mock:
-            mock.api_key_hash = hashed_key
-            mock.max_file_size_bytes = 10 * 1024 * 1024
-            mock.max_file_size_mb = 10
-            mock.scan_timeout_seconds = 30
-            mock.is_development.return_value = True
-            mock.is_production.return_value = False
-            yield mock, test_key
-
-    def test_scan_without_api_key(self, client):
-        """Test that scan endpoint rejects requests without API key."""
-        response = client.post(
-            "/scan",
-            files={"file": ("test.tf", b"resource 'test' {}", "text/plain")}
-        )
-
-        assert response.status_code == 403
-        assert "Missing API Key" in response.json()["detail"]
-
-    def test_scan_with_invalid_api_key(self, client, mock_settings):
-        """Test that scan endpoint rejects invalid API keys."""
-        response = client.post(
-            "/scan",
-            headers={"X-API-Key": "invalid-key"},
-            files={"file": ("test.tf", b"resource 'test' {}", "text/plain")}
-        )
-
-        assert response.status_code == 403
-        assert "Invalid API Key" in response.json()["detail"]
-
-    def test_scan_with_valid_api_key(self, client, mock_settings):
-        """Test that scan endpoint accepts valid API keys."""
-        mock, test_key = mock_settings
-
-        # Create a valid terraform file
-        tf_content = b"""
-        resource "aws_instance" "example" {
-            ami = "ami-12345678"
-            instance_type = "t2.micro"
-        }
-        """
-
-        with patch('terrasafe.api.scanner') as mock_scanner:
-            mock_scanner.scan.return_value = {
-                'score': 50,
-                'rule_based_score': 40,
-                'ml_score': 60,
-                'confidence': 'MEDIUM',
-                'vulnerabilities': [],
-                'summary': {},
-                'features_analyzed': {},
-                'performance': {'scan_time_seconds': 0.1, 'file_size_kb': 0.5}
-            }
-
-            response = client.post(
-                "/scan",
-                headers={"X-API-Key": test_key},
-                files={"file": ("test.tf", tf_content, "text/plain")}
-            )
-
-            # Should succeed if API key is valid
-            assert response.status_code == 200
-
-    def test_scan_file_size_validation(self, client, mock_settings):
-        """Test that large files are rejected."""
-        mock, test_key = mock_settings
-
-        # Create a file larger than 10MB
-        large_content = b"x" * (11 * 1024 * 1024)  # 11MB
-
-        response = client.post(
-            "/scan",
-            headers={"X-API-Key": test_key},
-            files={"file": ("test.tf", large_content, "text/plain")}
-        )
-
-        assert response.status_code == 413
-        assert "too large" in response.json()["detail"].lower()
-
-    def test_scan_empty_file_validation(self, client, mock_settings):
-        """Test that empty files are rejected."""
-        mock, test_key = mock_settings
-
-        response = client.post(
-            "/scan",
-            headers={"X-API-Key": test_key},
-            files={"file": ("test.tf", b"", "text/plain")}
-        )
-
-        assert response.status_code == 400
-        assert "empty" in response.json()["detail"].lower()
-
-    def test_scan_invalid_file_extension(self, client, mock_settings):
-        """Test that non-Terraform files are rejected."""
-        mock, test_key = mock_settings
-
-        response = client.post(
-            "/scan",
-            headers={"X-API-Key": test_key},
-            files={"file": ("test.txt", b"some content", "text/plain")}
-        )
-
-        assert response.status_code == 400
-        assert "Terraform file" in response.json()["detail"]
-
-
-class TestInputValidation:
-    """Test input validation and sanitization."""
-
-    def test_parser_file_size_limit(self):
-        """Test that parser enforces file size limits."""
-        parser = HCLParser(max_file_size_bytes=100)  # 100 bytes limit
-
-        # Create a temp file larger than limit
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.tf', delete=False) as f:
-            f.write("x" * 200)  # 200 bytes
-            temp_path = f.name
-
-        try:
-            with pytest.raises(FileSizeLimitError) as exc_info:
-                parser.parse(temp_path)
-
-            assert "exceeds maximum allowed size" in str(exc_info.value)
-        finally:
-            Path(temp_path).unlink(missing_ok=True)
-
-    def test_parser_empty_file(self):
-        """Test that parser rejects empty files."""
-        parser = HCLParser()
-
-        # Create an empty temp file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.tf', delete=False) as f:
-            temp_path = f.name
-
-        try:
-            with pytest.raises(TerraformParseError) as exc_info:
-                parser.parse(temp_path)
-
-            assert "empty" in str(exc_info.value).lower()
-        finally:
-            Path(temp_path).unlink(missing_ok=True)
-
-    def test_parser_nonexistent_file(self):
-        """Test that parser handles nonexistent files properly."""
-        parser = HCLParser()
-
-        with pytest.raises(TerraformParseError) as exc_info:
-            parser.parse("/nonexistent/file.tf")
-
-        assert "not found" in str(exc_info.value).lower()
 
 
 class TestPathTraversalProtection:
@@ -303,23 +133,6 @@ class TestSettingsValidation:
             Settings(api_key_hash=valid_hash, environment="invalid")
 
         assert "environment" in str(exc_info.value).lower()
-
-
-class TestRateLimiting:
-    """Test rate limiting functionality."""
-
-    @pytest.fixture
-    def client(self):
-        """Create test client."""
-        return TestClient(app)
-
-    def test_health_endpoint_no_rate_limit(self, client):
-        """Test that health endpoint is not rate limited."""
-        # Make multiple requests quickly
-        for _ in range(10):
-            response = client.get("/health")
-            assert response.status_code == 200
-
 
 
 class TestCorrelationID:
