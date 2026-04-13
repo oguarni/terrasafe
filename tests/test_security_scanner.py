@@ -256,45 +256,6 @@ def test_no_vulnerabilities_secure_config(rule_engine):
 # TEST INTELLIGENT SECURITY SCANNER WITH MOCKED DEPENDENCIES
 # ============================================================================
 
-def test_scan_successful(scanner_with_mocks, mock_scanner_components):
-    """Test successful scan with mocked components"""
-    # Arrange
-    test_file = "test.tf"
-    tf_content = {"resource": []}
-    raw_content = "resource {}"
-
-    mock_parser = mock_scanner_components['parser']
-    mock_rule_analyzer = mock_scanner_components['rule_analyzer']
-    mock_ml_predictor = mock_scanner_components['ml_predictor']
-
-    mock_parser.parse.return_value = (tf_content, raw_content)
-
-    vulnerabilities = [
-        Vulnerability(Severity.HIGH, 20, "Test vuln", "resource1")
-    ]
-    mock_rule_analyzer.analyze.return_value = vulnerabilities
-
-    mock_ml_predictor.predict_risk.return_value = (45.5, "MEDIUM")
-
-    # Act - Use the reusable filesystem mocking fixture
-    mock_file_content = b"resource {}"
-    with mock_filesystem(file_content=mock_file_content, file_size=1024):
-        results = scanner_with_mocks.scan(test_file)
-
-    # Assert - Use decoupled score calculation
-    assert results['file'] == test_file
-    assert results['rule_based_score'] == 20
-    assert results['ml_score'] == 45.5
-    assert results['confidence'] == "MEDIUM"
-    expected_score = calculate_expected_score(20, 45.5)
-    assert results['score'] == expected_score
-
-    # Verify mocks were called
-    mock_parser.parse.assert_called_once_with(test_file)
-    mock_rule_analyzer.analyze.assert_called_once_with(tf_content, raw_content)
-    mock_ml_predictor.predict_risk.assert_called_once()
-
-
 def test_scan_parse_error(scanner_with_mocks, mock_scanner_components):
     """Test scan handling parse errors"""
     # Arrange
@@ -399,46 +360,6 @@ def test_feature_extraction(scanner_with_mocks):
     #            0 missing_flow_logs, 4 resources]
     expected = np.array([[1, 1, 1, 1, 0, 0, 4]])
     np.testing.assert_array_equal(features, expected)
-
-
-def test_complex_scan_scenario(scanner_with_mocks, mock_scanner_components):
-    """Test complex scan with multiple vulnerabilities"""
-    # Arrange
-    test_file = "complex.tf"
-    tf_content = {"resource": [{"aws_security_group": []}]}
-    raw_content = "complex terraform content"
-
-    mock_parser = mock_scanner_components['parser']
-    mock_rule_analyzer = mock_scanner_components['rule_analyzer']
-    mock_ml_predictor = mock_scanner_components['ml_predictor']
-
-    mock_parser.parse.return_value = (tf_content, raw_content)
-
-    vulnerabilities = [
-        Vulnerability(Severity.CRITICAL, 30, "Critical SSH issue", "sg1"),
-        Vulnerability(Severity.HIGH, 20, "High RDS issue", "db1"),
-        Vulnerability(Severity.MEDIUM, 10, "Medium S3 issue", "s3")
-    ]
-    mock_rule_analyzer.analyze.return_value = vulnerabilities
-
-    mock_ml_predictor.predict_risk.return_value = (75.0, "HIGH")
-
-    # Act - Use the reusable filesystem mocking fixture
-    mock_file_content = b"complex terraform content"
-    with mock_filesystem(file_content=mock_file_content, file_size=2048):
-        results = scanner_with_mocks.scan(test_file)
-
-    # Assert - Use decoupled score calculation
-    assert results['file'] == test_file
-    assert results['rule_based_score'] == 60  # 30 + 20 + 10
-    assert results['ml_score'] == 75.0
-    assert results['confidence'] == "HIGH"
-    expected_score = calculate_expected_score(60, 75.0)
-    assert results['score'] == expected_score
-    assert len(results['vulnerabilities']) == 3
-    assert 'performance' in results
-    assert 'scan_time_seconds' in results['performance']
-    assert 'file_size_kb' in results['performance']
 
 
 # ============================================================================

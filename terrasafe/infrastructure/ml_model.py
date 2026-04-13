@@ -354,9 +354,9 @@ class MLPredictor:
 
             logger.debug("ML Score: %.1f, Confidence: %s, Anomaly: %.3f", risk_score, confidence, anomaly_score)
             return risk_score, confidence
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.error("Error in ML scoring: %s", e)
-            return 50.0, "LOW"  # Return neutral score on error
+        except Exception as e:
+            logger.error("ML scoring failed: %s", e)
+            raise ModelNotTrainedError(f"ML scoring failed: {type(e).__name__}: {e}") from e
 
     def _train_baseline_model(self):
         """Train and save a new baseline model with comprehensive patterns."""

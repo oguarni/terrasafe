@@ -295,7 +295,7 @@ class TestMLPredictor:
         predictor = MLPredictor(manager)
 
         # Test with normal pattern
-        features = np.array([[0, 0, 0, 0, 10]])
+        features = np.array([[0, 0, 0, 0, 0, 0, 10]])
         risk_score, confidence = predictor.predict_risk(features)
 
         assert isinstance(risk_score, (int, float))
@@ -308,7 +308,7 @@ class TestMLPredictor:
         predictor = MLPredictor(manager)
 
         # Test with anomalous pattern (many issues)
-        features = np.array([[10, 10, 10, 10, 5]])
+        features = np.array([[10, 10, 10, 10, 1, 1, 5]])
         risk_score, confidence = predictor.predict_risk(features)
 
         # Should have high risk score
@@ -320,12 +320,12 @@ class TestMLPredictor:
         predictor = MLPredictor(manager)
 
         # All zeros
-        features = np.array([[0, 0, 0, 0, 0]])
+        features = np.array([[0, 0, 0, 0, 0, 0, 0]])
         risk_score, confidence = predictor.predict_risk(features)
         assert 0 <= risk_score <= 100
 
         # Large values
-        features = np.array([[100, 100, 100, 100, 100]])
+        features = np.array([[100, 100, 100, 100, 1, 1, 100]])
         risk_score, confidence = predictor.predict_risk(features)
         assert 0 <= risk_score <= 100
 
@@ -335,7 +335,7 @@ class TestMLPredictor:
         predictor = MLPredictor(manager)
 
         # Very anomalous pattern should give high confidence
-        features = np.array([[50, 50, 50, 50, 1]])
+        features = np.array([[50, 50, 50, 50, 1, 1, 1]])
         risk_score, confidence = predictor.predict_risk(features)
 
         # High anomaly score should give HIGH confidence
@@ -348,7 +348,7 @@ class TestMLPredictor:
 
         # Pattern that might trigger medium confidence
         # This is tricky as we need to find a pattern that gives anomaly_score between 0.1 and 0.3
-        features = np.array([[2, 1, 1, 1, 8]])
+        features = np.array([[2, 1, 1, 1, 0, 0, 8]])
         risk_score, confidence = predictor.predict_risk(features)
 
         # Just verify it's a valid confidence level
@@ -367,18 +367,14 @@ class TestMLPredictor:
             predictor.predict_risk(features)
 
     def test_predict_risk_error_handling(self, tmp_path):
-        """Test predict_risk handles errors gracefully"""
+        """ML scoring failures propagate so callers can surface them, not silently return neutral scores."""
         manager = ModelManager(str(tmp_path / "models"))
         predictor = MLPredictor(manager)
 
-        # Patch transform to raise error after model is initialized
         with patch.object(predictor.scaler, 'transform', side_effect=Exception("Transform error")):
-            features = np.array([[1, 2, 3, 4, 5]])
-            risk_score, confidence = predictor.predict_risk(features)
-
-            # Should return neutral score on error
-            assert risk_score == 50.0
-            assert confidence == "LOW"
+            features = np.array([[1, 2, 3, 4, 0, 0, 5]])
+            with pytest.raises(ModelNotTrainedError):
+                predictor.predict_risk(features)
 
     def test_baseline_model_training(self, tmp_path):
         """Test _train_baseline_model creates valid model"""
@@ -390,7 +386,7 @@ class TestMLPredictor:
         assert predictor.scaler is not None
 
         # Test prediction works
-        features = np.array([[1, 0, 0, 0, 10]])
+        features = np.array([[1, 0, 0, 0, 0, 0, 10]])
         risk_score, confidence = predictor.predict_risk(features)
         assert 0 <= risk_score <= 100
 
@@ -413,10 +409,10 @@ class TestMLPredictor:
         predictor = MLPredictor(manager)
 
         # Single sample at a time
-        features1 = np.array([[1, 0, 0, 0, 5]])
+        features1 = np.array([[1, 0, 0, 0, 0, 0, 5]])
         risk1, conf1 = predictor.predict_risk(features1)
 
-        features2 = np.array([[5, 5, 5, 5, 20]])
+        features2 = np.array([[5, 5, 5, 5, 1, 1, 20]])
         risk2, conf2 = predictor.predict_risk(features2)
 
         # Both should return valid results
