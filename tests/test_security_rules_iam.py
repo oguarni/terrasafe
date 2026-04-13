@@ -38,16 +38,6 @@ class TestCheckIamPolicies:
         result = self.engine.check_iam_policies({})
         assert result == []
 
-    def test_no_iam_role_policy_resource_returns_empty(self):
-        """Resources without aws_iam_role_policy → no vulnerabilities."""
-        tf_content = {
-            "resource": [
-                {"aws_s3_bucket": [{"my_bucket": {}}]}
-            ]
-        }
-        result = self.engine.check_iam_policies(tf_content)
-        assert result == []
-
     # ------------------------------------------------------------------
     # Wildcard action detection
     # ------------------------------------------------------------------

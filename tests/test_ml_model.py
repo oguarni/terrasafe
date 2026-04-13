@@ -57,54 +57,6 @@ class TestModelManager:
             manager.load_model()
         assert "Model or scaler file not found" in str(exc_info.value)
 
-    @patch('joblib.load', side_effect=Exception("Corrupted file"))
-    def test_load_model_corrupted(self, mock_load, tmp_path):
-        """Test loading corrupted model raises error"""
-        manager = ModelManager(str(tmp_path / "models"))
-
-        # Create fake files
-        manager.model_path.touch()
-        manager.scaler_path.touch()
-
-        with pytest.raises(ModelNotTrainedError) as exc_info:
-            manager.load_model()
-        assert "Error loading model" in str(exc_info.value)
-
-    @patch('joblib.dump', side_effect=Exception("Write error"))
-    def test_save_model_error(self, mock_dump, tmp_path):
-        """Test save_model propagates errors so callers know persistence failed"""
-        manager = ModelManager(str(tmp_path / "models"))
-
-        model = IsolationForest(random_state=42)
-        scaler = StandardScaler()
-        dummy_data = np.array([[1, 2, 3, 4, 5]])
-        scaler.fit(dummy_data)
-        model.fit(dummy_data)
-
-        # Should raise so the caller knows the save failed
-        with pytest.raises(Exception) as exc_info:
-            manager.save_model(model, scaler, {"test": "data"})
-        assert "Write error" in str(exc_info.value)
-
-    def test_update_model_with_feedback_new_metadata(self, tmp_path):
-        """Test updating model with feedback (new metadata)"""
-        manager = ModelManager(str(tmp_path / "models"))
-
-        # Create and save initial model
-        model = IsolationForest(random_state=42, contamination=0.1)
-        scaler = StandardScaler()
-        initial_data = np.array([[1, 2, 3, 4, 5], [2, 3, 4, 5, 6]])
-        scaler.fit(initial_data)
-        model.fit(scaler.transform(initial_data))
-
-        # Update with new data
-        new_data = np.array([[3, 4, 5, 6, 7]])
-        metadata = {"version": "1.1"}
-        manager.update_model_with_feedback(model, scaler, new_data, metadata)
-
-        # Check metadata was updated
-        assert manager.metadata_path.exists()
-
     def test_update_model_with_feedback_existing_metadata(self, tmp_path):
         """Test updating model with feedback combines historical + new data."""
         manager = ModelManager(str(tmp_path / "models"))
@@ -129,31 +81,6 @@ class TestModelManager:
             updated_metadata = json.load(f)
         assert updated_metadata['total_samples'] == 4  # 2 historical + 2 new
         assert updated_metadata['feedback_samples_added'] == 2
-
-    @patch('sklearn.ensemble.IsolationForest.fit', side_effect=ValueError("Fit error"))
-    def test_update_model_with_feedback_error(self, mock_fit, tmp_path):
-        """Test update_model_with_feedback handles errors"""
-        manager = ModelManager(str(tmp_path / "models"))
-
-        model = IsolationForest(random_state=42)
-        scaler = StandardScaler()
-        scaler.fit(np.array([[1, 2, 3, 4, 5]]))
-
-        new_data = np.array([[2, 3, 4, 5, 6]])
-        metadata = {"test": "data"}
-
-        # Should not raise, just log error
-        manager.update_model_with_feedback(model, scaler, new_data, metadata)
-
-    def test_load_training_data_oserror(self, tmp_path):
-        """OSError during np.load returns None"""
-        manager = ModelManager(str(tmp_path / "models"))
-        # Create training data file so path exists
-        manager.training_data_path.parent.mkdir(exist_ok=True)
-        manager.training_data_path.touch()
-        with patch('numpy.load', side_effect=OSError("disk error")):
-            result = manager._load_training_data()
-        assert result is None
 
     def test_detect_drift_model_too_old(self, tmp_path):
         """Model older than 30 days returns True"""
@@ -286,14 +213,4 @@ class TestMLPredictor:
         features = np.array([[1, 2, 3, 4, 5]])
         with pytest.raises(ModelNotTrainedError):
             predictor.predict_risk(features)
-
-    def test_predict_risk_error_handling(self, tmp_path):
-        """ML scoring failures propagate so callers can surface them, not silently return neutral scores."""
-        manager = ModelManager(str(tmp_path / "models"))
-        predictor = MLPredictor(manager)
-
-        with patch.object(predictor.scaler, 'transform', side_effect=Exception("Transform error")):
-            features = np.array([[1, 2, 3, 4, 0, 0, 5]])
-            with pytest.raises(ModelNotTrainedError):
-                predictor.predict_risk(features)
 

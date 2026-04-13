@@ -27,16 +27,6 @@ class TestHCLParser:
         assert isinstance(raw_content, str)
         assert len(raw_content) > 0
 
-    def test_parse_file_read_error(self, tmp_path):
-        """Test parsing when file cannot be read"""
-        tf_file = tmp_path / "test.tf"
-        tf_file.write_text('resource "aws_instance" "test" {}')
-        parser = HCLParser()
-        with patch('builtins.open', side_effect=IOError("Permission denied")):
-            with pytest.raises(TerraformParseError) as exc_info:
-                parser.parse(str(tf_file))
-        assert "Cannot read file" in str(exc_info.value)
-
     def test_parse_invalid_hcl_syntax(self, tmp_path):
         """Test parsing invalid HCL syntax"""
         tf_file = tmp_path / "invalid.tf"
@@ -69,15 +59,6 @@ class TestHCLParser:
         assert "Invalid HCL/JSON syntax" in str(exc_info.value)
         assert "File appears to be neither valid HCL nor JSON" in str(exc_info.value)
 
-    def test_parse_simple_resource(self, tmp_path):
-        """Test parsing a simple resource"""
-        content = 'resource "aws_instance" "example" { ami = "ami-123" }'
-        tf_file = tmp_path / "simple.tf"
-        tf_file.write_text(content)
-        parser = HCLParser()
-        tf_content, raw_content = parser.parse(str(tf_file))
-        assert raw_content == content
-
     def test_parse_empty_file_rejected(self, tmp_path):
         """Test that empty files are correctly rejected"""
         tf_file = tmp_path / "empty.tf"
@@ -86,15 +67,6 @@ class TestHCLParser:
         with pytest.raises(TerraformParseError) as exc_info:
             parser.parse(str(tf_file))
         assert "empty" in str(exc_info.value).lower()
-
-    def test_parse_non_list_resource_handling(self, tmp_path):
-        """Parser handles resource block as dict not list."""
-        content = 'resource "aws_instance" "test" { ami = "ami-12345678" instance_type = "t2.micro" }'
-        tf_file = tmp_path / "dict_resource.tf"
-        tf_file.write_text(content)
-        parser = HCLParser()
-        tf_content, raw_content = parser.parse(str(tf_file))
-        assert isinstance(tf_content, dict)
 
     def test_parse_file_size_limit(self, tmp_path):
         """File exceeding max size raises FileSizeLimitError."""

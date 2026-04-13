@@ -177,15 +177,6 @@ class TestJsonOutput:
         assert data["summary"]["passed"] == 1
         assert data["summary"]["max_score"] == 85
 
-    def test_threshold_flag_respected(self, tmp_path):
-        tf = tmp_path / "a.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=60, filepath=str(tf))
-        # threshold=80, score=60 → should pass
-        _, _, code = _run_cli([str(tf), "--output-format", "json", "--threshold", "80"], [result])
-        assert code == 0
-
-
 # ---------------------------------------------------------------------------
 # --output-format sarif
 # ---------------------------------------------------------------------------

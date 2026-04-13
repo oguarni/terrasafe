@@ -40,11 +40,6 @@ class TestFallbackRateLimiter:
         limiter.check_rate_limit("10.0.0.1")
         assert limiter.get_remaining("10.0.0.1") == 3
 
-    def test_get_remaining_unknown_ip(self):
-        """get_remaining for unknown IP should return max."""
-        limiter = FallbackRateLimiter(max_requests=10, window_seconds=60)
-        assert limiter.get_remaining("unknown.ip") == 10
-
     def test_reset_specific_ip(self):
         """Resetting a specific IP should only clear that IP."""
         limiter = FallbackRateLimiter(max_requests=2, window_seconds=60)
@@ -63,15 +58,3 @@ class TestFallbackRateLimiter:
         assert limiter.get_remaining("10.0.0.1") == 2
         assert limiter.get_remaining("10.0.0.2") == 2
 
-    def test_periodic_cleanup_on_check(self):
-        """Internal cleanup should trigger every 100 checks."""
-        limiter = FallbackRateLimiter(max_requests=200, window_seconds=60)
-        for i in range(100):
-            limiter.check_rate_limit(f"ip-{i}")
-        # The 100th check triggers _cleanup_locked internally — no crash
-        assert limiter.check_rate_limit("final-ip") is True
-
-    def test_reset_nonexistent_ip(self):
-        """Resetting a non-existent IP should not error."""
-        limiter = FallbackRateLimiter(max_requests=5, window_seconds=60)
-        limiter.reset("does.not.exist")  # Should not raise

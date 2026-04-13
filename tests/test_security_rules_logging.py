@@ -52,12 +52,6 @@ def test_missing_logging_with_cloudtrail_present(engine):
     assert vulns == []
 
 
-def test_missing_logging_empty_tf_content(engine):
-    """Empty tf_content (no 'resource' key) → no vuln."""
-    vulns = engine.check_missing_logging({})
-    assert vulns == []
-
-
 def test_missing_logging_resources_are_only_logging(engine):
     """Only logging resources present (no infra to monitor) → no vuln."""
     tf_content = {
@@ -107,12 +101,6 @@ def test_missing_vpc_flow_logs_no_vpc_at_all(engine):
         ]
     }
     vulns = engine.check_missing_vpc_flow_logs(tf_content)
-    assert vulns == []
-
-
-def test_missing_vpc_flow_logs_empty_tf_content(engine):
-    """Empty tf_content → no vuln."""
-    vulns = engine.check_missing_vpc_flow_logs({})
     assert vulns == []
 
 

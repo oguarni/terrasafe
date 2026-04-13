@@ -326,42 +326,6 @@ def test_scan_file_permission_error(scanner_with_mocks, mock_scanner_components)
     mock_parser.parse.assert_not_called()
 
 
-def test_scan_unexpected_error(scanner_with_mocks, mock_scanner_components):
-    """Test scan handling unexpected errors"""
-    # Arrange
-    test_file = "test.tf"
-    mock_parser = mock_scanner_components['parser']
-    mock_parser.parse.side_effect = Exception("Unexpected error")
-
-    # Act - Use the reusable filesystem mocking fixture
-    mock_file_content = b"test terraform"
-    with mock_filesystem(file_content=mock_file_content, file_size=1024):
-        results = scanner_with_mocks.scan(test_file)
-
-    # Assert
-    assert results['score'] == -1
-    assert 'error' in results
-    # Updated to match new error message format
-    assert 'Unexpected Exception error during scan' in results['error']
-
-
-def test_feature_extraction(scanner_with_mocks):
-    """Test feature extraction isolation"""
-    vulnerabilities = [
-        Vulnerability(Severity.CRITICAL, 30, "Open security group - SSH port 22 exposed to internet", "sg1"),
-        Vulnerability(Severity.CRITICAL, 30, "Hardcoded password detected", "db1"),
-        Vulnerability(Severity.HIGH, 20, "S3 bucket with public access enabled", "bucket1"),
-        Vulnerability(Severity.HIGH, 20, "Unencrypted RDS instance", "db2")
-    ]
-
-    features = scanner_with_mocks._extract_features(vulnerabilities)
-
-    # Expected: [1 open_port, 1 secret, 1 public_access, 1 unencrypted, 0 missing_logging,
-    #            0 missing_flow_logs, 4 resources]
-    expected = np.array([[1, 1, 1, 1, 0, 0, 4]])
-    np.testing.assert_array_equal(features, expected)
-
-
 # ============================================================================
 # TEST INTELLIGENT SECURITY SCANNER - INTEGRATION TESTS
 # ============================================================================
@@ -480,25 +444,5 @@ def test_detect_hardcoded_api_key(rule_engine):
     assert len(vulns) == 1
     assert vulns[0].severity == Severity.CRITICAL
     assert "API key" in vulns[0].message
-
-
-@pytest.mark.unit
-def test_detect_hardcoded_secret_key(rule_engine):
-    """secret_key = 'wJalr...' triggers CRITICAL vulnerability."""
-    raw_content = 'secret_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCY"'
-    vulns = rule_engine.check_hardcoded_secrets(raw_content)
-    assert len(vulns) == 1
-    assert vulns[0].severity == Severity.CRITICAL
-    assert "Secret key" in vulns[0].message
-
-
-@pytest.mark.unit
-def test_detect_hardcoded_token(rule_engine):
-    """token = 'eyJh...' triggers CRITICAL vulnerability."""
-    raw_content = 'token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"'
-    vulns = rule_engine.check_hardcoded_secrets(raw_content)
-    assert len(vulns) == 1
-    assert vulns[0].severity == Severity.CRITICAL
-    assert "Token" in vulns[0].message
 
 

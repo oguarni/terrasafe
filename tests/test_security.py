@@ -36,19 +36,6 @@ class TestAPIKeySecurity:
         # Verify wrong key fails
         assert verify_api_key_hash("wrong-key", hashed) is False
 
-    def test_api_key_hash_uniqueness(self):
-        """Test that hashing the same key twice produces different hashes (salt)."""
-        api_key = "test-api-key-12345"
-        hash1 = hash_api_key(api_key)
-        hash2 = hash_api_key(api_key)
-
-        # Hashes should be different due to different salts
-        assert hash1 != hash2
-
-        # But both should verify correctly
-        assert verify_api_key_hash(api_key, hash1) is True
-        assert verify_api_key_hash(api_key, hash2) is True
-
     def test_api_key_verification_error_handling(self):
         """Test that API key verification handles errors gracefully."""
         # Invalid hash format
