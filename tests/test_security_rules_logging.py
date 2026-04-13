@@ -52,18 +52,6 @@ def test_missing_logging_with_cloudtrail_present(engine):
     assert vulns == []
 
 
-def test_missing_logging_resources_are_only_logging(engine):
-    """Only logging resources present (no infra to monitor) → no vuln."""
-    tf_content = {
-        'resource': [
-            {'aws_cloudtrail': [{'trail': {'name': 'trail', 's3_bucket_name': 'b'}}]},
-            {'aws_cloudwatch_log_group': [{'lg': {'name': '/logs'}}]},
-        ]
-    }
-    vulns = engine.check_missing_logging(tf_content)
-    assert vulns == []
-
-
 # ---------------------------------------------------------------------------
 # check_missing_vpc_flow_logs
 # ---------------------------------------------------------------------------

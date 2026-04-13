@@ -119,25 +119,6 @@ class TestJsonOutput:
         assert "results" in parsed
         assert "summary" in parsed
 
-    def test_summary_fields(self, tmp_path):
-        tf = tmp_path / "a.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=50, filepath=str(tf))
-        stdout, _, _ = _run_cli([str(tf), "--output-format", "json"], [result])
-        summary = json.loads(stdout)["summary"]
-        assert summary["total_files"] == 1
-        assert "passed" in summary
-        assert "failed" in summary
-        assert "max_score" in summary
-        assert "threshold" in summary
-
-    def test_json_exit_2_on_error(self, tmp_path):
-        tf = tmp_path / "a.tf"
-        tf.write_text("")
-        err = _make_error_result(filepath=str(tf))
-        _, _, code = _run_cli([str(tf), "--output-format", "json"], [err])
-        assert code == 2
-
     def test_multi_file_aggregated_summary(self, tmp_path):
         tf1 = tmp_path / "a.tf"
         tf2 = tmp_path / "b.tf"

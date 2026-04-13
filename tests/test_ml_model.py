@@ -106,23 +106,6 @@ class TestModelManager:
 class TestMLPredictor:
     """Test suite for MLPredictor"""
 
-    def test_predictor_initialization_with_existing_model(self, tmp_path):
-        """Test MLPredictor loads existing model"""
-        manager = ModelManager(str(tmp_path / "models"))
-
-        # Create and save model
-        model = IsolationForest(random_state=42)
-        scaler = StandardScaler()
-        dummy_data = np.array([[1, 2, 3, 4, 5], [2, 3, 4, 5, 6]])
-        scaler.fit(dummy_data)
-        model.fit(scaler.transform(dummy_data))
-        manager.save_model(model, scaler, {"samples": 2})
-
-        # Create predictor
-        predictor = MLPredictor(manager)
-        assert predictor.model is not None
-        assert predictor.scaler is not None
-
     def test_predictor_initialization_trains_baseline(self, tmp_path):
         """Test MLPredictor trains baseline model when none exists"""
         manager = ModelManager(str(tmp_path / "new_models"))

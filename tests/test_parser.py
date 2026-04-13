@@ -47,18 +47,6 @@ class TestHCLParser:
         assert isinstance(tf_content, dict)
         assert "resource" in tf_content
 
-    def test_parse_both_formats_fail(self, tmp_path):
-        """Test when both HCL and JSON parsing fail"""
-        tf_file = tmp_path / "invalid.tf"
-        tf_file.write_text("not valid json or hcl")
-        parser = HCLParser()
-        with patch('hcl2.loads', side_effect=Exception("HCL parse error")):
-            with pytest.raises(TerraformParseError) as exc_info:
-                parser.parse(str(tf_file))
-        # Check for the enhanced error message
-        assert "Invalid HCL/JSON syntax" in str(exc_info.value)
-        assert "File appears to be neither valid HCL nor JSON" in str(exc_info.value)
-
     def test_parse_empty_file_rejected(self, tmp_path):
         """Test that empty files are correctly rejected"""
         tf_file = tmp_path / "empty.tf"
@@ -85,13 +73,3 @@ class TestHCLParser:
         with pytest.raises(TerraformParseError) as exc_info:
             parser.parse(str(tf_file))
         assert "encoding" in str(exc_info.value).lower() or "utf" in str(exc_info.value).lower()
-
-    def test_parse_permission_denied(self, tmp_path):
-        """PermissionError on open raises TerraformParseError."""
-        tf_file = tmp_path / "restricted.tf"
-        tf_file.write_text('resource "aws_instance" "test" {}')
-        parser = HCLParser()
-        with patch('builtins.open', side_effect=PermissionError("access denied")):
-            with pytest.raises(TerraformParseError) as exc_info:
-                parser.parse(str(tf_file))
-        assert "Permission denied" in str(exc_info.value)

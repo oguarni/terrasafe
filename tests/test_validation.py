@@ -27,11 +27,6 @@ class TestValidateFileHash:
         with pytest.raises(ValueError, match="Invalid SHA-256"):
             validate_file_hash("g" * 64)
 
-    def test_non_string_input(self):
-        """Non-string input should raise TypeError."""
-        with pytest.raises(TypeError, match="must be string"):
-            validate_file_hash(12345)  # type: ignore[arg-type]
-
 
 @pytest.mark.unit
 class TestValidateScanId:

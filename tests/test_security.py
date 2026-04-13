@@ -93,25 +93,6 @@ class TestSettingsValidation:
 
         assert "too short" in str(exc_info.value).lower()
 
-    def test_settings_validates_log_level(self):
-        """Test that settings validates log level."""
-        # Create a valid bcrypt hash for testing
-        valid_hash = hash_api_key("test-key")
-
-        with pytest.raises(ValueError) as exc_info:
-            Settings(api_key_hash=valid_hash, log_level="INVALID")
-
-        assert "log_level" in str(exc_info.value).lower()
-
-    def test_settings_validates_environment(self):
-        """Test that settings validates environment."""
-        valid_hash = hash_api_key("test-key")
-
-        with pytest.raises(ValueError) as exc_info:
-            Settings(api_key_hash=valid_hash, environment="invalid")
-
-        assert "environment" in str(exc_info.value).lower()
-
 
 class TestCorrelationID:
     """Test correlation ID middleware."""

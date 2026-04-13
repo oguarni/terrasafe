@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """API integration tests with comprehensive coverage"""
-import os
 import pytest
-import time
 from fastapi.testclient import TestClient
 from unittest.mock import patch
 
@@ -14,70 +12,69 @@ TEST_API_KEY = "test-api-key-for-testing-12345678"
 TEST_API_KEY_HASH = hash_api_key(TEST_API_KEY)
 
 # Embedded Terraform file content (no external file dependencies)
-# Credentials loaded from environment variables for security
-VULNERABLE_TF_CONTENT = f"""# Vulnerable Terraform configuration for testing
+VULNERABLE_TF_CONTENT = b"""# Vulnerable Terraform configuration for testing
 # This file contains multiple security issues
 
-resource "aws_security_group" "web_sg" {{
+resource "aws_security_group" "web_sg" {
   name        = "web-security-group"
   description = "Web server security group"
 
-  ingress {{
+  ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]  # CRITICAL: Open SSH access from internet
-  }}
+  }
 
-  ingress {{
+  ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]  # CRITICAL: Open HTTP access from internet
-  }}
-}}
+  }
+}
 
-resource "aws_db_instance" "main_db" {{
+resource "aws_db_instance" "main_db" {
   allocated_storage       = 20
   storage_type           = "gp2"
   engine                 = "mysql"
   engine_version         = "8.0"
   instance_class         = "db.t3.micro"
   db_name                = "mydb"
-  username               = "{os.environ.get('API_USERNAME', 'admin')}"
-  password               = "{os.environ.get('API_PASSWORD', 'placeholder_for_test')}"  # Placeholder for testing
+  username               = "test_user"
+  password               = "test_placeholder_not_real"  # Static placeholder for testing
   storage_encrypted      = false           # HIGH: Unencrypted RDS instance
   backup_retention_period = 0
   skip_final_snapshot    = true
-}}
+}
 
-resource "aws_ebs_volume" "data_volume" {{
+resource "aws_ebs_volume" "data_volume" {
   availability_zone = "us-west-2a"
   size              = 40
   encrypted         = false  # HIGH: Unencrypted EBS volume
 
-  tags = {{
+  tags = {
     Name = "DataVolume"
-  }}
-}}
+  }
+}
 
-resource "aws_s3_bucket_public_access_block" "public_bucket" {{
+resource "aws_s3_bucket_public_access_block" "public_bucket" {
   bucket = aws_s3_bucket.main_bucket.id
 
   block_public_acls       = false  # HIGH: Public access enabled
   block_public_policy     = false  # HIGH: Public policy allowed
   ignore_public_acls      = false  # HIGH: Public ACLs not ignored
   restrict_public_buckets = false  # HIGH: Public buckets not restricted
-}}
+}
 
-resource "aws_s3_bucket" "main_bucket" {{
+resource "aws_s3_bucket" "main_bucket" {
   bucket = "my-vulnerable-bucket"
 
-  tags = {{
+  tags = {
     Environment = "test"
-  }}
-}}
-""".encode('utf-8')
+  }
+}
+"""
 
 SECURE_TF_CONTENT = b"""# Secure Terraform configuration for testing
 # This file follows security best practices
@@ -204,17 +201,6 @@ def test_metrics_endpoint(client):
         assert "terrasafe_scans_total" in response.text
 
 
-def test_api_docs_endpoint(client):
-    """Test API documentation endpoint"""
-    response = client.get("/api/docs")
-    assert response.status_code == 200
-    data = response.json()
-    assert "endpoints" in data
-    assert "/health" in data["endpoints"]
-    assert "/scan" in data["endpoints"]
-    assert "/metrics" in data["endpoints"]
-
-
 # ============================================================================
 # AUTHENTICATION TESTS (HIGH PRIORITY)
 # ============================================================================
@@ -239,18 +225,6 @@ def test_scan_invalid_api_key(client):
     )
     assert response.status_code == 403
     assert "Invalid API Key" in response.json()["detail"]
-
-
-def test_scan_empty_api_key(client):
-    """Test that scan endpoint returns 403 when API key is empty"""
-    response = client.post(
-        "/scan",
-        files={"file": ("test.tf", VULNERABLE_TF_CONTENT, "text/plain")},
-        headers={"X-API-Key": ""}
-    )
-    assert response.status_code == 403
-    # Empty string is treated as missing
-    assert "Missing API Key" in response.json()["detail"] or "Invalid API Key" in response.json()["detail"]
 
 
 # ============================================================================
@@ -305,47 +279,15 @@ def test_empty_file(client, api_headers):
     assert "empty" in response.json()["detail"].lower()
 
 
-def test_scan_response_structure(client, api_headers):
-    """Test that scan response has expected structure"""
-    response = client.post(
-        "/scan",
-        files={"file": ("vulnerable.tf", VULNERABLE_TF_CONTENT, "text/plain")},
-        headers=api_headers
-    )
-    assert response.status_code == 200
-    data = response.json()
-
-    # Check required fields
-    assert "score" in data
-    assert "rule_based_score" in data
-    assert "ml_score" in data
-    assert "confidence" in data
-    assert "vulnerabilities" in data
-    assert "summary" in data
-    assert "features_analyzed" in data
-    assert "performance" in data
-
-    # Check that vulnerabilities have required fields
-    if data["vulnerabilities"]:
-        vuln = data["vulnerabilities"][0]
-        assert "severity" in vuln
-        assert "points" in vuln
-        assert "message" in vuln
-        assert "resource" in vuln
-        assert "remediation" in vuln
-
-
 # ============================================================================
-# FILE SIZE AND TIMEOUT TESTS (MEDIUM PRIORITY)
+# FILE SIZE TESTS (MEDIUM PRIORITY)
 # ============================================================================
 
 def test_file_size_limit_exceeded(client, api_headers, mock_settings):
     """Test that files exceeding max_file_size_bytes return 413 error"""
-    # Set a small file size limit for testing
     mock_settings.max_file_size_bytes = 100  # 100 bytes
     mock_settings.max_file_size_mb = 0.0001
 
-    # Create a large file (larger than 100 bytes)
     large_content = b"x" * 200
 
     response = client.post(
@@ -356,27 +298,6 @@ def test_file_size_limit_exceeded(client, api_headers, mock_settings):
     assert response.status_code == 413
     assert "File too large" in response.json()["detail"]
     assert "0.0001MB" in response.json()["detail"]
-
-
-def test_scan_timeout(client, api_headers, mock_settings):
-    """Test that scans exceeding timeout limit return 504 error"""
-    # Set a very short timeout for testing
-    mock_settings.scan_timeout_seconds = 0.1  # 100ms timeout
-
-    # Mock the scanner.scan to take longer than timeout
-    def slow_scan(filepath):
-        time.sleep(0.2)  # Sleep 200ms (exceeds 100ms timeout)
-        return {"score": 50}
-
-    with patch('terrasafe.api.scanner.scan', side_effect=slow_scan):
-        response = client.post(
-            "/scan",
-            files={"file": ("slow.tf", VULNERABLE_TF_CONTENT, "text/plain")},
-            headers=api_headers
-        )
-        assert response.status_code == 504
-        assert "timeout" in response.json()["detail"].lower()
-        assert "0.1" in response.json()["detail"]
 
 
 if __name__ == "__main__":

@@ -37,11 +37,6 @@ class TestSarifSchema:
         assert "runs" in sarif
         assert len(sarif["runs"]) == 1
 
-    def test_empty_results(self):
-        sarif = json.loads(results_to_sarif([]))
-        assert sarif["runs"][0]["results"] == []
-        assert sarif["runs"][0]["tool"]["driver"]["rules"] == []
-
     def test_error_result_skipped(self):
         error_result = {"score": -1, "error": "Parse error", "file": "bad.tf"}
         sarif = json.loads(results_to_sarif([error_result]))

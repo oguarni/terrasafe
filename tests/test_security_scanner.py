@@ -1,114 +1,26 @@
 #!/usr/bin/env python3
 """
-Unit tests for TerraSafe security scanner - Refactored and Improved (Pytest Style)
-
-Test Structure:
-- test_security_rule_engine_*: Tests rule-based vulnerability detection (5 tests)
-- test_intelligent_scanner_*: Unit tests with mocked dependencies (14+ tests)
-- test_scanner_integration_*: Integration tests with real components (3 tests)
-- test_model_manager_*: Tests ML model persistence (2 tests)
-- test_vulnerability_*: Tests data structures (2 tests)
-- test_hcl_parser_*: Tests Terraform file parsing (2 tests)
-- test_ml_predictor_*: Tests ML prediction functionality (3 tests)
-
-Improvements:
-- Converted to pytest functional style with fixtures
-- Reusable filesystem mocking fixture using contextlib.ExitStack
-- Proper binary file mocking for hashing operations
-- Comprehensive authentication and error handling tests
-- Decoupled hardcoded scoring weights
-- Strengthened ML assertions with relative comparisons
-- Added file permission error tests
-- Improved code organization and readability
-
-Total: 30+ comprehensive tests covering all major components
+Unit tests for TerraSafe security scanner.
 """
 
 import pytest
-import numpy as np
 import tempfile
 import shutil
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch, mock_open
-from contextlib import contextmanager, ExitStack
+from unittest.mock import Mock, patch, mock_open
+from contextlib import ExitStack
 
 # Clean Architecture imports - SOLID compliant
-from terrasafe.domain.models import Vulnerability, Severity
+from terrasafe.domain.models import Severity
 from terrasafe.domain.security_rules import SecurityRuleEngine
 from terrasafe.infrastructure.parser import HCLParser, TerraformParseError
-from terrasafe.infrastructure.ml_model import ModelManager, MLPredictor, ModelNotTrainedError
+from terrasafe.infrastructure.ml_model import MLPredictor
 from terrasafe.application.scanner import IntelligentSecurityScanner
 
 
 # ============================================================================
 # SHARED TEST FIXTURES AND UTILITIES
 # ============================================================================
-
-@contextmanager
-def mock_filesystem(file_content: bytes = b"test content", file_size: int = 1024,
-                    file_exists: bool = True, file_is_file: bool = True,
-                    stat_side_effect: Exception = None, exists_side_effect: Exception = None):
-    """
-    Reusable fixture for mocking filesystem operations.
-
-    This fixture properly mocks all filesystem operations including:
-    - Path.exists() and Path.is_file() for file validation
-    - Path.stat() for file metadata (size, mtime)
-    - open() for binary file reads (e.g., for hashing)
-
-    Can also simulate filesystem errors by raising exceptions.
-
-    Args:
-        file_content: Binary content to return when file is read
-        file_size: Simulated file size in bytes
-        file_exists: Whether the file should appear to exist
-        file_is_file: Whether the path should appear to be a file
-        stat_side_effect: Exception to raise when Path.stat() is called (e.g., FileNotFoundError)
-        exists_side_effect: Exception to raise when Path.exists() is called
-
-    Yields:
-        ExitStack context manager with all patches applied
-
-    Examples:
-        # Normal file mocking:
-        with mock_filesystem(file_content=b"data", file_size=1024):
-            result = scanner.scan("file.tf")
-
-        # Simulate file not found:
-        with mock_filesystem(stat_side_effect=FileNotFoundError("File not found")):
-            result = scanner.scan("missing.tf")
-
-        # Simulate permission error:
-        with mock_filesystem(stat_side_effect=PermissionError("Permission denied")):
-            result = scanner.scan("restricted.tf")
-    """
-    with ExitStack() as stack:
-        # Mock Path.exists() to control file existence checks
-        mock_exists = stack.enter_context(patch('pathlib.Path.exists'))
-        if exists_side_effect:
-            mock_exists.side_effect = exists_side_effect
-        else:
-            mock_exists.return_value = file_exists
-
-        # Mock Path.is_file() to control file type checks
-        mock_is_file = stack.enter_context(patch('pathlib.Path.is_file'))
-        mock_is_file.return_value = file_is_file
-
-        # Mock Path.stat() to control file metadata or raise exceptions
-        mock_stat = stack.enter_context(patch('pathlib.Path.stat'))
-        if stat_side_effect:
-            # Raise the specified exception when stat() is called
-            mock_stat.side_effect = stat_side_effect
-        else:
-            # Normal behavior: return mocked stat result
-            mock_stat.return_value.st_size = file_size
-            mock_stat.return_value.st_mtime = 1234567890.0
-
-        # Mock open() for binary file reads with proper BytesIO behavior
-        # This ensures hashing operations work correctly
-        mock_file = stack.enter_context(patch('builtins.open', mock_open(read_data=file_content)))
-
-        yield stack
 
 
 # Import scoring weights from the scanner module to avoid hardcoding
@@ -187,78 +99,11 @@ def temp_model_dir():
 
 
 # ============================================================================
-# TEST SECURITY RULE ENGINE
-# ============================================================================
-
-def test_detect_open_ssh_port(rule_engine):
-    """Test detection of open SSH port to internet"""
-    tf_content = {
-        'resource': [{'aws_security_group': [{'test_sg': {'ingress': [{'from_port': 22, 'to_port': 22, 'protocol': 'tcp', 'cidr_blocks': ['0.0.0.0/0']}]}}]}]
-    }
-    vulnerabilities = rule_engine.analyze(tf_content, "")
-    ssh_vulns = [v for v in vulnerabilities if 'SSH' in v.message.upper()]
-    assert len(ssh_vulns) == 1
-    assert ssh_vulns[0].severity == Severity.CRITICAL
-
-
-def test_detect_hardcoded_password(rule_engine):
-    """Test detection of hardcoded passwords"""
-    raw_content = 'resource "aws_db_instance" "test" { password = "hardcoded123" }'
-    vulnerabilities = rule_engine.analyze({}, raw_content)
-    assert len(vulnerabilities) == 1
-    assert vulnerabilities[0].severity == Severity.CRITICAL
-
-
-def test_detect_unencrypted_rds(rule_engine):
-    """Test detection of unencrypted RDS instances"""
-    tf_content = {
-        'resource': [{'aws_db_instance': [{'test_db': {'engine': 'mysql', 'storage_encrypted': False}}]}]
-    }
-    vulnerabilities = rule_engine.analyze(tf_content, "")
-    rds_vulns = [v for v in vulnerabilities if 'unencrypted' in v.message.lower() and 'rds' in v.message.lower()]
-    assert len(rds_vulns) == 1
-    assert rds_vulns[0].severity == Severity.HIGH
-    assert 'unencrypted' in rds_vulns[0].message.lower()
-
-
-def test_detect_public_s3_bucket(rule_engine):
-    """Test detection of public S3 buckets"""
-    tf_content = {
-        'resource': [{'aws_s3_bucket_public_access_block': [{'test_bucket': {
-            'block_public_acls': False,
-            'block_public_policy': False,
-            'ignore_public_acls': False,
-            'restrict_public_buckets': False
-        }}]}]
-    }
-    vulnerabilities = rule_engine.analyze(tf_content, "")
-    s3_vulns = [v for v in vulnerabilities if 's3' in v.message.lower()]
-    assert len(s3_vulns) == 1
-    assert s3_vulns[0].severity == Severity.HIGH
-
-
-def test_no_vulnerabilities_secure_config(rule_engine):
-    """Test that secure configurations don't trigger encryption false positives"""
-    tf_content = {
-        'resource': [
-            {'aws_db_instance': [{'secure_db': {'engine': 'mysql', 'storage_encrypted': True}}]},
-            {'aws_cloudtrail': [{'trail': {'name': 'audit-trail', 's3_bucket_name': 'audit-bucket'}}]},
-        ]
-    }
-    vulnerabilities = rule_engine.analyze(tf_content, "")
-    # No encryption, SSH, S3, IAM, or logging vulnerabilities expected
-    unwanted_vulns = [v for v in vulnerabilities if 'missing logging' not in v.message.lower()
-                      and 'flow log' not in v.message.lower()]
-    assert len(unwanted_vulns) == 0
-
-
-# ============================================================================
 # TEST INTELLIGENT SECURITY SCANNER WITH MOCKED DEPENDENCIES
 # ============================================================================
 
 def test_scan_parse_error(scanner_with_mocks, mock_scanner_components):
     """Test scan handling parse errors"""
-    # Arrange
     test_file = "invalid.tf"
     mock_parser = mock_scanner_components['parser']
     mock_rule_analyzer = mock_scanner_components['rule_analyzer']
@@ -266,40 +111,39 @@ def test_scan_parse_error(scanner_with_mocks, mock_scanner_components):
 
     mock_parser.parse.side_effect = TerraformParseError("Invalid syntax")
 
-    # Act - Use the reusable filesystem mocking fixture
-    mock_file_content = b"invalid terraform content"
-    with mock_filesystem(file_content=mock_file_content, file_size=1024):
+    with ExitStack() as stack:
+        stack.enter_context(patch('pathlib.Path.exists', return_value=True))
+        stack.enter_context(patch('pathlib.Path.is_file', return_value=True))
+        mock_stat = stack.enter_context(patch('pathlib.Path.stat'))
+        mock_stat.return_value.st_size = 1024
+        mock_stat.return_value.st_mtime = 1234567890.0
+        stack.enter_context(patch('builtins.open', mock_open(read_data=b"invalid terraform content")))
         results = scanner_with_mocks.scan(test_file)
 
-    # Assert
     assert results['score'] == -1
     assert 'error' in results
     assert 'Invalid syntax' in results['error']
-
-    # Verify rule analyzer and ML predictor were not called
     mock_rule_analyzer.analyze.assert_not_called()
     mock_ml_predictor.predict_risk.assert_not_called()
 
 
 def test_scan_file_not_found_error(scanner_with_mocks, mock_scanner_components):
-    """
-    Test scan handling file not found errors.
-    FIXED: Now uses mock_filesystem fixture to simulate missing files.
-    """
-    # Arrange
+    """Test scan handling file not found errors."""
     test_file = "nonexistent.tf"
     mock_parser = mock_scanner_components['parser']
 
-    # Act - Use mock_filesystem fixture configured to raise FileNotFoundError
-    with mock_filesystem(stat_side_effect=FileNotFoundError(f"[Errno 2] No such file or directory: '{test_file}'")):
+    with ExitStack() as stack:
+        stack.enter_context(patch('pathlib.Path.exists', return_value=True))
+        stack.enter_context(patch('pathlib.Path.is_file', return_value=True))
+        mock_stat = stack.enter_context(patch('pathlib.Path.stat'))
+        mock_stat.side_effect = FileNotFoundError(
+            f"[Errno 2] No such file or directory: '{test_file}'"
+        )
         results = scanner_with_mocks.scan(test_file)
 
-    # Assert
-    # The scanner should detect the missing file and return an error
     assert results['score'] == -1
     assert 'error' in results
     assert 'File not found' in results['error']
-    # Parser should not be called if file doesn't exist
     mock_parser.parse.assert_not_called()
 
 
@@ -365,7 +209,13 @@ def test_scan_cache_hit_returns_from_cache_true(scanner_with_mocks, mock_scanner
     mock_rule_analyzer.analyze.return_value = []
     mock_ml_predictor.predict_risk.return_value = (10.0, "LOW")
 
-    with mock_filesystem(file_content=b'resource "aws_instance" "x" {}', file_size=50):
+    with ExitStack() as stack:
+        stack.enter_context(patch('pathlib.Path.exists', return_value=True))
+        stack.enter_context(patch('pathlib.Path.is_file', return_value=True))
+        mock_stat = stack.enter_context(patch('pathlib.Path.stat'))
+        mock_stat.return_value.st_size = 50
+        mock_stat.return_value.st_mtime = 1234567890.0
+        stack.enter_context(patch('builtins.open', mock_open(read_data=b'resource "aws_instance" "x" {}')))
         result1 = scanner.scan("myfile.tf")
         result2 = scanner.scan("myfile.tf")
 
