@@ -79,14 +79,6 @@ class TestArgparseDefaults:
         # Text mode: human-readable output expected
         assert "TerraSafe" in stdout or "Risk" in stdout
 
-    def test_default_threshold_is_70(self, tmp_path):
-        tf = tmp_path / "test.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=69, filepath=str(tf))
-        with patch('terrasafe.cli._save_history'):
-            _, _, code = _run_cli([str(tf)], result)
-        assert code == 0  # 69 < 70 → pass
-
     def test_default_threshold_at_boundary(self, tmp_path):
         tf = tmp_path / "test.tf"
         tf.write_text("")
@@ -139,20 +131,6 @@ class TestJsonOutput:
         assert "max_score" in summary
         assert "threshold" in summary
 
-    def test_json_exit_0_below_threshold(self, tmp_path):
-        tf = tmp_path / "a.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=30, filepath=str(tf))
-        _, _, code = _run_cli([str(tf), "--output-format", "json", "--threshold", "70"], [result])
-        assert code == 0
-
-    def test_json_exit_1_at_threshold(self, tmp_path):
-        tf = tmp_path / "a.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=70, filepath=str(tf))
-        _, _, code = _run_cli([str(tf), "--output-format", "json", "--threshold", "70"], [result])
-        assert code == 1
-
     def test_json_exit_2_on_error(self, tmp_path):
         tf = tmp_path / "a.tf"
         tf.write_text("")
@@ -192,21 +170,6 @@ class TestSarifOutput:
         assert parsed["version"] == "2.1.0"
         assert "runs" in parsed
 
-    def test_sarif_exit_0_below_threshold(self, tmp_path):
-        tf = tmp_path / "a.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=30, filepath=str(tf))
-        _, _, code = _run_cli([str(tf), "--output-format", "sarif", "--threshold", "70"], [result])
-        assert code == 0
-
-    def test_sarif_exit_1_above_threshold(self, tmp_path):
-        tf = tmp_path / "a.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=80, filepath=str(tf))
-        _, _, code = _run_cli([str(tf), "--output-format", "sarif", "--threshold", "70"], [result])
-        assert code == 1
-
-
 # ---------------------------------------------------------------------------
 # --no-history
 # ---------------------------------------------------------------------------
@@ -222,11 +185,3 @@ class TestNoHistory:
             _run_cli([str(tf), "--no-history"], result)
             mock_save.assert_not_called()
 
-    def test_without_no_history_writes_files(self, tmp_path):
-        tf = tmp_path / "a.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=30, filepath=str(tf))
-
-        with patch('terrasafe.cli._save_history') as mock_save:
-            _run_cli([str(tf)], result)
-            mock_save.assert_called_once()

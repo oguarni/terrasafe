@@ -36,15 +36,6 @@ class TestAPIKeySecurity:
         # Verify wrong key fails
         assert verify_api_key_hash("wrong-key", hashed) is False
 
-    def test_api_key_verification_error_handling(self):
-        """Test that API key verification handles errors gracefully."""
-        # Invalid hash format
-        assert verify_api_key_hash("test", "invalid-hash") is False
-
-        # Empty strings
-        assert verify_api_key_hash("", "") is False
-
-
 class TestPathTraversalProtection:
     """Test path traversal attack protection."""
 

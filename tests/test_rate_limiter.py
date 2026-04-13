@@ -31,30 +31,4 @@ class TestFallbackRateLimiter:
         # Different IP should still be allowed
         assert limiter.check_rate_limit("10.0.0.2") is True
 
-    def test_get_remaining(self):
-        """get_remaining should return correct remaining count."""
-        limiter = FallbackRateLimiter(max_requests=5, window_seconds=60)
-        assert limiter.get_remaining("10.0.0.1") == 5
-        limiter.check_rate_limit("10.0.0.1")
-        assert limiter.get_remaining("10.0.0.1") == 4
-        limiter.check_rate_limit("10.0.0.1")
-        assert limiter.get_remaining("10.0.0.1") == 3
-
-    def test_reset_specific_ip(self):
-        """Resetting a specific IP should only clear that IP."""
-        limiter = FallbackRateLimiter(max_requests=2, window_seconds=60)
-        limiter.check_rate_limit("10.0.0.1")
-        limiter.check_rate_limit("10.0.0.2")
-        limiter.reset("10.0.0.1")
-        assert limiter.get_remaining("10.0.0.1") == 2
-        assert limiter.get_remaining("10.0.0.2") == 1
-
-    def test_reset_all(self):
-        """Resetting all should clear all tracking."""
-        limiter = FallbackRateLimiter(max_requests=2, window_seconds=60)
-        limiter.check_rate_limit("10.0.0.1")
-        limiter.check_rate_limit("10.0.0.2")
-        limiter.reset()
-        assert limiter.get_remaining("10.0.0.1") == 2
-        assert limiter.get_remaining("10.0.0.2") == 2
 

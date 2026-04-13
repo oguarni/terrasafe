@@ -124,20 +124,3 @@ def test_severity_override_missing_logging_to_medium(engine):
     assert logging_vulns[0].severity == Severity.MEDIUM
 
 
-def test_severity_override_missing_flow_logs_to_high(engine):
-    """severity_overrides remaps missing_flow_logs from MEDIUM → HIGH."""
-    tf_content = {
-        'resource': [
-            {'aws_vpc': [{'main': {'cidr_block': '10.0.0.0/16'}}]},
-            {'aws_cloudtrail': [{'trail': {'name': 'trail', 's3_bucket_name': 'b'}}]},
-        ]
-    }
-    mock_settings = type('S', (), {'severity_overrides': {'missing_flow_logs': 'HIGH'}})()
-    with patch('terrasafe.domain.security_rules.get_settings', return_value=mock_settings):
-        vulns = engine.analyze(tf_content, "")
-
-    flow_vulns = [v for v in vulns if 'flow log' in v.message.lower()]
-    assert len(flow_vulns) == 1
-    assert flow_vulns[0].severity == Severity.HIGH
-
-

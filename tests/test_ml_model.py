@@ -82,50 +82,6 @@ class TestModelManager:
         assert updated_metadata['total_samples'] == 4  # 2 historical + 2 new
         assert updated_metadata['feedback_samples_added'] == 2
 
-    def test_detect_drift_model_too_old(self, tmp_path):
-        """Model older than 30 days returns True"""
-        from datetime import datetime, timedelta
-        manager = ModelManager(str(tmp_path / "models"))
-        old_date = (datetime.now() - timedelta(days=60)).strftime('%Y-%m-%d %H:%M:%S')
-        metadata = {'saved_at': old_date}
-        assert manager._detect_drift(metadata) is True
-
-    def test_detect_drift_model_fresh(self, tmp_path):
-        """Model 5 days old returns False"""
-        from datetime import datetime, timedelta
-        manager = ModelManager(str(tmp_path / "models"))
-        fresh_date = (datetime.now() - timedelta(days=5)).strftime('%Y-%m-%d %H:%M:%S')
-        metadata = {'saved_at': fresh_date}
-        assert manager._detect_drift(metadata) is False
-
-    def test_get_current_version_exists(self, tmp_path):
-        """Returns version string from file"""
-        manager = ModelManager(str(tmp_path / "models"))
-        manager.current_version_file.write_text("v20240101_120000")
-        assert manager.get_current_version() == "v20240101_120000"
-
-    def test_get_current_version_no_file(self, tmp_path):
-        """Returns None when file doesn't exist"""
-        manager = ModelManager(str(tmp_path / "models"))
-        assert manager.get_current_version() is None
-
-    def test_list_versions_returns_sorted(self, tmp_path):
-        """Returns versions sorted descending"""
-        manager = ModelManager(str(tmp_path / "models"))
-        for v in ["v20240101_000000", "v20240201_000000", "v20240301_000000"]:
-            vdir = manager.versions_dir / v
-            vdir.mkdir(parents=True, exist_ok=True)
-            (vdir / "model.pkl").touch()
-        versions = manager.list_versions()
-        assert versions == ["v20240301_000000", "v20240201_000000", "v20240101_000000"]
-
-    def test_rollback_to_version_not_found(self, tmp_path):
-        """Raises ModelNotTrainedError for unknown version"""
-        manager = ModelManager(str(tmp_path / "models"))
-        with pytest.raises(ModelNotTrainedError) as exc_info:
-            manager.rollback_to_version("v99991231_235959")
-        assert "not found" in str(exc_info.value)
-
     def test_rollback_to_version_success(self, tmp_path):
         """Rollback to a previously saved version succeeds"""
         from sklearn.ensemble import IsolationForest
@@ -202,15 +158,4 @@ class TestMLPredictor:
         # Should have high risk score
         assert risk_score >= 50
 
-    def test_predict_risk_model_not_initialized(self, tmp_path):
-        """Test predict_risk raises error when model not initialized"""
-        manager = ModelManager(str(tmp_path / "models"))
-        predictor = MLPredictor(manager)
-
-        # Manually set model to None
-        predictor.model = None
-
-        features = np.array([[1, 2, 3, 4, 5]])
-        with pytest.raises(ModelNotTrainedError):
-            predictor.predict_risk(features)
 

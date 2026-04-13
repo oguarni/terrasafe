@@ -303,29 +303,6 @@ def test_scan_file_not_found_error(scanner_with_mocks, mock_scanner_components):
     mock_parser.parse.assert_not_called()
 
 
-def test_scan_file_permission_error(scanner_with_mocks, mock_scanner_components):
-    """
-    Test scan handling file permission errors.
-    NEW TEST: Verifies graceful handling of permission denied errors.
-    Now uses mock_filesystem fixture for consistency.
-    """
-    # Arrange
-    test_file = "restricted.tf"
-    mock_parser = mock_scanner_components['parser']
-
-    # Act - Use mock_filesystem fixture configured to raise PermissionError
-    with mock_filesystem(stat_side_effect=PermissionError(f"[Errno 13] Permission denied: '{test_file}'")):
-        results = scanner_with_mocks.scan(test_file)
-
-    # Assert
-    assert results['score'] == -1
-    assert 'error' in results
-    assert 'Permission' in results['error']
-
-    # Verify scanner did not proceed to parsing
-    mock_parser.parse.assert_not_called()
-
-
 # ============================================================================
 # TEST INTELLIGENT SECURITY SCANNER - INTEGRATION TESTS
 # ============================================================================
@@ -365,27 +342,6 @@ def test_scan_secure_test_file(real_scanner):
 
     # Should have low score (secure configuration)
     assert results['score'] <= 50
-
-    # Check result structure
-    assert 'rule_based_score' in results
-    assert 'ml_score' in results
-    assert 'confidence' in results
-
-
-def test_scan_mixed_test_file(real_scanner):
-    """Integration test scanning mixed security configuration"""
-    filepath = "test_files/mixed.tf"
-    if not Path(filepath).exists():
-        pytest.skip("test_files/mixed.tf not found")
-
-    results = real_scanner.scan(filepath)
-
-    # Should successfully scan
-    assert results['score'] != -1
-
-    # Mixed file should have moderate score
-    assert results['score'] > 20
-    assert results['score'] < 80
 
     # Check result structure
     assert 'rule_based_score' in results

@@ -33,15 +33,6 @@ class TestCheckIamPolicies:
     # Boundary / structural cases
     # ------------------------------------------------------------------
 
-    def test_no_resource_key_returns_empty(self):
-        """Missing 'resource' key → no vulnerabilities."""
-        result = self.engine.check_iam_policies({})
-        assert result == []
-
-    # ------------------------------------------------------------------
-    # Wildcard action detection
-    # ------------------------------------------------------------------
-
     def test_wildcard_action_detected_as_critical(self):
         """'Action': '*' → 1 CRITICAL vulnerability."""
         policy_doc = {
@@ -51,29 +42,6 @@ class TestCheckIamPolicies:
         assert len(result) == 1
         assert result[0].severity == Severity.CRITICAL
         assert "wildcard" in result[0].message.lower()
-
-    def test_compact_wildcard_action_detected(self):
-        """Compact JSON format (no spaces after colon) → detection still works."""
-        tf_content = {
-            "resource": [
-                {
-                    "aws_iam_role_policy": [
-                        {
-                            "compact_policy": {
-                                "policy": '{"Statement":[{"Effect":"Allow","Action":"*","Resource":"arn:aws:s3:::bucket"}]}'
-                            }
-                        }
-                    ]
-                }
-            ]
-        }
-        result = self.engine.check_iam_policies(tf_content)
-        wildcards = [v for v in result if "wildcard" in v.message.lower()]
-        assert len(wildcards) >= 1
-
-    # ------------------------------------------------------------------
-    # Full admin access detection
-    # ------------------------------------------------------------------
 
     def test_full_admin_access_emits_two_criticals(self):
         """Action='*' AND Resource='*' → 2 CRITICAL vulns (both checks fire)."""

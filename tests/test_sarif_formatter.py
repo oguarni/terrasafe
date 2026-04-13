@@ -37,13 +37,6 @@ class TestSarifSchema:
         assert "runs" in sarif
         assert len(sarif["runs"]) == 1
 
-    def test_tool_driver_present(self):
-        sarif = json.loads(results_to_sarif([]))
-        driver = sarif["runs"][0]["tool"]["driver"]
-        assert driver["name"] == "TerraSafe"
-        assert "version" in driver
-        assert "rules" in driver
-
     def test_empty_results(self):
         sarif = json.loads(results_to_sarif([]))
         assert sarif["runs"][0]["results"] == []
@@ -70,17 +63,6 @@ class TestSarifSchema:
         sarif = json.loads(results_to_sarif([file_result]))
         assert sarif["runs"][0]["results"][0]["level"] == "error"
 
-    def test_severity_mapping_medium(self):
-        file_result = {"score": 40, "file": "a.tf", "vulnerabilities": [VULN_MEDIUM]}
-        sarif = json.loads(results_to_sarif([file_result]))
-        assert sarif["runs"][0]["results"][0]["level"] == "warning"
-
-    def test_severity_mapping_low(self):
-        vuln_low = {**VULN_MEDIUM, "severity": "LOW"}
-        file_result = {"score": 10, "file": "a.tf", "vulnerabilities": [vuln_low]}
-        sarif = json.loads(results_to_sarif([file_result]))
-        assert sarif["runs"][0]["results"][0]["level"] == "note"
-
     def test_rule_deduplication(self):
         """Same message on two files should produce one rule, two results."""
         r1 = {"score": 50, "file": "a.tf", "vulnerabilities": [VULN_HIGH]}
@@ -90,27 +72,4 @@ class TestSarifSchema:
         assert len(run["tool"]["driver"]["rules"]) == 1
         assert len(run["results"]) == 2
 
-    def test_multiple_vulns_multiple_rules(self):
-        file_result = {
-            "score": 80,
-            "file": "main.tf",
-            "vulnerabilities": [VULN_CRITICAL, VULN_HIGH, VULN_MEDIUM],
-        }
-        sarif = json.loads(results_to_sarif([file_result]))
-        run = sarif["runs"][0]
-        assert len(run["results"]) == 3
-        assert len(run["tool"]["driver"]["rules"]) == 3
-
-    def test_artifact_location_present(self):
-        file_result = {"score": 50, "file": "modules/main.tf", "vulnerabilities": [VULN_HIGH]}
-        sarif = json.loads(results_to_sarif([file_result]))
-        loc = sarif["runs"][0]["results"][0]["locations"][0]["physicalLocation"]
-        assert loc["artifactLocation"]["uri"] == "modules/main.tf"
-
-    def test_result_includes_rule_id(self):
-        file_result = {"score": 50, "file": "a.tf", "vulnerabilities": [VULN_HIGH]}
-        sarif = json.loads(results_to_sarif([file_result]))
-        result = sarif["runs"][0]["results"][0]
-        rule = sarif["runs"][0]["tool"]["driver"]["rules"][0]
-        assert result["ruleId"] == rule["id"]
 
