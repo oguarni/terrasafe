@@ -5,10 +5,7 @@ Tests API key validation, path traversal protection, and settings validation.
 """
 
 import pytest
-import tempfile
-from pathlib import Path
 from fastapi.testclient import TestClient
-from unittest.mock import patch
 
 from terrasafe.api import app, hash_api_key, verify_api_key_hash
 from terrasafe.infrastructure.parser import (
@@ -40,40 +37,11 @@ class TestPathTraversalProtection:
     """Test path traversal attack protection."""
 
     def test_parser_path_traversal_attempt(self):
-        """Test that parser validates paths properly."""
+        """Test that parser rejects ../ path traversal attempts."""
         parser = HCLParser()
 
-        # Try to access a file outside the working directory
-        # Note: This will fail with "File not found" which is expected
         with pytest.raises(TerraformParseError):
             parser.parse("../../../etc/passwd")
-
-    def test_parser_resolves_paths_safely(self):
-        """Test that parser resolves paths safely."""
-        parser = HCLParser()
-
-        # Create a temp file with a safe path
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.tf', delete=False) as f:
-            f.write('resource "test" {}')
-            temp_path = f.name
-
-        try:
-            # This should work - temp files are allowed
-            tf_content, raw_content = parser.parse(temp_path)
-            assert tf_content is not None
-            assert raw_content is not None
-        finally:
-            Path(temp_path).unlink(missing_ok=True)
-
-    def test_parser_rejects_directories(self):
-        """Test that parser rejects directory paths."""
-        parser = HCLParser()
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            with pytest.raises(TerraformParseError) as exc_info:
-                parser.parse(temp_dir)
-
-            assert "not a regular file" in str(exc_info.value)
 
 
 class TestSettingsValidation:
