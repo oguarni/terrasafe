@@ -48,12 +48,11 @@ def _determine_risk_status(score: int) -> tuple[str, str]:
     """Determine risk status and color based on score."""
     if score >= 90:
         return "🚨 CRITICAL RISK", "\033[91m"  # Red
-    elif score >= 70:
+    if score >= 70:
         return "❌ HIGH RISK", "\033[91m"  # Red
-    elif score >= 40:
+    if score >= 40:
         return "⚠️  MEDIUM RISK", "\033[93m"  # Yellow
-    else:
-        return "✅ LOW RISK", "\033[92m"  # Green
+    return "✅ LOW RISK", "\033[92m"  # Green
 
 
 def _format_features(features: Dict[str, int]) -> list[str]:

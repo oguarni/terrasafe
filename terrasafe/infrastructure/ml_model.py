@@ -20,7 +20,6 @@ _TIMESTAMP_VERSION_RE = re.compile(r'^v\d{8}_\d{6}$')
 
 class ModelNotTrainedError(Exception):
     """Raised when model operations are attempted on untrained model"""
-    pass
 
 
 class ModelManager:
@@ -364,7 +363,8 @@ class MLPredictor:
         rng = np.random.default_rng(42)
 
         # Enhanced baseline patterns representing secure configurations
-        # Features: [open_ports, secrets, public_access, unencrypted, missing_logging, missing_flow_logs, resource_count]
+        # Features: [open_ports, secrets, public_access, unencrypted,
+        #            missing_logging, missing_flow_logs, resource_count]
         baseline_patterns = [
             # Fully secure configurations
             [0, 0, 0, 0, 0, 0, 5],    # Small secure microservice

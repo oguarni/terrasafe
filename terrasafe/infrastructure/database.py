@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 class Base(DeclarativeBase):
     """Base class for all database models."""
-    pass
 
 
 class DatabaseManager:
@@ -203,7 +202,7 @@ def get_db_manager() -> DatabaseManager:
     Returns:
         DatabaseManager instance
     """
-    global _db_manager
+    global _db_manager  # pylint: disable=global-statement
     if _db_manager is None:
         _db_manager = DatabaseManager()
     return _db_manager

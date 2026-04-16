@@ -71,7 +71,7 @@ def test_feedback_update_combines_historical_and_new_samples(model_manager):
     new_data = np.array([[3, 4, 5, 6, 7], [4, 5, 6, 7, 8]])
     model_manager.update_model_with_feedback(model, scaler, new_data, {"version": "1.2"})
 
-    with open(model_manager.metadata_path) as fh:
+    with open(model_manager.metadata_path, encoding="utf-8") as fh:
         metadata = json.load(fh)
     assert metadata["total_samples"] == 4
     assert metadata["feedback_samples_added"] == 2

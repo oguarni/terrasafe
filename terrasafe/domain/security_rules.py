@@ -53,11 +53,14 @@ class SecurityRuleEngine:
                                         vulns.append(Vulnerability(
                                             severity=Severity.CRITICAL,
                                             points=POINTS_CRITICAL,
-                                            message="[CRITICAL] Open security group - RDP port 3389 exposed to internet",
+                                            message=(
+                                                "[CRITICAL] Open security group - RDP port 3389 "
+                                                "exposed to internet"
+                                            ),
                                             resource=sg_name,
                                             remediation="Restrict RDP access to specific IP ranges"
                                         ))
-                                    elif from_port == 80 or from_port == 443:
+                                    elif from_port in (80, 443):
                                         vulns.append(Vulnerability(
                                             severity=Severity.MEDIUM,
                                             points=POINTS_MEDIUM,

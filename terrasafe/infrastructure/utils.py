@@ -15,13 +15,12 @@ def categorize_vulnerability(message: str) -> str:
 
     if 'hardcoded' in message_lower or 'secret' in message_lower:
         return 'hardcoded_secret'
-    elif 'open security group' in message_lower or 'exposed to internet' in message_lower:
+    if 'open security group' in message_lower or 'exposed to internet' in message_lower:
         return 'open_port'
-    elif 's3 bucket' in message_lower and 'public' in message_lower:
+    if 's3 bucket' in message_lower and 'public' in message_lower:
         return 'public_access'
-    elif 'unencrypted' in message_lower:
+    if 'unencrypted' in message_lower:
         return 'unencrypted_storage'
-    elif 'mfa' in message_lower or 'authentication' in message_lower:
+    if 'mfa' in message_lower or 'authentication' in message_lower:
         return 'weak_authentication'
-    else:
-        return 'other'
+    return 'other'

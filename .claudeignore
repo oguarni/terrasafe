@@ -36,9 +36,13 @@ scan_results_*.json
 scan_history.json
 bandit-report.json
 
-# Documentation & screenshots
+# Documentation, screenshots & assets
 docs/
 screenshots/
+imgs/
+
+# Editor
+.vscode/
 
 # Environment & config
 .env

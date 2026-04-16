@@ -12,22 +12,18 @@ logger = logging.getLogger(__name__)
 
 class TerraformParseError(Exception):
     """Raised when Terraform file parsing fails"""
-    pass
 
 
 class PathTraversalError(TerraformParseError):
     """Raised when path traversal attempt is detected"""
-    pass
 
 
 class FileSizeLimitError(TerraformParseError):
     """Raised when file size exceeds limit"""
-    pass
 
 
 class ParseTimeoutError(TerraformParseError):
     """Raised when parsing takes too long"""
-    pass
 
 
 class HCLParser:
@@ -114,7 +110,7 @@ class HCLParser:
             return path
 
         except (OSError, RuntimeError) as e:
-            raise TerraformParseError(f"Path validation failed for {filepath}: {e}")
+            raise TerraformParseError(f"Path validation failed for {filepath}: {e}") from e
 
     def _validate_file_size(self, path: Path) -> None:
         """
@@ -172,11 +168,15 @@ class HCLParser:
             with open(path, 'r', encoding='utf-8') as f:
                 raw_content = f.read()
         except PermissionError as e:
-            raise TerraformParseError(f"Permission denied reading file {filepath}: {e}")
-        except UnicodeDecodeError:
-            raise TerraformParseError(f"File encoding error in {filepath}: Not a valid UTF-8 text file")
+            raise TerraformParseError(f"Permission denied reading file {filepath}: {e}") from e
+        except UnicodeDecodeError as e:
+            raise TerraformParseError(
+                f"File encoding error in {filepath}: Not a valid UTF-8 text file"
+            ) from e
         except Exception as e:
-            raise TerraformParseError(f"Cannot read file {filepath}: {type(e).__name__} - {e}")
+            raise TerraformParseError(
+                f"Cannot read file {filepath}: {type(e).__name__} - {e}"
+            ) from e
 
         # Parse HCL/JSON
         # Note: Timeout is handled at the API level via asyncio.wait_for

@@ -1,0 +1,87 @@
+[MAIN]
+# Python 3.10+ as per project requirements.
+py-version = 3.10
+ignore-patterns = ^\.venv$
+# Match the project's flake8 config (see CLAUDE.md): 120-char lines.
+max-line-length = 120
+jobs = 0
+suggestion-mode = yes
+
+[MESSAGES CONTROL]
+# Rationale for disables is grouped by category. Each disable either aligns
+# with the existing flake8/bandit baseline in CLAUDE.md or silences a
+# well-known false positive that would otherwise require invasive refactors.
+disable =
+    # ----- Documentation style --------------------------------------------
+    # The project does not require docstrings on every test function or on
+    # trivial Pydantic field validators; module-level docstrings are kept.
+    missing-function-docstring,
+    missing-module-docstring,
+    missing-class-docstring,
+    # ----- Design / structure ---------------------------------------------
+    # ORM models, DTOs, and typed exception classes intentionally have few
+    # public methods; rule-engine and repository methods carry many fields
+    # or many branches by design (clear per-check logic).
+    too-few-public-methods,
+    too-many-arguments,
+    too-many-positional-arguments,
+    too-many-locals,
+    too-many-branches,
+    too-many-nested-blocks,
+    too-many-instance-attributes,
+    too-many-statements,
+    too-many-return-statements,
+    # ----- Import ergonomics ----------------------------------------------
+    # api.py and cli.py intentionally call load_dotenv() before imports;
+    # flake8 already waives E402 for the same reason. Test fixtures use
+    # lazy imports to defer terrasafe package initialization until after
+    # env vars are patched.
+    wrong-import-position,
+    wrong-import-order,
+    import-outside-toplevel,
+    # ----- Test / fixture idioms ------------------------------------------
+    redefined-outer-name,
+    unused-argument,
+    # ----- Exception handling ---------------------------------------------
+    # Existing code already annotates intentional broad except clauses with
+    # per-line `# pylint: disable=broad-exception-caught`; keep the global
+    # rule silent to avoid double-annotating.
+    broad-exception-caught,
+    # ----- SQLAlchemy / Pydantic false positives --------------------------
+    # func.count / func.max / etc. are SQL constructs that pylint's static
+    # analyzer reports as not-callable; Pydantic FieldInfo uses __getattr__
+    # which pylint cannot introspect.
+    not-callable,
+    no-member,
+    # ----- Minor style preferences ----------------------------------------
+    # The project uses `logger.info("%s", x)` lazy-logging where needed
+    # and explicit f-strings elsewhere; do not police this.
+    logging-fstring-interpolation,
+    logging-not-lazy,
+    fixme,
+    duplicate-code
+
+[FORMAT]
+max-line-length = 120
+
+[BASIC]
+good-names = i,j,k,_,e,f,fp,fh,hf,fd,cid,rng,cls,vm,v,r,ex,cx,db
+
+[REPORTS]
+output-format = text
+score = yes
+
+[DESIGN]
+max-args = 16
+max-locals = 30
+max-branches = 20
+max-statements = 80
+
+[TYPECHECK]
+# SQLAlchemy + FastAPI rely on runtime attributes that pylint cannot infer.
+generated-members = sqlalchemy.*,fastapi.*,pydantic.*
+ignored-modules = sqlalchemy,fastapi,pydantic,pydantic_settings,hcl2,bcrypt,aiofiles,slowapi,joblib
+ignored-classes = FieldInfo,Session,AsyncSession
+
+[EXCEPTIONS]
+overgeneral-exceptions = builtins.BaseException

@@ -197,12 +197,12 @@ class Settings(BaseSettings):
             )
         except ClientError as e:  # pragma: no cover
             logger.error("Unable to fetch secret %s: %s", secret_name, e)
-            raise e
-        else:
-            if 'SecretString' in get_secret_value_response:
-                secret_data: Dict[str, Any] = json.loads(get_secret_value_response['SecretString'])
-                return secret_data
-            return {}
+            raise
+
+        if 'SecretString' in get_secret_value_response:
+            secret_data: Dict[str, Any] = json.loads(get_secret_value_response['SecretString'])
+            return secret_data
+        return {}
 
     @property
     def database_url_resolved(self) -> str:

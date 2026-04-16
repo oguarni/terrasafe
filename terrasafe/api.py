@@ -131,7 +131,7 @@ try:
 
     # Use Redis for distributed rate limiting in production
     try:
-        limiter = Limiter(
+        limiter = Limiter(  # pylint: disable=invalid-name
             key_func=get_remote_address,
             storage_uri=settings.redis_url if not settings.is_development() else None,
             default_limits=[f"{settings.rate_limit_requests}/{settings.rate_limit_window_seconds}seconds"]
@@ -145,10 +145,10 @@ try:
         # Redis connection failed, use fallback
         logger.warning("Redis connection failed: %s. Using fallback rate limiter.", redis_error)
         RATE_LIMITING_AVAILABLE = False
-        limiter = None  # type: ignore[assignment]
+        limiter = None  # type: ignore[assignment]  # pylint: disable=invalid-name
 except ImportError:  # pragma: no cover
     RATE_LIMITING_AVAILABLE = False
-    limiter = None  # type: ignore[assignment]
+    limiter = None  # type: ignore[assignment]  # pylint: disable=invalid-name
     logger.warning("slowapi not installed, using fallback rate limiter")
 
 # Initialize fallback rate limiter (always available)
@@ -166,7 +166,10 @@ async def check_fallback_rate_limit(request: Request):
         if not fallback_limiter.check_rate_limit(client_ip):
             raise HTTPException(
                 status_code=429,
-                detail=f"Rate limit exceeded: {settings.rate_limit_requests} requests per {settings.rate_limit_window_seconds}s"
+                detail=(
+                    f"Rate limit exceeded: {settings.rate_limit_requests} requests per "
+                    f"{settings.rate_limit_window_seconds}s"
+                )
             )
 
 
@@ -368,7 +371,7 @@ async def scan_terraform(
                 loop.run_in_executor(None, scanner.scan, tmp_path),
                 timeout=settings.scan_timeout_seconds
             )
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as timeout_exc:
             logger.error(
                 "Scan timeout for file '%s' after %ss",
                 sanitize_filename(file.filename or ''), settings.scan_timeout_seconds
@@ -376,7 +379,7 @@ async def scan_terraform(
             raise HTTPException(
                 status_code=504,
                 detail=f"Scan timeout after {settings.scan_timeout_seconds} seconds"
-            )
+            ) from timeout_exc
 
         if results['score'] == -1:
             logger.error(
@@ -436,7 +439,7 @@ async def scan_terraform(
         raise HTTPException(
             status_code=500,
             detail="Internal server error during scan"
-        )
+        ) from e
     finally:
         # Cleanup temp file asynchronously
         if tmp_path:
@@ -475,7 +478,10 @@ async def api_documentation() -> Dict[str, Any]:
                 "authentication": "X-API-Key header required",
                 "rate_limit": "10 requests/minute per IP" if RATE_LIMITING_AVAILABLE else "Unlimited",
                 "max_file_size": "10MB",
-                "example": "curl -X POST -H 'X-API-Key: your-api-key-here' -F 'file=@terraform.tf' http://localhost:8000/scan"
+                "example": (
+                    "curl -X POST -H 'X-API-Key: your-api-key-here' "
+                    "-F 'file=@terraform.tf' http://localhost:8000/scan"
+                )
             },
             "/metrics": {
                 "method": "GET",

@@ -151,7 +151,8 @@ def track_metrics(func: Callable) -> Callable:
             # Track scan metrics if result is a scan result
             if isinstance(result, dict) and 'score' in result:
                 _record_scan_result(result, duration)
-            elif isinstance(result, tuple) and len(result) >= 1 and isinstance(result[0], dict) and 'score' in result[0]:
+            elif (isinstance(result, tuple) and len(result) >= 1
+                  and isinstance(result[0], dict) and 'score' in result[0]):
                 _record_scan_result(result[0], duration)
 
             return result
@@ -174,7 +175,8 @@ def track_metrics(func: Callable) -> Callable:
             # Track scan metrics if result is a scan result
             if isinstance(result, dict) and 'score' in result:
                 _record_scan_result(result, duration)
-            elif isinstance(result, tuple) and len(result) >= 1 and isinstance(result[0], dict) and 'score' in result[0]:
+            elif (isinstance(result, tuple) and len(result) >= 1
+                  and isinstance(result[0], dict) and 'score' in result[0]):
                 _record_scan_result(result[0], duration)
 
             return result
@@ -189,8 +191,7 @@ def track_metrics(func: Callable) -> Callable:
     # Return appropriate wrapper based on function type
     if asyncio.iscoroutinefunction(func):
         return async_wrapper
-    else:
-        return sync_wrapper
+    return sync_wrapper
 
 
 def _record_scan_result(result: dict, duration: float) -> None:

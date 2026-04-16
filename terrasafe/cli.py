@@ -53,7 +53,7 @@ def _save_history(results: dict, filepath: str) -> None:
         logger.error("Failed writing scan output %s: %s", json_output, e)
 
     history_path = Path("scan_history.json")
-    MAX_HISTORY_SIZE = int(os.getenv("TERRASAFE_MAX_HISTORY_SIZE", "100"))
+    max_history_size = int(os.getenv("TERRASAFE_MAX_HISTORY_SIZE", "100"))
 
     results_with_meta = dict(results)
     results_with_meta['timestamp'] = datetime.now(timezone.utc).isoformat()
@@ -68,8 +68,8 @@ def _save_history(results: dict, filepath: str) -> None:
             history = {"scans": []}
 
         history['scans'].append(results_with_meta)
-        if len(history['scans']) > MAX_HISTORY_SIZE:
-            history['scans'] = history['scans'][-MAX_HISTORY_SIZE:]
+        if len(history['scans']) > max_history_size:
+            history['scans'] = history['scans'][-max_history_size:]
 
         with open(history_path, 'w', encoding='utf-8') as hf:
             json.dump(history, hf, indent=2, default=str)
@@ -82,12 +82,11 @@ def _text_exit_code(score: int, threshold: int) -> int:
     """Classic 4-level exit codes for text mode (single-file, backward-compat)."""
     if score == -1:
         return 2
-    elif score >= 90:
+    if score >= 90:
         return 3
-    elif score >= threshold:
+    if score >= threshold:
         return 1
-    else:
-        return 0
+    return 0
 
 
 def _ci_exit_code(results_list: list, threshold: int) -> int:
@@ -96,10 +95,9 @@ def _ci_exit_code(results_list: list, threshold: int) -> int:
     has_exceeded = any(r.get("score", 0) >= threshold for r in results_list if r.get("score", -1) != -1)
     if has_error:
         return 2
-    elif has_exceeded:
+    if has_exceeded:
         return 1
-    else:
-        return 0
+    return 0
 
 
 def main():
