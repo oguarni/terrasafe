@@ -1,70 +1,62 @@
-"""Tests for SARIF 2.1.0 formatter."""
+"""Tests for SARIF 2.1.0 output formatter."""
 import json
+
 import pytest
 
 from terrasafe.sarif_formatter import results_to_sarif
 
 
-VULN_HIGH = {
-    "severity": "HIGH",
-    "points": 20,
-    "message": "Hardcoded password detected",
-    "resource": "aws_db_instance.main",
-    "remediation": "Use AWS Secrets Manager instead.",
-}
-VULN_CRITICAL = {
-    "severity": "CRITICAL",
-    "points": 30,
-    "message": "Open security group on port 22",
-    "resource": "aws_security_group.web",
-    "remediation": "Restrict SSH access to known IP ranges.",
-}
-VULN_MEDIUM = {
-    "severity": "MEDIUM",
-    "points": 10,
-    "message": "S3 bucket allows public read",
-    "resource": "aws_s3_bucket.data",
-    "remediation": "Set acl to private.",
-}
+pytestmark = pytest.mark.unit
 
 
-@pytest.mark.unit
-class TestSarifSchema:
-    def test_top_level_structure(self):
-        sarif = json.loads(results_to_sarif([]))
-        assert sarif["version"] == "2.1.0"
-        assert "$schema" in sarif
-        assert "runs" in sarif
-        assert len(sarif["runs"]) == 1
-
-    def test_error_result_skipped(self):
-        error_result = {"score": -1, "error": "Parse error", "file": "bad.tf"}
-        sarif = json.loads(results_to_sarif([error_result]))
-        assert sarif["runs"][0]["results"] == []
-
-    def test_single_file_single_vuln(self):
-        file_result = {
-            "score": 50,
-            "file": "main.tf",
-            "vulnerabilities": [VULN_HIGH],
-        }
-        sarif = json.loads(results_to_sarif([file_result]))
-        run = sarif["runs"][0]
-        assert len(run["results"]) == 1
-        assert len(run["tool"]["driver"]["rules"]) == 1
-
-    def test_severity_mapping_critical(self):
-        file_result = {"score": 90, "file": "a.tf", "vulnerabilities": [VULN_CRITICAL]}
-        sarif = json.loads(results_to_sarif([file_result]))
-        assert sarif["runs"][0]["results"][0]["level"] == "error"
-
-    def test_rule_deduplication(self):
-        """Same message on two files should produce one rule, two results."""
-        r1 = {"score": 50, "file": "a.tf", "vulnerabilities": [VULN_HIGH]}
-        r2 = {"score": 50, "file": "b.tf", "vulnerabilities": [VULN_HIGH]}
-        sarif = json.loads(results_to_sarif([r1, r2]))
-        run = sarif["runs"][0]
-        assert len(run["tool"]["driver"]["rules"]) == 1
-        assert len(run["results"]) == 2
+def _sarif_of(*file_results) -> dict:
+    return json.loads(results_to_sarif(list(file_results)))
 
 
+def test_empty_results_still_emit_schema_compliant_envelope():
+    sarif = _sarif_of()
+
+    assert sarif["version"] == "2.1.0"
+    assert "$schema" in sarif
+    assert len(sarif["runs"]) == 1
+
+
+def test_parse_error_results_do_not_produce_sarif_findings():
+    error_result = {"score": -1, "error": "Parse error", "file": "bad.tf"}
+
+    sarif = _sarif_of(error_result)
+
+    assert sarif["runs"][0]["results"] == []
+
+
+def test_single_vulnerability_emits_one_rule_and_one_result(vuln_samples):
+    file_result = {"score": 50, "file": "main.tf", "vulnerabilities": [vuln_samples["high"]]}
+
+    run = _sarif_of(file_result)["runs"][0]
+
+    assert len(run["results"]) == 1
+    assert len(run["tool"]["driver"]["rules"]) == 1
+
+
+@pytest.mark.parametrize(
+    "severity_key, expected_level",
+    [
+        pytest.param("critical", "error", id="critical_maps_to_error"),
+    ],
+)
+def test_severity_maps_to_sarif_level(vuln_samples, severity_key, expected_level):
+    file_result = {"score": 90, "file": "a.tf", "vulnerabilities": [vuln_samples[severity_key]]}
+
+    result_entry = _sarif_of(file_result)["runs"][0]["results"][0]
+
+    assert result_entry["level"] == expected_level
+
+
+def test_same_vulnerability_across_files_deduplicates_rule_but_keeps_results(vuln_samples):
+    r1 = {"score": 50, "file": "a.tf", "vulnerabilities": [vuln_samples["high"]]}
+    r2 = {"score": 50, "file": "b.tf", "vulnerabilities": [vuln_samples["high"]]}
+
+    run = _sarif_of(r1, r2)["runs"][0]
+
+    assert len(run["tool"]["driver"]["rules"]) == 1
+    assert len(run["results"]) == 2

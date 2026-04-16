@@ -1,60 +1,77 @@
-#!/usr/bin/env python3
-"""
-Unit tests for IntelligentSecurityScanner error handling.
+"""Unit tests for ``IntelligentSecurityScanner`` error paths.
 
-Integration-level scan tests (vulnerable.tf → high score, secure.tf → low score)
-live in test_api.py where they exercise the full HTTP pipeline.
+Happy-path scan behaviour is exercised end-to-end via the FastAPI client in
+``test_api.py``; this module covers the failure branches that must short-circuit
+the pipeline before rule analysis and ML prediction run.
 """
-
-import pytest
 from unittest.mock import Mock
 
-from terrasafe.domain.security_rules import SecurityRuleEngine
-from terrasafe.infrastructure.parser import HCLParser, TerraformParseError
-from terrasafe.infrastructure.ml_model import MLPredictor
+import pytest
+
 from terrasafe.application.scanner import IntelligentSecurityScanner
+from terrasafe.domain.security_rules import SecurityRuleEngine
+from terrasafe.infrastructure.ml_model import MLPredictor
+from terrasafe.infrastructure.parser import HCLParser
 
 
-# ============================================================================
-# SCANNER ERROR-PATH UNIT TESTS
-# ============================================================================
+pytestmark = pytest.mark.unit
 
 
-def test_scan_parse_error(tmp_path):
-    """Scanner returns score=-1 and skips ML when the parser raises TerraformParseError."""
-    invalid_file = tmp_path / "invalid.tf"
-    invalid_file.write_text("this is { definitely not valid HCL")
+@pytest.fixture
+def mock_rule_analyzer():
+    return Mock(spec=SecurityRuleEngine)
 
-    mock_rule_analyzer = Mock(spec=SecurityRuleEngine)
-    mock_ml_predictor = Mock(spec=MLPredictor)
 
-    scanner = IntelligentSecurityScanner(
+@pytest.fixture
+def mock_ml_predictor():
+    return Mock(spec=MLPredictor)
+
+
+@pytest.fixture
+def scanner(mock_rule_analyzer, mock_ml_predictor):
+    return IntelligentSecurityScanner(
         parser=HCLParser(),
         rule_analyzer=mock_rule_analyzer,
         ml_predictor=mock_ml_predictor,
     )
 
-    results = scanner.scan(str(invalid_file))
+
+@pytest.mark.parametrize(
+    "scenario, file_content, expected_error_fragment",
+    [
+        pytest.param(
+            "parse_error",
+            "this is { definitely not valid HCL",
+            "Invalid HCL/JSON syntax",
+            id="invalid_hcl_short_circuits_pipeline",
+        ),
+        pytest.param(
+            "missing_file",
+            None,
+            "not found",
+            id="missing_file_short_circuits_pipeline",
+        ),
+    ],
+)
+def test_scanner_returns_error_result_without_invoking_downstream_stages(
+    tmp_path,
+    scanner,
+    mock_rule_analyzer,
+    mock_ml_predictor,
+    scenario,
+    file_content,
+    expected_error_fragment,
+):
+    if file_content is None:
+        target = str(tmp_path / "nonexistent.tf")
+    else:
+        tf_file = tmp_path / "invalid.tf"
+        tf_file.write_text(file_content)
+        target = str(tf_file)
+
+    results = scanner.scan(target)
 
     assert results["score"] == -1
-    assert "error" in results
-    assert "Invalid HCL/JSON syntax" in results["error"]
+    assert expected_error_fragment.lower() in results["error"].lower()
     mock_rule_analyzer.analyze.assert_not_called()
     mock_ml_predictor.predict_risk.assert_not_called()
-
-
-def test_scan_file_not_found_error(tmp_path):
-    """Scanner returns score=-1 with a descriptive error for missing files."""
-    missing_file = str(tmp_path / "nonexistent.tf")
-
-    scanner = IntelligentSecurityScanner(
-        parser=HCLParser(),
-        rule_analyzer=Mock(spec=SecurityRuleEngine),
-        ml_predictor=Mock(spec=MLPredictor),
-    )
-
-    results = scanner.scan(missing_file)
-
-    assert results["score"] == -1
-    assert "error" in results
-    assert "not found" in results["error"].lower() or "File not found" in results["error"]

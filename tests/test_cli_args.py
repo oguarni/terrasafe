@@ -1,168 +1,117 @@
-"""Tests for CLI argument parsing, exit codes, and output format purity."""
+"""Tests for CLI argument parsing, exit codes, and output-format purity."""
 import json
-import os
-import sys
+
 import pytest
 
-# env vars must be set before any terrasafe import (conftest handles it)
-from unittest.mock import MagicMock, patch
+
+pytestmark = pytest.mark.unit
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Exit codes — one parametrized test covers the full score → exit mapping
 # ---------------------------------------------------------------------------
 
-def _make_scan_result(score=50, filepath="test.tf"):
-    return {
-        "file": filepath,
-        "score": score,
-        "rule_based_score": score,
-        "ml_score": float(score),
-        "confidence": "HIGH",
-        "vulnerabilities": [],
-        "summary": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
-        "features_analyzed": {
-            "open_ports": 0, "hardcoded_secrets": 0,
-            "public_access": 0, "unencrypted_storage": 0, "total_resources": 1,
-        },
-        "performance": {"scan_time_seconds": 0.1, "file_size_kb": 1.0, "from_cache": False},
-    }
+@pytest.mark.parametrize(
+    "score, expected_exit",
+    [
+        pytest.param(30, 0, id="low_risk_passes"),
+        pytest.param(70, 1, id="threshold_boundary_fails"),
+        pytest.param(91, 3, id="critical_risk_exits_3"),
+    ],
+)
+def test_cli_exit_code_matches_scan_score(
+    tmp_path, run_cli, scan_result_factory, score, expected_exit
+):
+    tf = tmp_path / "test.tf"
+    tf.write_text("")
+    result = scan_result_factory(score=score, filepath=str(tf))
+
+    _, _, exit_code = run_cli([str(tf)], result)
+
+    assert exit_code == expected_exit
 
 
-def _make_error_result(filepath="bad.tf"):
-    return {"score": -1, "error": "Parse error", "file": filepath}
+def test_cli_exits_2_when_scan_returns_error_result(tmp_path, run_cli, error_result_factory):
+    tf = tmp_path / "test.tf"
+    tf.write_text("")
+    err = error_result_factory(filepath=str(tf))
+
+    _, _, exit_code = run_cli([str(tf)], err)
+
+    assert exit_code == 2
 
 
-def _run_cli(argv, mock_results):
-    """
-    Invoke cli.main() with patched argv and scanner, capture stdout/stderr
-    and the SystemExit code.
-    """
-    import io
-    from terrasafe import cli
+def test_cli_text_output_is_human_readable_by_default(tmp_path, run_cli, scan_result_factory):
+    tf = tmp_path / "test.tf"
+    tf.write_text('resource "aws_s3_bucket" "x" {}')
+    result = scan_result_factory(score=40, filepath=str(tf))
 
-    mock_scanner = MagicMock()
+    stdout, _, _ = run_cli([str(tf)], result)
 
-    if isinstance(mock_results, list):
-        mock_scanner.scan.side_effect = mock_results
-    else:
-        mock_scanner.scan.return_value = mock_results
-
-    stdout_buf = io.StringIO()
-    stderr_buf = io.StringIO()
-
-    with patch.object(sys, 'argv', ['terrasafe'] + argv), \
-         patch.object(cli, '_build_scanner', return_value=mock_scanner), \
-         patch('sys.stdout', stdout_buf), \
-         patch('sys.stderr', stderr_buf):
-        try:
-            cli.main()
-            exit_code = 0
-        except SystemExit as e:
-            exit_code = e.code if e.code is not None else 0
-
-    return stdout_buf.getvalue(), stderr_buf.getvalue(), exit_code
+    assert "TerraSafe" in stdout or "Risk" in stdout
 
 
 # ---------------------------------------------------------------------------
-# Argparse defaults and backward compat
+# JSON output mode
 # ---------------------------------------------------------------------------
 
-@pytest.mark.unit
-class TestArgparseDefaults:
-    def test_single_file_no_flags_runs(self, tmp_path):
-        tf = tmp_path / "test.tf"
-        tf.write_text('resource "aws_s3_bucket" "x" {}')
-        result = _make_scan_result(score=40, filepath=str(tf))
-        with patch('terrasafe.cli._save_history'):
-            stdout, _, code = _run_cli([str(tf)], result)
-        # Text mode: human-readable output expected
-        assert "TerraSafe" in stdout or "Risk" in stdout
+def test_json_output_is_valid_json_with_summary(tmp_path, run_cli, scan_result_factory):
+    tf = tmp_path / "a.tf"
+    tf.write_text("")
+    result = scan_result_factory(score=50, filepath=str(tf))
 
-    def test_default_threshold_at_boundary(self, tmp_path):
-        tf = tmp_path / "test.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=70, filepath=str(tf))
-        with patch('terrasafe.cli._save_history'):
-            _, _, code = _run_cli([str(tf)], result)
-        assert code == 1  # 70 >= 70 → fail
+    stdout, _, _ = run_cli([str(tf), "--output-format", "json"], [result])
 
-    def test_critical_score_exit_3(self, tmp_path):
-        tf = tmp_path / "test.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=91, filepath=str(tf))
-        with patch('terrasafe.cli._save_history'):
-            _, _, code = _run_cli([str(tf)], result)
-        assert code == 3
+    parsed = json.loads(stdout)
+    assert "results" in parsed
+    assert "summary" in parsed
 
-    def test_error_result_exit_2(self, tmp_path):
-        tf = tmp_path / "test.tf"
-        tf.write_text("")
-        err = _make_error_result(filepath=str(tf))
-        with patch('terrasafe.cli._save_history'):
-            _, _, code = _run_cli([str(tf)], err)
-        assert code == 2
+
+def test_json_output_aggregates_multi_file_summary(tmp_path, run_cli, scan_result_factory):
+    tf1 = tmp_path / "a.tf"
+    tf2 = tmp_path / "b.tf"
+    tf1.write_text("")
+    tf2.write_text("")
+    r1 = scan_result_factory(score=85, filepath=str(tf1))
+    r2 = scan_result_factory(score=30, filepath=str(tf2))
+
+    stdout, _, _ = run_cli(
+        [str(tf1), str(tf2), "--output-format", "json", "--threshold", "70"],
+        [r1, r2],
+    )
+
+    summary = json.loads(stdout)["summary"]
+    assert summary["total_files"] == 2
+    assert summary["failed"] == 1
+    assert summary["passed"] == 1
+    assert summary["max_score"] == 85
 
 
 # ---------------------------------------------------------------------------
-# --output-format json
+# SARIF output mode
 # ---------------------------------------------------------------------------
 
-@pytest.mark.unit
-class TestJsonOutput:
-    def test_stdout_is_valid_json(self, tmp_path):
-        tf = tmp_path / "a.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=50, filepath=str(tf))
-        stdout, _, _ = _run_cli([str(tf), "--output-format", "json"], [result])
-        parsed = json.loads(stdout)
-        assert "results" in parsed
-        assert "summary" in parsed
+def test_sarif_output_emits_schema_compliant_payload(tmp_path, run_cli, scan_result_factory):
+    tf = tmp_path / "a.tf"
+    tf.write_text("")
+    result = scan_result_factory(score=50, filepath=str(tf))
 
-    def test_multi_file_aggregated_summary(self, tmp_path):
-        tf1 = tmp_path / "a.tf"
-        tf2 = tmp_path / "b.tf"
-        tf1.write_text("")
-        tf2.write_text("")
-        r1 = _make_scan_result(score=85, filepath=str(tf1))
-        r2 = _make_scan_result(score=30, filepath=str(tf2))
-        stdout, _, _ = _run_cli(
-            [str(tf1), str(tf2), "--output-format", "json", "--threshold", "70"],
-            [r1, r2],
-        )
-        data = json.loads(stdout)
-        assert data["summary"]["total_files"] == 2
-        assert data["summary"]["failed"] == 1
-        assert data["summary"]["passed"] == 1
-        assert data["summary"]["max_score"] == 85
+    stdout, _, _ = run_cli([str(tf), "--output-format", "sarif"], [result])
+
+    parsed = json.loads(stdout)
+    assert parsed["version"] == "2.1.0"
+    assert "runs" in parsed
+
 
 # ---------------------------------------------------------------------------
-# --output-format sarif
+# --no-history flag
 # ---------------------------------------------------------------------------
 
-@pytest.mark.unit
-class TestSarifOutput:
-    def test_stdout_is_valid_sarif_json(self, tmp_path):
-        tf = tmp_path / "a.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=50, filepath=str(tf))
-        stdout, _, _ = _run_cli([str(tf), "--output-format", "sarif"], [result])
-        parsed = json.loads(stdout)
-        assert parsed["version"] == "2.1.0"
-        assert "runs" in parsed
+def test_no_history_flag_skips_persistence_writes(tmp_path, run_cli, scan_result_factory):
+    tf = tmp_path / "a.tf"
+    tf.write_text("")
+    result = scan_result_factory(score=30, filepath=str(tf))
 
-# ---------------------------------------------------------------------------
-# --no-history
-# ---------------------------------------------------------------------------
+    run_cli([str(tf), "--no-history"], result)
 
-@pytest.mark.unit
-class TestNoHistory:
-    def test_no_history_skips_file_writes(self, tmp_path):
-        tf = tmp_path / "a.tf"
-        tf.write_text("")
-        result = _make_scan_result(score=30, filepath=str(tf))
-
-        with patch('terrasafe.cli._save_history') as mock_save:
-            _run_cli([str(tf), "--no-history"], result)
-            mock_save.assert_not_called()
-
+    run_cli.save_spy.assert_not_called()

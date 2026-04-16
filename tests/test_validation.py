@@ -1,70 +1,70 @@
-"""Tests for the input validation module."""
+"""Tests for the input-validation helpers."""
 import pytest
 
 from terrasafe.infrastructure.validation import (
+    sanitize_filename,
     validate_file_hash,
     validate_scan_id,
-    sanitize_filename,
 )
 
 
-@pytest.mark.unit
-class TestValidateFileHash:
-    """Tests for validate_file_hash."""
-
-    def test_valid_hash(self):
-        """A valid SHA-256 hash should be returned lowercase."""
-        valid_hash = "a" * 64
-        assert validate_file_hash(valid_hash) == valid_hash
-
-    def test_invalid_length(self):
-        """Hashes with wrong length should raise ValueError."""
-        with pytest.raises(ValueError, match="Invalid SHA-256"):
-            validate_file_hash("abc123")
-
-    def test_non_hex_characters(self):
-        """Hashes with non-hex characters should raise ValueError."""
-        with pytest.raises(ValueError, match="Invalid SHA-256"):
-            validate_file_hash("g" * 64)
+pytestmark = pytest.mark.unit
 
 
-@pytest.mark.unit
-class TestValidateScanId:
-    """Tests for validate_scan_id."""
+# ---------------------------------------------------------------------------
+# validate_file_hash
+# ---------------------------------------------------------------------------
 
-    def test_valid_uuid(self):
-        """A valid UUID should be returned lowercase."""
-        uuid = "550e8400-e29b-41d4-a716-446655440000"
-        assert validate_scan_id(uuid) == uuid
+def test_validate_file_hash_returns_lowercase_for_valid_sha256():
+    valid_hash = "a" * 64
 
-    def test_invalid_uuid(self):
-        """Invalid UUID format should raise ValueError."""
-        with pytest.raises(ValueError, match="Invalid UUID"):
-            validate_scan_id("not-a-uuid")
+    assert validate_file_hash(valid_hash) == valid_hash
 
 
-@pytest.mark.unit
-class TestSanitizeFilename:
-    """Tests for sanitize_filename."""
+@pytest.mark.parametrize(
+    "bad_hash",
+    [
+        pytest.param("abc123", id="wrong_length"),
+        pytest.param("g" * 64, id="non_hex_characters"),
+    ],
+)
+def test_validate_file_hash_rejects_non_sha256_inputs(bad_hash):
+    with pytest.raises(ValueError, match="Invalid SHA-256"):
+        validate_file_hash(bad_hash)
 
-    def test_normal_filename(self):
-        """Normal filenames should pass through unchanged."""
-        assert sanitize_filename("main.tf") == "main.tf"
 
-    def test_path_traversal_removal(self):
-        """Path traversal attempts should be stripped."""
-        result = sanitize_filename("../../../etc/passwd")
-        assert "../" not in result
-        assert result == "etc_passwd"
+# ---------------------------------------------------------------------------
+# validate_scan_id
+# ---------------------------------------------------------------------------
 
-    def test_special_characters_replaced(self):
-        """Special characters should be replaced with underscores."""
-        result = sanitize_filename("file name (1).tf")
-        assert result == "file_name__1_.tf"
+def test_validate_scan_id_accepts_canonical_uuid():
+    uuid = "550e8400-e29b-41d4-a716-446655440000"
 
-    def test_max_length(self):
-        """Filenames exceeding 255 chars should be truncated."""
-        long_name = "a" * 300
-        result = sanitize_filename(long_name)
-        assert len(result) == 255
+    assert validate_scan_id(uuid) == uuid
 
+
+def test_validate_scan_id_rejects_non_uuid_input():
+    with pytest.raises(ValueError, match="Invalid UUID"):
+        validate_scan_id("not-a-uuid")
+
+
+# ---------------------------------------------------------------------------
+# sanitize_filename
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        pytest.param("main.tf", "main.tf", id="normal_filename_passes_through"),
+        pytest.param("../../../etc/passwd", "etc_passwd", id="path_traversal_stripped"),
+        pytest.param("file name (1).tf", "file_name__1_.tf", id="special_chars_replaced"),
+    ],
+)
+def test_sanitize_filename_normalizes_inputs(raw, expected):
+    assert sanitize_filename(raw) == expected
+
+
+def test_sanitize_filename_truncates_names_exceeding_255_chars():
+    result = sanitize_filename("a" * 300)
+
+    assert len(result) == 255

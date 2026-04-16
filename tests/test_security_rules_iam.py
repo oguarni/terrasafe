@@ -1,106 +1,100 @@
-"""Tests for SecurityRuleEngine.check_iam_policies()"""
+"""Tests for ``SecurityRuleEngine.check_iam_policies``."""
 import json
+
 import pytest
 
 from terrasafe.domain.models import Severity
-from terrasafe.domain.security_rules import SecurityRuleEngine
 
 
-@pytest.mark.unit
-class TestCheckIamPolicies:
-    """Unit tests for IAM policy vulnerability detection."""
+pytestmark = pytest.mark.unit
 
-    def setup_method(self):
-        self.engine = SecurityRuleEngine()
 
-    def _make_tf(self, policy_doc: dict, policy_name: str = "test_policy") -> dict:
-        """Build a minimal tf_content dict with an aws_iam_role_policy resource."""
-        return {
-            "resource": [
-                {
-                    "aws_iam_role_policy": [
-                        {
-                            policy_name: {
-                                "policy": json.dumps(policy_doc)
-                            }
-                        }
-                    ]
-                }
-            ]
-        }
+def _tf_policy(policy_doc: dict, policy_name: str = "test_policy") -> dict:
+    """Build a minimal ``tf_content`` dict holding one ``aws_iam_role_policy``."""
+    return {
+        "resource": [
+            {
+                "aws_iam_role_policy": [
+                    {policy_name: {"policy": json.dumps(policy_doc)}}
+                ]
+            }
+        ]
+    }
 
-    # ------------------------------------------------------------------
-    # Boundary / structural cases
-    # ------------------------------------------------------------------
 
-    def test_wildcard_action_detected_as_critical(self):
-        """'Action': '*' → 1 CRITICAL vulnerability."""
-        policy_doc = {
-            "Statement": [{"Effect": "Allow", "Action": "*", "Resource": "arn:aws:s3:::my-bucket"}]
-        }
-        result = self.engine.check_iam_policies(self._make_tf(policy_doc))
-        assert len(result) == 1
-        assert result[0].severity == Severity.CRITICAL
-        assert "wildcard" in result[0].message.lower()
+# ---------------------------------------------------------------------------
+# Wildcard / admin detection — parametrized across policy shapes
+# ---------------------------------------------------------------------------
 
-    def test_full_admin_access_emits_two_criticals(self):
-        """Action='*' AND Resource='*' → 2 CRITICAL vulns (both checks fire)."""
-        policy_doc = {
-            "Statement": [{"Effect": "Allow", "Action": "*", "Resource": "*"}]
-        }
-        result = self.engine.check_iam_policies(self._make_tf(policy_doc))
-        assert len(result) == 2
-        assert all(v.severity == Severity.CRITICAL for v in result)
-        messages = [v.message for v in result]
-        assert any("wildcard" in m.lower() for m in messages)
-        assert any("full admin" in m.lower() for m in messages)
+@pytest.mark.parametrize(
+    "policy_doc, expected_count, expected_message_fragments",
+    [
+        pytest.param(
+            {"Statement": [{"Effect": "Allow", "Action": "*", "Resource": "arn:aws:s3:::my-bucket"}]},
+            1,
+            ["wildcard"],
+            id="wildcard_action_only_emits_one_critical",
+        ),
+        pytest.param(
+            {"Statement": [{"Effect": "Allow", "Action": "*", "Resource": "*"}]},
+            2,
+            ["wildcard", "full admin"],
+            id="full_admin_emits_two_criticals",
+        ),
+    ],
+)
+def test_wildcard_policies_are_flagged_as_critical(
+    engine, policy_doc, expected_count, expected_message_fragments
+):
+    results = engine.check_iam_policies(_tf_policy(policy_doc))
 
-    def test_resource_wildcard_alone_does_not_trigger_admin_check(self):
-        """Resource='*' without Action='*' → no admin vuln (only explicit action wildcard triggers)."""
-        policy_doc = {
-            "Statement": [{"Effect": "Allow", "Action": "s3:GetObject", "Resource": "*"}]
-        }
-        result = self.engine.check_iam_policies(self._make_tf(policy_doc))
-        assert result == []
+    assert len(results) == expected_count
+    assert all(v.severity == Severity.CRITICAL for v in results)
+    messages = " ".join(v.message.lower() for v in results)
+    for fragment in expected_message_fragments:
+        assert fragment in messages
 
-    # ------------------------------------------------------------------
-    # Safe policies
-    # ------------------------------------------------------------------
 
-    def test_specific_policy_no_vulns(self):
-        """A properly scoped IAM policy → no vulnerabilities."""
-        policy_doc = {
-            "Statement": [
-                {
+@pytest.mark.parametrize(
+    "policy_doc",
+    [
+        pytest.param(
+            {"Statement": [{"Effect": "Allow", "Action": "s3:GetObject", "Resource": "*"}]},
+            id="resource_wildcard_alone_does_not_trigger",
+        ),
+        pytest.param(
+            {
+                "Statement": [{
                     "Effect": "Allow",
                     "Action": ["s3:GetObject", "s3:PutObject"],
-                    "Resource": "arn:aws:s3:::my-bucket/*"
-                }
-            ]
-        }
-        result = self.engine.check_iam_policies(self._make_tf(policy_doc))
-        assert result == []
+                    "Resource": "arn:aws:s3:::my-bucket/*",
+                }]
+            },
+            id="specific_action_and_resource_is_safe",
+        ),
+    ],
+)
+def test_scoped_policies_produce_no_vulnerabilities(engine, policy_doc):
+    assert engine.check_iam_policies(_tf_policy(policy_doc)) == []
 
-    # ------------------------------------------------------------------
-    # Multiple policies
-    # ------------------------------------------------------------------
 
-    def test_multiple_policies_only_bad_one_flagged(self):
-        """Two policies in the same resource block — only the insecure one is flagged."""
-        bad_policy_doc = json.dumps({"Statement": [{"Effect": "Allow", "Action": "*", "Resource": "*"}]})
-        good_policy_doc = json.dumps({"Statement": [{"Effect": "Allow", "Action": "ec2:Describe*", "Resource": "*"}]})
-        tf_content = {
-            "resource": [
-                {
-                    "aws_iam_role_policy": [
-                        {
-                            "bad_policy": {"policy": bad_policy_doc},
-                            "good_policy": {"policy": good_policy_doc},
-                        }
-                    ]
-                }
-            ]
-        }
-        result = self.engine.check_iam_policies(tf_content)
-        assert len(result) == 2  # wildcard action + full admin for bad_policy only
-        assert all(v.resource == "bad_policy" for v in result)
+def test_mixed_good_and_bad_policies_flag_only_the_insecure_one(engine):
+    bad_doc = json.dumps({"Statement": [{"Effect": "Allow", "Action": "*", "Resource": "*"}]})
+    good_doc = json.dumps({"Statement": [{"Effect": "Allow", "Action": "ec2:Describe*", "Resource": "*"}]})
+    tf_content = {
+        "resource": [
+            {
+                "aws_iam_role_policy": [
+                    {
+                        "bad_policy": {"policy": bad_doc},
+                        "good_policy": {"policy": good_doc},
+                    }
+                ]
+            }
+        ]
+    }
+
+    results = engine.check_iam_policies(tf_content)
+
+    assert len(results) == 2
+    assert all(v.resource == "bad_policy" for v in results)

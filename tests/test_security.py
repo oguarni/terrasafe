@@ -1,89 +1,82 @@
-"""
-Security tests for TerraSafe.
-
-Tests API key validation, path traversal protection, and settings validation.
-"""
-
+"""Security tests — API key handling, path traversal, settings validation, correlation IDs."""
 import pytest
 from fastapi.testclient import TestClient
 
 from terrasafe.api import app, hash_api_key, verify_api_key_hash
-from terrasafe.infrastructure.parser import (
-    HCLParser,
-    TerraformParseError,
-)
 from terrasafe.config.settings import Settings
+from terrasafe.infrastructure.parser import HCLParser, TerraformParseError
 
 
-class TestAPIKeySecurity:
-    """Test API key hashing and validation."""
+# ---------------------------------------------------------------------------
+# API key hashing
+# ---------------------------------------------------------------------------
 
-    def test_api_key_hashing(self):
-        """Test that API keys are properly hashed with bcrypt."""
-        api_key = "test-api-key-12345"
-        hashed = hash_api_key(api_key)
+def test_hash_api_key_produces_60_char_bcrypt_digest():
+    hashed = hash_api_key("test-api-key-12345")
 
-        # Check hash format (bcrypt hashes are 60 characters)
-        assert len(hashed) == 60
-        assert hashed.startswith("$2b$")
-
-        # Verify the hash
-        assert verify_api_key_hash(api_key, hashed) is True
-
-        # Verify wrong key fails
-        assert verify_api_key_hash("wrong-key", hashed) is False
-
-class TestPathTraversalProtection:
-    """Test path traversal attack protection."""
-
-    def test_parser_path_traversal_attempt(self):
-        """Test that parser rejects ../ path traversal attempts."""
-        parser = HCLParser()
-
-        with pytest.raises(TerraformParseError):
-            parser.parse("../../../etc/passwd")
+    assert len(hashed) == 60
+    assert hashed.startswith("$2b$")
 
 
-class TestSettingsValidation:
-    """Test settings validation and security."""
+@pytest.mark.parametrize(
+    "candidate, expected",
+    [
+        pytest.param("test-api-key-12345", True, id="correct_key_verifies"),
+        pytest.param("wrong-key", False, id="wrong_key_rejected"),
+    ],
+)
+def test_verify_api_key_hash_accepts_only_the_matching_key(candidate, expected):
+    hashed = hash_api_key("test-api-key-12345")
 
-    def test_settings_rejects_placeholder_api_key(self):
-        """Test that settings rejects placeholder API key values."""
-        with pytest.raises(ValueError) as exc_info:
-            Settings(api_key_hash="change-me")
-
-        assert "placeholder" in str(exc_info.value).lower()
-
-    def test_settings_rejects_short_api_key_hash(self):
-        """Test that settings rejects short API key hashes."""
-        with pytest.raises(ValueError) as exc_info:
-            Settings(api_key_hash="tooshort")
-
-        assert "too short" in str(exc_info.value).lower()
+    assert verify_api_key_hash(candidate, hashed) is expected
 
 
-class TestCorrelationID:
-    """Test correlation ID middleware."""
+# ---------------------------------------------------------------------------
+# Path traversal
+# ---------------------------------------------------------------------------
 
-    @pytest.fixture
-    def client(self):
-        """Create test client."""
-        return TestClient(app)
+def test_parser_rejects_relative_path_traversal_attempts():
+    parser = HCLParser()
 
-    def test_correlation_id_generated_if_missing(self, client):
-        """Test that correlation ID is generated if not provided."""
-        response = client.get("/health")
+    with pytest.raises(TerraformParseError):
+        parser.parse("../../../etc/passwd")
 
-        assert "X-Correlation-ID" in response.headers
-        assert len(response.headers["X-Correlation-ID"]) > 0
 
-    def test_correlation_id_preserved_if_provided(self, client):
-        """Test that provided correlation ID is preserved."""
-        test_correlation_id = "test-correlation-123"
+# ---------------------------------------------------------------------------
+# Settings validation — parametrized across rejection reasons
+# ---------------------------------------------------------------------------
 
-        response = client.get(
-            "/health",
-            headers={"X-Correlation-ID": test_correlation_id}
-        )
+@pytest.mark.parametrize(
+    "bad_hash, expected_fragment",
+    [
+        pytest.param("change-me", "placeholder", id="placeholder_value_rejected"),
+        pytest.param("tooshort", "too short", id="short_hash_rejected"),
+    ],
+)
+def test_settings_rejects_invalid_api_key_hash(bad_hash, expected_fragment):
+    with pytest.raises(ValueError, match=expected_fragment):
+        Settings(api_key_hash=bad_hash)
 
-        assert response.headers["X-Correlation-ID"] == test_correlation_id
+
+# ---------------------------------------------------------------------------
+# Correlation ID middleware
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def plain_client():
+    return TestClient(app)
+
+
+def test_correlation_id_is_generated_when_client_omits_header(plain_client):
+    response = plain_client.get("/health")
+
+    assert "X-Correlation-ID" in response.headers
+    assert len(response.headers["X-Correlation-ID"]) > 0
+
+
+def test_correlation_id_is_echoed_back_when_client_supplies_one(plain_client):
+    correlation_id = "test-correlation-123"
+
+    response = plain_client.get("/health", headers={"X-Correlation-ID": correlation_id})
+
+    assert response.headers["X-Correlation-ID"] == correlation_id
