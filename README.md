@@ -8,6 +8,7 @@
   [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
   [![Tests 72 Passed](https://img.shields.io/badge/tests-72%20passed-2ea44f)](tests/)
   [![Coverage 74%](https://img.shields.io/badge/coverage-74%25-dfb317)](tests/)
+  [![Pylint 10.00](https://img.shields.io/badge/pylint-10.00%2F10-2ea44f)](https://pylint.pycqa.org/)
   [![SAST Clean](https://img.shields.io/badge/SAST-0%20issues-2ea44f)](https://bandit.readthedocs.io/)
   [![License CC BY-NC-SA 4.0](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey)](LICENSE)
   [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -25,7 +26,7 @@
 - **Hybrid scoring** — 60% rule-based + 40% ML anomaly detection. Deterministic rules for known risks, Isolation Forest for everything else
 - **Fast enough for CI gating** — sub-second per-file scans — no meaningful pipeline latency
 - **Operable API** — FastAPI with bcrypt API keys, Redis rate limiting, async I/O, Prometheus metrics, correlation IDs
-- **Measured quality** — 72 focused pytest cases, 74% line coverage (1,518 SLOC), 0 Bandit findings, 0 Safety advisories
+- **Measured quality** — 72 focused pytest cases, 74% line coverage (1,518 SLOC), Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories
 
 ---
 
@@ -321,9 +322,9 @@ print(response.json())
 |----------|--------|--------|
 | **Testing** | Test suite | **72 tests** — 72 passed, 0 skipped |
 | **Testing** | Code coverage | **74.11%** across 24 measured modules (1,518 statements) |
-| **Code Quality** | Pylint score | **8.88 / 10** |
+| **Code Quality** | Pylint score | **10.00 / 10** |
 | **Code Quality** | Flake8 | **0 issues** |
-| **Code Quality** | Codebase size | 1,518 measured statements (~3,350 non-blank lines) |
+| **Code Quality** | Codebase size | 1,518 measured statements (3,352 non-blank lines) |
 | **Security** | SAST (Bandit) | **0 issues** — 0 High, 0 Medium, 0 Low |
 | **Security** | Dependencies (Safety) | **0 vulnerabilities** |
 
