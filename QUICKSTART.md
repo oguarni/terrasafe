@@ -1,10 +1,8 @@
 # TerraSafe Quick Start Guide
 
-## Quick Setup (5 Minutes)
+Full-stack deployment — API server, PostgreSQL, Redis, Prometheus, Grafana — running locally in under five minutes on a standard developer machine.
 
-This guide covers the full-stack deployment: API server, database, caching, and monitoring.
-
-For CLI-only usage without infrastructure dependencies, see the [README Quick Start](README.md#quick-start).
+For CLI-only usage with no infrastructure dependencies, see the [README Quick Start](README.md#quick-start) instead. Use this guide when you need the API, persistent history, or the Grafana dashboards.
 
 ---
 
@@ -18,20 +16,20 @@ For CLI-only usage without infrastructure dependencies, see the [README Quick St
 
 ## Automated Setup (Recommended)
 
-The setup script handles infrastructure provisioning, migrations, and service health verification in a single step:
+A single script handles API key generation, infrastructure provisioning, migrations, and health verification:
 
 ```bash
 ./scripts/setup_infrastructure.sh
 ```
 
-This script will:
-1. Generate or verify API key
+The script will:
+1. Generate or verify the API key
 2. Start Redis and PostgreSQL
 3. Run database migrations
-4. Start API, Prometheus, and Grafana
-5. Verify all services are healthy
+4. Start the API, Prometheus, and Grafana
+5. Verify every service is healthy before exiting
 
-Once complete, proceed to [Using TerraSafe](#using-terrasafe).
+Proceed to [Using TerraSafe](#using-terrasafe) once the script completes.
 
 ---
 
@@ -361,13 +359,11 @@ docker-compose exec redis redis-cli ping
 
 ---
 
-## Summary
+## Next Steps
 
-A complete TerraSafe installation provides:
+With the stack running locally, a good progression is:
 
-- **Security** — Bcrypt-hashed API keys, rate limiting, input validation
-- **Persistence** — PostgreSQL with async SQLAlchemy and Alembic migrations
-- **Caching** — Redis-backed LRU cache with in-memory fallback
-- **Monitoring** — Prometheus metrics and pre-configured Grafana dashboards
-- **Performance** — Async I/O and vectorized operations for sub-second scans
-- **Reliability** — Health checks, structured logging, correlation ID tracing
+1. **Scan your own Terraform** — point `/scan` at a representative module from your project and inspect the findings
+2. **Wire into CI** — use JSON output in a pipeline step that fails the build above a chosen risk threshold
+3. **Tune severity overrides** — align the default severities with your organization's policy (see the domain guide in `terrasafe/domain/`)
+4. **Harden for production** — follow the [Production Deployment](#production-deployment) checklist before exposing the API beyond localhost

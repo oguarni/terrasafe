@@ -14,7 +14,7 @@
 
   <br>
 
-  A security scanner for Terraform Infrastructure as Code that combines **7 deterministic detection rules** with **Isolation Forest anomaly detection** to identify misconfigurations, hardcoded secrets, and infrastructure risks before they reach production.
+  Catch Terraform misconfigurations, hardcoded secrets, and risky infrastructure patterns before they reach production. TerraSafe pairs **7 deterministic detection rules** with **Isolation Forest anomaly detection** to surface both known violations and deviations from learned secure baselines.
 
 </div>
 
@@ -22,10 +22,10 @@
 
 ### Highlights
 
-- **Hybrid Scoring** — 60% rule-based + 40% ML anomaly detection delivers both precision and coverage
-- **Sub-second scans** — ~0.027s per file, suitable for CI/CD gating without pipeline slowdown
-- **Production-grade API** — FastAPI with bcrypt auth, Redis-backed rate limiting, async I/O, and Prometheus observability
-- **Proven quality** — 397 tests, 100% code coverage, zero SAST findings
+- **Hybrid scoring** — 60% rule-based + 40% ML anomaly detection. Deterministic rules for known risks, Isolation Forest for everything else
+- **Fast enough for CI gating** — ~0.027s per file (mean), 28,837 parser ops/s — no meaningful pipeline latency
+- **Operable API** — FastAPI with bcrypt API keys, Redis rate limiting, async I/O, Prometheus metrics, correlation IDs
+- **Measured quality** — 397 tests, 100% line coverage across 24 modules, 0 Bandit findings, 0 Safety advisories
 
 ---
 
@@ -465,7 +465,7 @@ The Docker image runs as a **non-root user** with `--read-only` filesystem and `
 
 ### Why Isolation Forest?
 
-Isolation Forest was selected after evaluating alternatives against four criteria: suitability for unlabeled data, efficiency on structured configuration inputs, performance with limited training samples, and output interpretability.
+Isolation Forest was selected after evaluating alternatives against four practical criteria: suitability for unlabeled data (labeled Terraform misconfiguration datasets are scarce), efficiency on structured configuration inputs, performance with limited training samples, and output interpretability.
 
 | Criterion | Isolation Forest | Neural Networks | Genetic Algorithms | Decision Trees |
 |-----------|:---:|:---:|:---:|:---:|
@@ -474,28 +474,29 @@ Isolation Forest was selected after evaluating alternatives against four criteri
 | Small-sample performance | Strong | Weak | Moderate | Moderate |
 | Explainable output | Strong | Weak | Moderate | Strong |
 
-### Innovation Aspects
+### Design Rationale
 
-1. **Hybrid detection** — Combines deterministic rules with probabilistic ML, producing complementary signals that reduce both false positives and false negatives
-2. **Self-improving baseline** — The model refines its security baseline as more configurations are analyzed, with drift detection to flag distributional shifts
-3. **Explainable scoring** — Feature vectors and confidence levels provide full transparency into every finding, supporting auditability
-4. **CI/CD-ready performance** — Sub-second scanning enables security gating in deployment pipelines without meaningful latency overhead
+1. **Hybrid detection** — Deterministic rules catch known misconfigurations with zero false negatives against their patterns; Isolation Forest adds coverage for deviations the ruleset has not seen. The signals are complementary, not redundant.
+2. **Evolving baseline** — The model refines its security baseline as more configurations are analyzed. Drift detection flags distributional shifts so operators know when a retrain is warranted.
+3. **Explainable scoring** — Every finding ships with its feature vector, rule attribution, and confidence level. Results are auditable, not black-box.
+4. **CI-compatible performance** — Sub-second per-file latency makes security gating a viable step in deployment pipelines rather than an offline batch job.
 
 ---
 
 ## Limitations & Future Work
 
 ### Current Limitations
-- Training data based on synthetic security baselines
+- Baseline training data is synthetic; real-world distributions may differ
 - No support for Terraform modules or remote state
-- Vulnerability descriptions in English only
+- Vulnerability messages and remediation guidance in English only
+- AWS coverage only; Azure and GCP provider patterns are not yet encoded
 
 ### Roadmap
-- Deep learning models for complex pattern recognition
-- Multi-cloud support (Azure, GCP)
-- Custom policy definition language
-- Terraform module and provider analysis
-- Integration with cloud provider security APIs
+- Multi-cloud coverage (Azure, GCP) with provider-specific rule packs
+- Terraform module and remote-state analysis
+- Custom policy definition language for organizational rules
+- Deeper ML models evaluated against the current Isolation Forest baseline
+- Integration with cloud provider native security APIs (AWS Config, etc.)
 
 ---
 
