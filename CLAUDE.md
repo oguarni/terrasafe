@@ -7,7 +7,7 @@ TerraSafe is a hybrid Terraform security scanner implementing Clean Architecture
 - **Security Approach**: 60% rule-based detection (7 rules) + 40% ML anomaly detection (7-dim feature vector)
 - **Tech Stack**: FastAPI, PostgreSQL, Redis, Isolation Forest ML, Prometheus/Grafana
 - **Language**: Python 3.10+
-- **Health**: focused test suite (~200 tests) on security rules, scan pipeline, API contract, and ML predictions; 0 lint issues, 0 bandit findings, 0 mypy errors
+- **Health**: focused test suite (72 pytest cases, 74% line coverage on 1,518 SLOC) on security rules, scan pipeline, API contract, and ML predictions; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories, 0 mypy errors
 
 ## Quick Start
 
@@ -128,7 +128,7 @@ Subdirectory CLAUDE.md files provide focused instructions per architectural laye
 | Application | `terrasafe/application/CLAUDE.md` | Scan pipeline, scoring, caching, 7-dim feature extraction |
 | Infrastructure | `terrasafe/infrastructure/CLAUDE.md` | DB, cache, parser, repositories, rate limiter |
 | ML System | `terrasafe/infrastructure/CLAUDE_ML.md` | IsolationForest, training, drift detection, model files |
-| Tests | `tests/CLAUDE.md` | 375 tests, fixtures, markers, mocking patterns, per-module coverage |
+| Tests | `tests/CLAUDE.md` | 72 focused tests, fixtures, markers, mocking patterns, per-module coverage |
 
 ## Known Issues
 
