@@ -308,5 +308,15 @@ class IntelligentSecurityScanner:
             'points': vuln.points,
             'message': vuln.message,
             'resource': vuln.resource,
-            'remediation': vuln.remediation
+            'remediation': vuln.remediation,
+            'rule_id': vuln.rule_id,
+            'frameworks': [
+                {
+                    'framework': ref.framework,
+                    'control_id': ref.control_id,
+                    'title': ref.title,
+                    'url': ref.url,
+                }
+                for ref in vuln.frameworks
+            ],
         }

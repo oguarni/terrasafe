@@ -37,13 +37,15 @@ def results_to_sarif(results_list: List[Dict[str, Any]]) -> str:
             message = vuln.get("message", "Security issue detected")
             resource = vuln.get("resource", "unknown")
             remediation = vuln.get("remediation", "")
+            frameworks = vuln.get("frameworks") or []
 
-            # Derive a stable rule ID from message text (first 60 chars, normalized)
-            rule_id = _make_rule_id(message)
+            # Prefer the domain rule_id (e.g., TS001) for cross-tool correlation;
+            # fall back to a message-derived id for legacy/untagged findings.
+            rule_id = vuln.get("rule_id") or _make_rule_id(message)
 
             if rule_id not in rules:
                 sarif_level = _SEVERITY_MAP.get(severity_raw, "note")
-                rules[rule_id] = {
+                rule_entry: Dict[str, Any] = {
                     "id": rule_id,
                     "name": rule_id,
                     "shortDescription": {"text": message[:60]},
@@ -52,6 +54,12 @@ def results_to_sarif(results_list: List[Dict[str, Any]]) -> str:
                     "help": {"text": remediation or message},
                     "properties": {"security-severity": _cvss_for_level(sarif_level)},
                 }
+                if frameworks:
+                    rule_entry["properties"]["tags"] = [
+                        f"{ref['framework']}:{ref['control_id']}" for ref in frameworks
+                    ]
+                    rule_entry["helpUri"] = frameworks[0]["url"]
+                rules[rule_id] = rule_entry
 
             sarif_level = _SEVERITY_MAP.get(severity_raw, "note")
             results.append({
