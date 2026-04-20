@@ -83,6 +83,11 @@ def _format_vulnerabilities(vulnerabilities: list) -> list[str]:
         output.append(f"   📍 Resource: {vuln['resource']}")
         if vuln.get('remediation'):
             output.append(f"   💡 Fix: {vuln['remediation']}")
+        frameworks = vuln.get('frameworks') or []
+        if frameworks:
+            output.append("   📜 Compliance:")
+            for ref in frameworks:
+                output.append(f"      - {ref['framework']} — {ref['control_id']}: {ref['title']}")
     return output
 
 

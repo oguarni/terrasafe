@@ -2,6 +2,7 @@
 import re
 from typing import List, Dict
 from .models import Vulnerability, Severity
+from .compliance_frameworks import get_frameworks
 from ..config.settings import get_settings
 
 
@@ -47,7 +48,8 @@ class SecurityRuleEngine:
                                             points=POINTS_CRITICAL,
                                             message="[CRITICAL] Open security group - SSH port 22 exposed to internet",
                                             resource=sg_name,
-                                            remediation="Restrict SSH access to specific IP ranges"
+                                            remediation="Restrict SSH access to specific IP ranges",
+                                            rule_id="TS001"
                                         ))
                                     elif from_port == 3389:
                                         vulns.append(Vulnerability(
@@ -58,7 +60,8 @@ class SecurityRuleEngine:
                                                 "exposed to internet"
                                             ),
                                             resource=sg_name,
-                                            remediation="Restrict RDP access to specific IP ranges"
+                                            remediation="Restrict RDP access to specific IP ranges",
+                                            rule_id="TS001"
                                         ))
                                     elif from_port in (80, 443):
                                         vulns.append(Vulnerability(
@@ -66,7 +69,8 @@ class SecurityRuleEngine:
                                             points=POINTS_MEDIUM,
                                             message=f"[MEDIUM] HTTP/HTTPS port {from_port} open to internet",
                                             resource=sg_name,
-                                            remediation="Consider using a CDN or WAF for public web services"
+                                            remediation="Consider using a CDN or WAF for public web services",
+                                            rule_id="TS001"
                                         ))
                                     else:
                                         vulns.append(Vulnerability(
@@ -74,7 +78,8 @@ class SecurityRuleEngine:
                                             points=POINTS_HIGH,
                                             message=f"[HIGH] Port {from_port} exposed to internet",
                                             resource=sg_name,
-                                            remediation="Restrict access to specific IP ranges"
+                                            remediation="Restrict access to specific IP ranges",
+                                            rule_id="TS001"
                                         ))
 
         return vulns
@@ -97,7 +102,8 @@ class SecurityRuleEngine:
                     points=POINTS_CRITICAL,
                     message="[CRITICAL] Hardcoded password detected",
                     resource="Database/Instance",
-                    remediation="Use variables or secrets manager for sensitive data"
+                    remediation="Use variables or secrets manager for sensitive data",
+                    rule_id="TS002"
                 ))
 
         # Check for API keys and tokens (regex patterns for detection, not credentials)
@@ -117,7 +123,8 @@ class SecurityRuleEngine:
                         points=POINTS_CRITICAL,
                         message=f"[CRITICAL] Hardcoded {secret_type} detected",
                         resource="Configuration",
-                        remediation="Use environment variables or secrets manager"
+                        remediation="Use environment variables or secrets manager",
+                        rule_id="TS002"
                     ))
 
         return vulns
@@ -147,7 +154,8 @@ class SecurityRuleEngine:
                                     points=POINTS_HIGH,
                                     message="[HIGH] Unencrypted RDS instance",
                                     resource=db_name,
-                                    remediation="Enable storage_encrypted = true"
+                                    remediation="Enable storage_encrypted = true",
+                                    rule_id="TS003"
                                 ))
 
             # Check EBS volumes
@@ -167,7 +175,8 @@ class SecurityRuleEngine:
                                     points=POINTS_HIGH,
                                     message="[HIGH] Unencrypted EBS volume",
                                     resource=vol_name,
-                                    remediation="Enable encrypted = true"
+                                    remediation="Enable encrypted = true",
+                                    rule_id="TS003"
                                 ))
 
         return vulns
@@ -205,7 +214,8 @@ class SecurityRuleEngine:
                                     points=POINTS_HIGH,
                                     message="[HIGH] S3 bucket with public access enabled",
                                     resource=bucket_name,
-                                    remediation="Enable all public access blocks"
+                                    remediation="Enable all public access blocks",
+                                    rule_id="TS004"
                                 ))
                             elif public_count > 0:
                                 vulns.append(Vulnerability(
@@ -213,7 +223,8 @@ class SecurityRuleEngine:
                                     points=POINTS_MEDIUM,
                                     message="[MEDIUM] S3 bucket with partial public access",
                                     resource=bucket_name,
-                                    remediation="Review and restrict public access settings"
+                                    remediation="Review and restrict public access settings",
+                                    rule_id="TS004"
                                 ))
 
         return vulns
@@ -246,7 +257,8 @@ class SecurityRuleEngine:
                                     points=POINTS_CRITICAL,
                                     message="[CRITICAL] IAM policy with wildcard actions (*)",
                                     resource=policy_name,
-                                    remediation="Restrict IAM actions to specific permissions"
+                                    remediation="Restrict IAM actions to specific permissions",
+                                    rule_id="TS005"
                                 ))
 
                             # Check for full admin access
@@ -257,7 +269,8 @@ class SecurityRuleEngine:
                                         points=POINTS_CRITICAL,
                                         message="[CRITICAL] IAM policy with full admin access",
                                         resource=policy_name,
-                                        remediation="Apply principle of least privilege"
+                                        remediation="Apply principle of least privilege",
+                                        rule_id="TS005"
                                     ))
 
         return vulns
@@ -289,7 +302,8 @@ class SecurityRuleEngine:
                 points=POINTS_HIGH,
                 message="[HIGH] Missing logging - no CloudTrail or CloudWatch log group detected",
                 resource="Logging",
-                remediation="Add aws_cloudtrail or aws_cloudwatch_log_group to enable audit logging"
+                remediation="Add aws_cloudtrail or aws_cloudwatch_log_group to enable audit logging",
+                rule_id="TS006"
             ))
 
         return vulns
@@ -318,7 +332,8 @@ class SecurityRuleEngine:
                 points=POINTS_MEDIUM,
                 message="[MEDIUM] Missing VPC flow logs - aws_vpc present but no aws_flow_log detected",
                 resource="VPC",
-                remediation="Add an aws_flow_log resource to enable VPC traffic logging"
+                remediation="Add an aws_flow_log resource to enable VPC traffic logging",
+                rule_id="TS007"
             ))
 
         return vulns
@@ -351,5 +366,10 @@ class SecurityRuleEngine:
                         new_severity = severity_map.get(override_level.upper())
                         if new_severity:
                             vuln.severity = new_severity
+
+        # Enrich with industry framework references (CIS, MITRE ATT&CK)
+        for vuln in all_vulns:
+            if vuln.rule_id and not vuln.frameworks:
+                vuln.frameworks = get_frameworks(vuln.rule_id)
 
         return all_vulns
