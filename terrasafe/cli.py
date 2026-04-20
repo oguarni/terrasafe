@@ -17,7 +17,9 @@ load_dotenv()
 from terrasafe.infrastructure.parser import HCLParser
 from terrasafe.infrastructure.ml_model import ModelManager, MLPredictor
 from terrasafe.domain.security_rules import SecurityRuleEngine
+from terrasafe.domain.remediation import RemediationEngine
 from terrasafe.application.scanner import IntelligentSecurityScanner
+from terrasafe.application.fixer import TerraformFixer
 from terrasafe.cli_formatter import format_results_for_display
 from terrasafe.sarif_formatter import results_to_sarif
 
@@ -30,6 +32,10 @@ def _build_scanner():
     model_manager = ModelManager()
     ml_predictor = MLPredictor(model_manager)
     return IntelligentSecurityScanner(parser, rule_analyzer, ml_predictor)
+
+
+def _build_fixer():
+    return TerraformFixer(HCLParser(), RemediationEngine())
 
 
 def _configure_logging(output_format: str) -> None:
@@ -100,6 +106,85 @@ def _ci_exit_code(results_list: list, threshold: int) -> int:
     return 0
 
 
+def _print_fix_summary(result: dict) -> None:
+    """Print a human-readable summary of patches applied to one file."""
+    filepath = result["file"]
+    if result.get("error"):
+        print(f"\n❌ {filepath}: {result['error']}")
+        return
+
+    patches = result.get("patches") or []
+    if not patches:
+        print(f"\n✅ {filepath}: no remediable issues detected")
+        return
+
+    print(f"\n🔧 {filepath}: {len(patches)} patch(es) applied")
+    manual = 0
+    for patch in patches:
+        marker = "⚠️ " if patch["manual_followup"] else "✔️ "
+        print(f"   {marker}[{patch['rule']}] {patch['description']}")
+        if patch["manual_followup"]:
+            manual += 1
+    if manual:
+        print(f"   → {manual} patch(es) need manual follow-up before terraform apply")
+
+
+def _run_fix_mode(args) -> int:
+    """Execute --fix flow. Returns CLI exit code.
+
+    Exit codes:
+        0 = success (or no changes needed)
+        1 = changes applied successfully
+        2 = parse error on at least one file
+    """
+    if args.fix_output and len(args.files) > 1:
+        print(
+            "❌ --fix-output only supports a single file. Use --in-place for multi-file fixes.",
+            file=sys.stderr,
+        )
+        return 2
+
+    fixer = _build_fixer()
+    any_error = False
+    any_change = False
+
+    for filepath in args.files:
+        result = fixer.fix_file(filepath)
+
+        if result.get("error"):
+            any_error = True
+            _print_fix_summary(result)
+            continue
+
+        if not result["has_changes"]:
+            _print_fix_summary(result)
+            continue
+
+        any_change = True
+        if result["diff"]:
+            print(result["diff"])
+        _print_fix_summary(result)
+
+        if args.dry_run:
+            print(f"   (dry-run: {filepath} not written)")
+            continue
+
+        write_info = fixer.write_output(
+            filepath,
+            result["patched_content"],
+            in_place=args.in_place,
+            output_path=args.fix_output,
+            backup=not args.no_backup,
+        )
+        print(f"   → wrote {write_info['written']}")
+        if write_info["backup"]:
+            print(f"   → backup at {write_info['backup']}")
+
+    if any_error:
+        return 2
+    return 1 if any_change else 0
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="python -m terrasafe.cli",
@@ -131,12 +216,44 @@ def main():
         dest="no_history",
         help="Skip writing scan_results_*.json and scan_history.json",
     )
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Generate and apply HCL patches for detected vulnerabilities",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        dest="dry_run",
+        help="With --fix: show the diff without writing any files",
+    )
+    parser.add_argument(
+        "--in-place",
+        action="store_true",
+        dest="in_place",
+        help="With --fix: overwrite the input file (creates .bak unless --no-backup)",
+    )
+    parser.add_argument(
+        "--fix-output",
+        metavar="PATH",
+        dest="fix_output",
+        help="With --fix: write patched content to PATH (single-file mode)",
+    )
+    parser.add_argument(
+        "--no-backup",
+        action="store_true",
+        dest="no_backup",
+        help="With --fix --in-place: skip creating the .bak backup",
+    )
 
     args = parser.parse_args()
     _configure_logging(args.output_format)
 
     output_format = args.output_format
     threshold = max(0, min(100, args.threshold))
+
+    if args.fix:
+        sys.exit(_run_fix_mode(args))
 
     scanner = _build_scanner()
 
