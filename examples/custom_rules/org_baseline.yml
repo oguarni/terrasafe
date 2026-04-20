@@ -1,0 +1,47 @@
+version: "1.0"
+rules:
+  - id: ORG-S3-001
+    name: S3 buckets must enable versioning
+    description: Required for rollback after accidental deletion or ransomware.
+    severity: HIGH
+    resource_type: aws_s3_bucket
+    conditions:
+      - attribute: versioning.enabled
+        operator: equals
+        value: true
+    remediation: "Set versioning { enabled = true } on the bucket."
+
+  - id: ORG-EC2-001
+    name: EC2 instances must declare an Owner tag
+    description: Cost allocation and incident response require an Owner tag.
+    severity: MEDIUM
+    resource_type: aws_instance
+    conditions:
+      - attribute: tags.Owner
+        operator: missing
+    remediation: "Add tags = { Owner = \"team@example.com\" }."
+
+  - id: ORG-RDS-001
+    name: RDS instance_class must be t3 or larger
+    description: Approved instance family enforced by platform team.
+    severity: LOW
+    resource_type: aws_db_instance
+    conditions:
+      - attribute: instance_class
+        operator: regex
+        value: "^db\\.(t3|m5|r5)"
+    remediation: "Use an approved instance class (db.t3.*, db.m5.*, db.r5.*)."
+
+  - id: ORG-LB-001
+    name: ALBs must not use deprecated SSL policies
+    severity: HIGH
+    resource_type: aws_lb_listener
+    match: any
+    conditions:
+      - attribute: ssl_policy
+        operator: contains
+        value: "TLS-1-0"
+      - attribute: ssl_policy
+        operator: contains
+        value: "TLS-1-1"
+    remediation: "Use ELBSecurityPolicy-TLS13-1-2-2021-06 or newer."
