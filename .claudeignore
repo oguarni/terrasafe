@@ -34,7 +34,21 @@ models/versions/
 scan_results/
 scan_results_*.json
 scan_history.json
+bandit.json
 bandit-report.json
+
+# Quality Gate / Ratchet generated reports
+gate-report.md
+gate-report-after-fix.md
+pylint-output.json
+pylint-report.txt
+ratchet-current.json
+
+# Stale / legacy ghost directory from terravault → terrasafe rename
+terravault/
+
+# Architecture / diagram binary assets
+terrasafe-architecture.svg
 
 # Documentation, screenshots & assets
 docs/

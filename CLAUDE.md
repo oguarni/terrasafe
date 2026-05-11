@@ -152,7 +152,7 @@ Pull requests against `master`/`main` run an automated Quality Gate
 | Check | Threshold |
 |---|---|
 | pytest | every test passes |
-| coverage | line-rate ≥ 74.00 % |
+| ratchet | coverage %, file-length count, and duplicate blocks do not regress vs `.ratchet.json` |
 | pylint | score = 10.00 / 10 |
 | flake8 | 0 findings |
 | bandit | 0 findings at `-ll` |
@@ -160,6 +160,29 @@ Pull requests against `master`/`main` run an automated Quality Gate
 
 On failure the gate uploads `gate-report.md` as an artifact and comments
 the report on the PR.
+
+### Ratchet (catraca) baseline
+
+`scripts/ratchet.py` enforces a one-way improvement rule on three metrics:
+
+| Metric | Direction | Source |
+|---|---|---|
+| `coverage_pct` | must not decrease | `coverage.xml` line-rate |
+| `files_over_300_sloc` | must not increase | `.py` files in `terrasafe/` over 300 lines |
+| `duplicate_blocks` | must not increase | pylint `R0801` at `--min-similarity-lines=4` |
+
+The baseline lives in `.ratchet.json` (tracked in git). When a PR improves a
+metric, `.github/workflows/ratchet-update.yml` recomputes the baseline on the
+post-merge master commit and pushes a `chore(ratchet): bump baseline` commit.
+Developers never edit `.ratchet.json` by hand.
+
+Local usage:
+
+```bash
+make ratchet         # check against baseline
+make ratchet-show    # baseline vs current side-by-side
+make ratchet-update  # rewrite baseline (only for an intentional bump)
+```
 
 ### Self-correction loop
 

@@ -220,3 +220,18 @@ alembic/__pycache__/
 # Project-Specific Artifacts
 # ===================================
 terrasafe-architecture.svg
+
+# ===================================
+# Stale / Legacy Directories
+# ===================================
+# Ghost directory left over from terravault → terrasafe rename;
+# only contains .pyc files but should never be re-introduced.
+terravault/
+
+# ===================================
+# Ratchet / Quality Gate Artifacts
+# ===================================
+# NOTE: .ratchet.json IS tracked — it is the metric baseline.
+pylint-output.json
+pylint-report.txt
+ratchet-current.json

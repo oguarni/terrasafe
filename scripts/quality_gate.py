@@ -7,7 +7,8 @@ emits a structured Markdown report at $GATE_REPORT_PATH (default:
 
 Thresholds (must match CLAUDE.md health stats):
   - pytest: every test passes
-  - coverage: line-rate >= 74.00 %
+  - ratchet: coverage %, files-over-SLOC, and duplicate blocks do not regress
+             relative to ``.ratchet.json`` (auto-updated on merge to master)
   - pylint: score == 10.00 / 10
   - flake8: 0 findings
   - bandit: 0 findings at -ll severity
@@ -19,15 +20,14 @@ import os
 import re
 import subprocess
 import sys
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, List, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REPORT_PATH = Path(os.environ.get("GATE_REPORT_PATH", REPO_ROOT / "gate-report.md"))
+RATCHET_SCRIPT = REPO_ROOT / "scripts" / "ratchet.py"
 
-COVERAGE_FLOOR = 74.0
 PYLINT_FLOOR = 10.0
 DETAIL_TAIL_CHARS = 4000
 
@@ -73,20 +73,22 @@ def check_pytest() -> CheckResult:
     return CheckResult("pytest", True, "All tests passed")
 
 
-def check_coverage() -> CheckResult:
-    xml_path = REPO_ROOT / "coverage.xml"
-    if not xml_path.exists():
-        return CheckResult(
-            "coverage",
-            False,
-            "coverage.xml missing — pytest with --cov did not run",
-        )
-    tree = ET.parse(xml_path)
-    rate = float(tree.getroot().attrib.get("line-rate", "0")) * 100
-    summary = f"Line coverage {rate:.2f}% (floor {COVERAGE_FLOOR:.2f}%)"
-    if rate + 1e-6 < COVERAGE_FLOOR:
-        return CheckResult("coverage", False, summary)
-    return CheckResult("coverage", True, summary)
+def check_ratchet() -> CheckResult:
+    code, out = _run([sys.executable, str(RATCHET_SCRIPT), "--check"])
+    if code == 2:
+        return CheckResult("ratchet", False, "Ratchet internal error", _tail(out))
+    summary_match = re.search(r"^\| (\w+) \| .* \| (PASS|FAIL) \|$", out, re.MULTILINE)
+    if code != 0:
+        regressed = [
+            m.group(1)
+            for m in re.finditer(r"^\| (\w+) \| .* \| FAIL \|$", out, re.MULTILINE)
+        ]
+        summary = "Regressed: " + ", ".join(regressed) if regressed else "Baseline regression"
+        return CheckResult("ratchet", False, summary, out)
+    summary = "All metrics tied or improved vs baseline"
+    if summary_match:
+        summary = "All three metrics within baseline (coverage, file length, duplication)"
+    return CheckResult("ratchet", True, summary, out)
 
 
 def check_pylint() -> CheckResult:
@@ -186,7 +188,7 @@ def check_mypy() -> CheckResult:
 
 CHECKS: List[Callable[[], CheckResult]] = [
     check_pytest,
-    check_coverage,
+    check_ratchet,
     check_pylint,
     check_flake8,
     check_bandit,

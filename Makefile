@@ -1,5 +1,5 @@
 # Makefile for TerraSafe - Terraform Security Scanner
-.PHONY: help install test run-demo clean docker lint coverage api metrics test-api security-scan security-deps security-sast security-all setup-hooks quality-gate
+.PHONY: help install test run-demo clean docker lint coverage api metrics test-api security-scan security-deps security-sast security-all setup-hooks quality-gate ratchet ratchet-update ratchet-show
 
 # Variables
 PYTHON := python3
@@ -28,7 +28,10 @@ help:
 	@echo "  make security-deps - Check for vulnerable dependencies"
 	@echo "  make security-sast - Run static security analysis"
 	@echo "  make setup-hooks   - Install pre-commit security hooks"
-	@echo "  make quality-gate  - Run the full Quality Gate (pytest + coverage + pylint + flake8 + bandit + mypy)"
+	@echo "  make quality-gate  - Run the full Quality Gate (pytest + ratchet + pylint + flake8 + bandit + mypy)"
+	@echo "  make ratchet       - Check coverage/file-length/duplication against .ratchet.json"
+	@echo "  make ratchet-show  - Print baseline vs current metrics"
+	@echo "  make ratchet-update - Rewrite .ratchet.json from current state"
 	@echo "  make clean         - Remove generated files and cache"
 
 # Install dependencies
@@ -176,6 +179,21 @@ security-all: security-scan
 quality-gate: install
 	@echo "🚦 Running Quality Gate..."
 	$(VENV)/bin/python scripts/quality_gate.py
+
+# Ratchet metrics (coverage, file length, code duplication)
+ratchet: install
+	@echo "🔒 Checking ratchet baseline..."
+	$(VENV)/bin/python -m pytest --cov=terrasafe --cov-report=xml -q >/dev/null
+	$(VENV)/bin/python scripts/ratchet.py --check
+
+ratchet-show: install
+	$(VENV)/bin/python -m pytest --cov=terrasafe --cov-report=xml -q >/dev/null
+	$(VENV)/bin/python scripts/ratchet.py --show
+
+ratchet-update: install
+	@echo "📈 Rewriting .ratchet.json baseline..."
+	$(VENV)/bin/python -m pytest --cov=terrasafe --cov-report=xml -q >/dev/null
+	$(VENV)/bin/python scripts/ratchet.py --update
 
 # Pre-commit setup
 setup-hooks: install

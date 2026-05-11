@@ -1,0 +1,11 @@
+{
+  "coverage_pct": 74.31,
+  "files_over_threshold": 6,
+  "duplicate_blocks": 0,
+  "thresholds": {
+    "file_sloc_threshold": 300,
+    "min_similarity_lines": 4
+  },
+  "updated_at": "2026-05-11",
+  "updated_commit": "22b8d39b72f0beef7345671b69ade70e1c58d82e"
+}
