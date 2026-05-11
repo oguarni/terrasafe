@@ -1,0 +1,296 @@
+name: Quality Gate
+
+on:
+  pull_request:
+    branches: [master, main]
+    types: [opened, synchronize, reopened, labeled, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  actions: read
+
+concurrency:
+  group: quality-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Run Quality Gate
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    outputs:
+      passed: ${{ steps.gate.outputs.passed }}
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install bandit
+
+      - name: Run quality gate
+        id: gate
+        env:
+          API_USERNAME: ${{ secrets.API_USERNAME }}
+          API_PASSWORD: ${{ secrets.API_PASSWORD }}
+          TERRASAFE_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
+          TERRASAFE_ENVIRONMENT: development
+          TERRASAFE_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
+          TERRASAFE_REDIS_URL: "redis://localhost:6379"
+          TERRASAFE_LOG_LEVEL: INFO
+          GATE_REPORT_PATH: gate-report.md
+        run: |
+          set +e
+          python scripts/quality_gate.py
+          rc=$?
+          if [ "$rc" -eq 0 ]; then
+            echo "passed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "passed=false" >> "$GITHUB_OUTPUT"
+          fi
+          exit $rc
+
+      - name: Upload gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-gate-report
+          path: gate-report.md
+          retention-days: 14
+
+      - name: Comment on PR with failure report
+        if: failure() && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const report = fs.existsSync('gate-report.md')
+              ? fs.readFileSync('gate-report.md', 'utf8')
+              : '_Report file was not produced._';
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            const hint = labels.includes('auto-fix')
+              ? '\n\n🤖 The `auto-fix` label is set — Claude will attempt a fix in this run.'
+              : '\n\n💡 Add the `auto-fix` label to let Claude attempt a fix automatically (max 3 attempts).';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## ❌ Quality Gate failed\n\n${report}${hint}`,
+            });
+
+  auto-fix:
+    name: Claude Auto-Fix
+    needs: gate
+    if: |
+      always() &&
+      needs.gate.result == 'failure' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'auto-fix')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Compute attempt counter
+        id: limits
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = context.payload.pull_request;
+            const { data: commits } = await github.rest.pulls.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+            const prior = commits.filter(c =>
+              c.commit.message.startsWith('chore(quality-gate):')
+            );
+            const attempt = prior.length + 1;
+            const MAX = 3;
+            core.setOutput('attempt', String(attempt));
+            core.setOutput('max', String(MAX));
+            core.setOutput('proceed', String(attempt <= MAX));
+            if (attempt > MAX) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: `🛑 Auto-fix attempt limit (${MAX}) reached. Please review the gate failures manually and remove the \`auto-fix\` label when ready to retry.`,
+              });
+            }
+
+      - name: Checkout PR branch (writable)
+        if: steps.limits.outputs.proceed == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          token: ${{ secrets.AUTO_FIX_PAT || secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+
+      - name: Set up Python
+        if: steps.limits.outputs.proceed == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        if: steps.limits.outputs.proceed == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install bandit
+
+      - name: Download gate report
+        if: steps.limits.outputs.proceed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: quality-gate-report
+          path: .
+
+      - name: Configure git identity for bot
+        if: steps.limits.outputs.proceed == 'true'
+        run: |
+          git config user.name  "claude-auto-fix[bot]"
+          git config user.email "claude-auto-fix[bot]@users.noreply.github.com"
+
+      - name: Run Claude auto-fix
+        if: steps.limits.outputs.proceed == 'true'
+        uses: anthropics/claude-code-action@v1
+        env:
+          API_USERNAME: ${{ secrets.API_USERNAME }}
+          API_PASSWORD: ${{ secrets.API_PASSWORD }}
+          TERRASAFE_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
+          TERRASAFE_ENVIRONMENT: development
+          TERRASAFE_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
+          TERRASAFE_REDIS_URL: "redis://localhost:6379"
+          TERRASAFE_LOG_LEVEL: INFO
+          GATE_REPORT_PATH: gate-report.md
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          ATTEMPT: ${{ steps.limits.outputs.attempt }}
+          MAX_ATTEMPTS: ${{ steps.limits.outputs.max }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--allowed-tools "Bash,Read,Edit,Write,Grep,Glob"'
+          prompt: |
+            The TerraSafe Quality Gate failed on PR #${{ github.event.pull_request.number }}.
+            This is auto-fix attempt ${{ steps.limits.outputs.attempt }} of ${{ steps.limits.outputs.max }}.
+
+            Read `gate-report.md` at the repo root for the exact failures. The gate
+            enforces:
+              - pytest: every test passes
+              - coverage: line-rate >= 74.00 %
+              - pylint:  score == 10.00 / 10
+              - flake8:  0 findings
+              - bandit:  0 findings at -ll
+              - mypy:    0 errors
+
+            Your job, in order:
+              1. Diagnose each failed check from `gate-report.md`.
+              2. Apply the minimal change set that makes those checks pass without
+                 altering unrelated behavior.
+              3. Follow project conventions in `CLAUDE.md` and the per-layer guides
+                 under `terrasafe/*/CLAUDE.md`.
+              4. After editing, verify locally:
+                   `python scripts/quality_gate.py`
+                 Iterate until it exits 0, or until you are confident the remaining
+                 failure cannot be auto-fixed.
+              5. Stage and commit the changes:
+                   `git add -A`
+                   `git commit -m "chore(quality-gate): auto-fix attempt ${{ steps.limits.outputs.attempt }}"`
+              6. Push to the PR branch:
+                   `git push origin HEAD:${{ github.event.pull_request.head.ref }}`
+
+            Hard constraints:
+              - Do NOT add features, refactors, or abstractions beyond what the
+                failing checks require.
+              - Do NOT weaken thresholds: never edit `scripts/quality_gate.py`,
+                `.pylintrc`, `.bandit`, `mypy.ini`, `.coveragerc`, or
+                `.github/workflows/quality-gate.yml`.
+              - Do NOT silently skip or xfail tests to bypass failures. If a test
+                is genuinely broken upstream, document it in a PR comment.
+              - If a failure cannot be fixed safely, leave a PR comment explaining
+                why instead of making a misleading commit.
+
+      - name: Verify gate after auto-fix
+        if: steps.limits.outputs.proceed == 'true'
+        id: verify
+        env:
+          API_USERNAME: ${{ secrets.API_USERNAME }}
+          API_PASSWORD: ${{ secrets.API_PASSWORD }}
+          TERRASAFE_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
+          TERRASAFE_ENVIRONMENT: development
+          TERRASAFE_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
+          TERRASAFE_REDIS_URL: "redis://localhost:6379"
+          TERRASAFE_LOG_LEVEL: INFO
+          GATE_REPORT_PATH: gate-report-after-fix.md
+        run: |
+          set +e
+          git pull --ff-only origin "${{ github.event.pull_request.head.ref }}" || true
+          python scripts/quality_gate.py
+          rc=$?
+          if [ "$rc" -eq 0 ]; then
+            echo "fixed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "fixed=false" >> "$GITHUB_OUTPUT"
+          fi
+          exit 0
+
+      - name: Upload post-fix report
+        if: steps.limits.outputs.proceed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-gate-report-after-fix
+          path: gate-report-after-fix.md
+          retention-days: 14
+
+      - name: Comment on PR with auto-fix result
+        if: steps.limits.outputs.proceed == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const fixed = '${{ steps.verify.outputs.fixed }}' === 'true';
+            const attempt = '${{ steps.limits.outputs.attempt }}';
+            const max     = '${{ steps.limits.outputs.max }}';
+            const after = fs.existsSync('gate-report-after-fix.md')
+              ? fs.readFileSync('gate-report-after-fix.md', 'utf8')
+              : '_Post-fix report missing._';
+            const header = fixed
+              ? `## ✅ Claude auto-fix succeeded (attempt ${attempt}/${max})`
+              : `## ⚠️ Quality Gate still failing after auto-fix attempt ${attempt}/${max}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `${header}\n\n${after}`,
+            });

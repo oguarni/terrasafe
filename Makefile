@@ -1,5 +1,5 @@
 # Makefile for TerraSafe - Terraform Security Scanner
-.PHONY: help install test run-demo clean docker lint coverage api metrics test-api security-scan security-deps security-sast security-all setup-hooks
+.PHONY: help install test run-demo clean docker lint coverage api metrics test-api security-scan security-deps security-sast security-all setup-hooks quality-gate
 
 # Variables
 PYTHON := python3
@@ -28,6 +28,7 @@ help:
 	@echo "  make security-deps - Check for vulnerable dependencies"
 	@echo "  make security-sast - Run static security analysis"
 	@echo "  make setup-hooks   - Install pre-commit security hooks"
+	@echo "  make quality-gate  - Run the full Quality Gate (pytest + coverage + pylint + flake8 + bandit + mypy)"
 	@echo "  make clean         - Remove generated files and cache"
 
 # Install dependencies
@@ -170,6 +171,11 @@ security-all: security-scan
 	@echo "🔒 Running comprehensive security audit..."
 	@echo "Checking for secrets..."
 	@git secrets --scan || echo "Install git-secrets for secret detection"
+
+# Run the Quality Gate locally (mirror of the GitHub Actions check)
+quality-gate: install
+	@echo "🚦 Running Quality Gate..."
+	$(VENV)/bin/python scripts/quality_gate.py
 
 # Pre-commit setup
 setup-hooks: install

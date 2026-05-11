@@ -84,6 +84,8 @@ htmlcov/
 nosetests.xml
 coverage.xml
 .benchmarks/
+gate-report.md
+gate-report-after-fix.md
 # NOTE: .coveragerc is a config file and SHOULD be tracked in git
 
 # ===================================

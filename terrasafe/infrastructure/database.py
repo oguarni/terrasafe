@@ -192,7 +192,7 @@ class DatabaseManager:
 
 
 # Singleton instance
-_db_manager: Optional[DatabaseManager] = None
+_db_manager: Optional[DatabaseManager] = None  # pylint: disable=invalid-name
 
 
 def get_db_manager() -> DatabaseManager:

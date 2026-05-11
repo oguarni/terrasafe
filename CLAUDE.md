@@ -143,6 +143,48 @@ All previously documented issues have been resolved:
 - `Severity.INFO = "INFO"` added to domain enum; `POINTS_INFO = 2` added to `security_rules.py`
 - `update_model_with_feedback()` rewrites to combine historical + new data (no more catastrophic forgetting)
 
+## Quality Gate
+
+Pull requests against `master`/`main` run an automated Quality Gate
+(`.github/workflows/quality-gate.yml`). The gate enforces, in a single
+`scripts/quality_gate.py` invocation:
+
+| Check | Threshold |
+|---|---|
+| pytest | every test passes |
+| coverage | line-rate ≥ 74.00 % |
+| pylint | score = 10.00 / 10 |
+| flake8 | 0 findings |
+| bandit | 0 findings at `-ll` |
+| mypy | 0 errors |
+
+On failure the gate uploads `gate-report.md` as an artifact and comments
+the report on the PR.
+
+### Self-correction loop
+
+Add the `auto-fix` label to the PR to opt in to Claude self-correction:
+
+1. The `auto-fix` job downloads `gate-report.md`.
+2. It invokes `anthropics/claude-code-action@v1` with the failure report
+   and an instruction to apply the minimal change set.
+3. Claude commits any fixes as
+   `chore(quality-gate): auto-fix attempt N` and pushes to the PR branch.
+4. The job re-runs the gate inline and comments the post-fix result.
+5. A 3-attempt limit is enforced by counting prior auto-fix commits.
+
+Optional repository secret `AUTO_FIX_PAT` (a fine-grained PAT with
+`contents: write` on this repo) makes the post-fix push trigger the
+normal Quality Gate workflow on the new SHA. Without it, the inline
+re-verification is authoritative for the current run.
+
+### Run it locally
+
+```bash
+make quality-gate            # full gate, mirrors CI
+python scripts/quality_gate.py
+```
+
 ## Slash Commands
 
 Project-specific slash commands for common workflows:
