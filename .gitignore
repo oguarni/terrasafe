@@ -86,6 +86,15 @@ coverage.xml
 .benchmarks/
 gate-report.md
 gate-report-after-fix.md
+gate-metrics.json
+gate-metrics-after-fix.json
+pipeline-report.md
+pipeline-report-after-fix.md
+pipeline-metrics.json
+pipeline-metrics-after-fix.json
+pytest-junit.xml
+terravault-scan-report.md
+terravault-scan-metrics.json
 # NOTE: .coveragerc is a config file and SHOULD be tracked in git
 
 # ===================================
@@ -123,6 +132,7 @@ shot_*.html
 # Documentation Artifacts
 # ===================================
 docs/*
+!docs/DEPLOY_*.md
 
 # ===================================
 # Build & Distribution
@@ -141,11 +151,20 @@ pip-wheel-metadata/
 bandit.json
 bandit-report.json
 safety-report.txt
+safety-report.json
 trivy-report.json
+trivy-results.sarif
 sbom.json
 sbom.xml
 gitleaks-report.json
 gitleaks-report.sarif
+gitleaks-results.sarif
+
+# ===================================
+# CI Working Directories (artifact staging)
+# ===================================
+_artifacts/
+_verify/
 
 # ===================================
 # Secret Scanner Artifacts

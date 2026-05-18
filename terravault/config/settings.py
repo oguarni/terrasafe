@@ -36,6 +36,10 @@ class Settings(BaseSettings):
         default=["http://localhost:3000"],
         description="Allowed CORS origins"
     )
+    api_trusted_hosts: list[str] = Field(
+        default=["localhost", "127.0.0.1"],
+        description="Allowed Host headers in production (used by TrustedHostMiddleware)"
+    )
 
     # Database Configuration
     database_url: Optional[str] = Field(

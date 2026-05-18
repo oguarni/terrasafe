@@ -64,6 +64,68 @@ jobs:
           sarif_file: terravault-results.sarif
           category: terravault
 
+      - name: Set up Python for report generation
+        if: always()
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Generate AI-readable scan report
+        if: always() && hashFiles('scan_output.json') != ''
+        id: scan_report
+        run: |
+          set +e
+          python _terravault_action/scripts/pipeline_report.py \
+            --input terravault-scan=scan_output.json \
+            --input terravault-sarif=terravault-results.sarif \
+            --output-md terravault-scan-report.md \
+            --output-json terravault-scan-metrics.json \
+            --title "TerraVault Scan Report" \
+            --commit "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --pr "${{ github.event.pull_request.number }}"
+          if [ -f terravault-scan-metrics.json ]; then
+            OVERALL=$(python -c "import json; print(json.load(open('terravault-scan-metrics.json'))['overall'])")
+            echo "overall_status=$OVERALL" >> "$GITHUB_OUTPUT"
+          else
+            echo "overall_status=error" >> "$GITHUB_OUTPUT"
+          fi
+          exit 0
+
+      - name: Comment on PR with consolidated scan report
+        if: >
+          always() &&
+          github.event_name == 'pull_request' &&
+          hashFiles('terravault-scan-report.md') != ''
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const overall = '${{ steps.scan_report.outputs.overall_status }}';
+            const passed = overall === 'pass';
+            const body = `<!-- terravault-scan-report -->\n## ${passed ? '✅' : '❌'} TerraVault scan ${passed ? 'passed' : 'failed'}\n\n${fs.readFileSync('terravault-scan-report.md', 'utf8')}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.includes('<!-- terravault-scan-report -->'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
       - name: Upload scan artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -73,3 +135,6 @@ jobs:
             scan_output.json
             terravault-results.sarif
             scan_errors.log
+            terravault-scan-report.md
+            terravault-scan-metrics.json
+          if-no-files-found: warn

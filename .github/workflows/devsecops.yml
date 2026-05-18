@@ -27,22 +27,44 @@ jobs:
 
     # SAST - Static Application Security Testing
     - name: Run Bandit (SAST)
+      id: bandit
       run: |
         pip install bandit
-        bandit -r terravault/ --ini .bandit -f json -o bandit-report.json || true
+        set +e
+        bandit -r terravault/ --ini .bandit -f json -o bandit-report.json
+        echo "bandit_exit=$?" >> "$GITHUB_OUTPUT"
         bandit -r terravault/ --ini .bandit -ll -f screen
+        exit 0
 
     # Dependency vulnerability scanning
     - name: Safety Check
+      id: safety
       run: |
         pip install safety
-        safety check --json
+        set +e
+        safety check --json --output safety-report.json
+        echo "safety_exit=$?" >> "$GITHUB_OUTPUT"
+        exit 0
 
-    # Secret detection
-    - name: GitLeaks
-      uses: gitleaks/gitleaks-action@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # Secret detection — produce SARIF for the consolidated report
+    - name: Install gitleaks
+      run: |
+        curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz \
+          | tar -xz -C /tmp gitleaks
+        sudo mv /tmp/gitleaks /usr/local/bin/gitleaks
+
+    - name: Run gitleaks (SARIF)
+      id: gitleaks
+      run: |
+        set +e
+        gitleaks detect \
+          --source . \
+          --redact \
+          --report-format sarif \
+          --report-path gitleaks-results.sarif \
+          --exit-code 0
+        echo "gitleaks_exit=$?" >> "$GITHUB_OUTPUT"
+        exit 0
 
     - name: Upload security artifacts
       uses: actions/upload-artifact@v4
@@ -51,11 +73,32 @@ jobs:
         name: security-reports
         path: |
           bandit-report.json
+          safety-report.json
+          gitleaks-results.sarif
+        if-no-files-found: warn
+
+    - name: Enforce security thresholds
+      run: |
+        # bandit/gitleaks: any finding fails the job
+        # safety: known CVEs fail the job
+        BANDIT_EXIT="${{ steps.bandit.outputs.bandit_exit }}"
+        SAFETY_EXIT="${{ steps.safety.outputs.safety_exit }}"
+        GITLEAKS_EXIT="${{ steps.gitleaks.outputs.gitleaks_exit }}"
+        FAIL=0
+        if [ "$BANDIT_EXIT"   != "0" ]; then echo "::error::Bandit findings detected";   FAIL=1; fi
+        if [ "$SAFETY_EXIT"   != "0" ]; then echo "::error::Safety findings detected";   FAIL=1; fi
+        # gitleaks --exit-code 0 always exits 0; detect findings from SARIF
+        if [ -f gitleaks-results.sarif ]; then
+          FOUND=$(python -c "import json,sys; d=json.load(open('gitleaks-results.sarif')); print(sum(len(r.get('results',[])) for r in d.get('runs',[])))")
+          if [ "$FOUND" -gt 0 ]; then echo "::error::gitleaks: $FOUND secret(s) detected"; FAIL=1; fi
+        fi
+        exit $FAIL
 
   # Unit and integration tests
   test:
     runs-on: ubuntu-latest
     needs: security-scan
+    if: always()
     steps:
     - uses: actions/checkout@v4
 
@@ -83,7 +126,17 @@ jobs:
         TERRAVAULT_REDIS_URL: "redis://localhost:6379"
         TERRAVAULT_LOG_LEVEL: "INFO"
       run: |
-        pytest -v --cov=terravault --cov-report=xml
+        pytest -v --cov=terravault --cov-report=xml --junit-xml=pytest-junit.xml
+
+    - name: Upload test artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-reports
+        path: |
+          pytest-junit.xml
+          coverage.xml
+        if-no-files-found: warn
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -95,6 +148,7 @@ jobs:
   integration-scan:
     runs-on: ubuntu-latest
     needs: test
+    if: always()
     steps:
     - uses: actions/checkout@v4
       with:
@@ -128,11 +182,13 @@ jobs:
           scan_output.json
           terravault-results.sarif
           scan_errors.log
+        if-no-files-found: warn
 
   # Docker security and build
   docker:
     runs-on: ubuntu-latest
     needs: test
+    if: always()
     steps:
     - uses: actions/checkout@v4
 
@@ -157,13 +213,361 @@ jobs:
       with:
         sarif_file: 'trivy-results.sarif'
 
+    - name: Archive Trivy SARIF for pipeline report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: docker-reports
+        path: trivy-results.sarif
+        if-no-files-found: warn
+
     - name: Test Docker container
       run: |
         docker run --rm -v $(pwd)/test_files:/app/test_files \
           terravault:${{ github.sha }} \
           python -m terravault.cli test_files/secure.tf
 
-  # Optional: Deploy to staging (only on main branch)
+  # Consolidated AI-readable pipeline report
+  pipeline-report:
+    name: Consolidated Pipeline Report
+    runs-on: ubuntu-latest
+    needs: [security-scan, test, integration-scan, docker]
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    outputs:
+      overall_status: ${{ steps.report.outputs.overall_status }}
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: _artifacts/
+
+      - name: Inspect downloaded artifacts
+        run: |
+          echo "=== Artifact tree ==="
+          find _artifacts -type f -maxdepth 3 -print
+
+      - name: Generate consolidated report
+        id: report
+        run: |
+          set +e
+          python scripts/pipeline_report.py \
+            --input bandit-json=_artifacts/security-reports/bandit-report.json \
+            --input safety-json=_artifacts/security-reports/safety-report.json \
+            --input gitleaks-sarif=_artifacts/security-reports/gitleaks-results.sarif \
+            --input pytest-junit=_artifacts/test-reports/pytest-junit.xml \
+            --input coverage-xml=_artifacts/test-reports/coverage.xml \
+            --input terravault-scan=_artifacts/scan-results/scan_output.json \
+            --input terravault-sarif=_artifacts/scan-results/terravault-results.sarif \
+            --input trivy-sarif=_artifacts/docker-reports/trivy-results.sarif \
+            --output-md pipeline-report.md \
+            --output-json pipeline-metrics.json \
+            --title "DevSecOps Pipeline Report" \
+            --commit "${{ github.event.pull_request.head.sha }}" \
+            --pr "${{ github.event.pull_request.number }}"
+          rc=$?
+          OVERALL=$(python -c "import json; print(json.load(open('pipeline-metrics.json'))['overall'])")
+          echo "overall_status=$OVERALL" >> "$GITHUB_OUTPUT"
+          exit $rc
+
+      - name: Upload consolidated pipeline report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-report
+          path: |
+            pipeline-report.md
+            pipeline-metrics.json
+          retention-days: 14
+
+      - name: Comment on PR with consolidated report
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const overall = '${{ steps.report.outputs.overall_status }}';
+            const passed = overall === 'pass';
+            const report = fs.existsSync('pipeline-report.md')
+              ? fs.readFileSync('pipeline-report.md', 'utf8')
+              : '_Pipeline report file was not produced — see workflow logs._';
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            const hint = passed
+              ? ''
+              : (labels.includes('auto-fix')
+                  ? '\n\n🤖 The `auto-fix` label is set — Claude will attempt remediation of bandit/safety/pytest findings (gitleaks and Trivy require human review).'
+                  : '\n\n💡 Add the `auto-fix` label to let Claude attempt remediation (bandit/safety/pytest only; max 3 attempts).');
+            const marker = '<!-- devsecops-pipeline-report -->';
+            const body = `${marker}\n## ${passed ? '✅' : '❌'} DevSecOps Pipeline ${passed ? 'passed' : 'failed'}\n\n${report}${hint}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  # Claude self-correction for DevSecOps pipeline failures
+  devsecops-auto-fix:
+    name: Claude DevSecOps Auto-Fix
+    needs: pipeline-report
+    if: |
+      always() &&
+      needs.pipeline-report.outputs.overall_status == 'fail' &&
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'auto-fix')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Compute attempt counter
+        id: limits
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = context.payload.pull_request;
+            const { data: commits } = await github.rest.pulls.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+            const prior = commits.filter(c =>
+              c.commit.message.startsWith('chore(devsecops):')
+            );
+            const attempt = prior.length + 1;
+            const MAX = 3;
+            core.setOutput('attempt', String(attempt));
+            core.setOutput('max', String(MAX));
+            core.setOutput('proceed', String(attempt <= MAX));
+            if (attempt > MAX) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: `🛑 DevSecOps auto-fix attempt limit (${MAX}) reached. Review the consolidated pipeline report manually and remove the \`auto-fix\` label when ready to retry.`,
+              });
+            }
+
+      - name: Checkout PR branch (writable)
+        if: steps.limits.outputs.proceed == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          token: ${{ secrets.AUTO_FIX_PAT || secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+
+      - name: Set up Python
+        if: steps.limits.outputs.proceed == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        if: steps.limits.outputs.proceed == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install bandit safety
+
+      - name: Download consolidated report
+        if: steps.limits.outputs.proceed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: pipeline-report
+          path: .
+
+      - name: Configure git identity for bot
+        if: steps.limits.outputs.proceed == 'true'
+        run: |
+          git config user.name  "claude-devsecops-fix[bot]"
+          git config user.email "claude-devsecops-fix[bot]@users.noreply.github.com"
+
+      - name: Run Claude DevSecOps auto-fix
+        if: steps.limits.outputs.proceed == 'true'
+        uses: anthropics/claude-code-action@v1
+        env:
+          TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
+          TERRAVAULT_ENVIRONMENT: development
+          TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
+          TERRAVAULT_REDIS_URL: "redis://localhost:6379"
+          TERRAVAULT_LOG_LEVEL: INFO
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          ATTEMPT: ${{ steps.limits.outputs.attempt }}
+          MAX_ATTEMPTS: ${{ steps.limits.outputs.max }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--allowed-tools "Bash,Read,Edit,Write,Grep,Glob"'
+          prompt: |
+            The TerraVault DevSecOps pipeline failed on PR #${{ github.event.pull_request.number }}.
+            This is DevSecOps auto-fix attempt ${{ steps.limits.outputs.attempt }} of ${{ steps.limits.outputs.max }}.
+
+            Read both files at the repo root:
+              - `pipeline-report.md`     — human + LLM readable failure summary
+              - `pipeline-metrics.json`  — structured per-check metrics
+                                           (`checks[].kind`, `status`, `metrics`, `findings`)
+
+            Auto-fix scope (in priority order):
+
+              1. **Bandit (SAST)** — fix the underlying code pattern. Do NOT
+                 silence findings with `# nosec` unless the finding is a
+                 documented false positive AND you add a one-line justification
+                 in the same commit.
+
+              2. **Safety (dependency CVEs)** — bump the affected package in
+                 `requirements.txt` / `requirements-dev.txt` to the lowest
+                 patched version specified in the advisory. Never make major
+                 version jumps that could break import contracts.
+
+              3. **pytest** — fix the failing test or the code under test,
+                 whichever matches the actual defect. Do not xfail / skip to
+                 silence a real failure.
+
+              4. **Coverage** — do not chase coverage in this pipeline; coverage
+                 is enforced by the Quality Gate, not DevSecOps.
+
+            Hard NO-FIX zones (leave a PR comment instead of editing):
+
+              - **GitLeaks (secrets)** — a secret was committed. The fix is
+                rotation, not deletion. Comment on the PR explaining which
+                secret to rotate and where it currently lives. Do NOT silently
+                delete or rewrite history.
+              - **Trivy (Docker CVEs)** — base image / system package bumps
+                need explicit human review. Comment with the proposed bump
+                instead of editing the Dockerfile.
+              - **TerraVault scan findings on `test_files/`** — these are
+                intentionally vulnerable fixtures. Do not "fix" them; if they
+                are mis-tagged, document why in a PR comment.
+
+            Workflow:
+
+              1. Diagnose every failing check from `pipeline-metrics.json`.
+              2. For each in-scope finding, apply the minimal change set.
+              3. Re-run the affected checks locally where possible:
+                   bandit -r terravault/ --ini .bandit -ll
+                   safety check
+                   pytest -x --junit-xml=pytest-junit.xml
+              4. Stage and commit:
+                   git add -A
+                   git commit -m "chore(devsecops): auto-fix attempt ${{ steps.limits.outputs.attempt }}"
+                   git push origin HEAD:${{ github.event.pull_request.head.ref }}
+
+            Hard constraints:
+              - Do NOT add features, refactors, or abstractions beyond what the
+                failing checks require.
+              - Do NOT weaken thresholds: never edit `.bandit`, `requirements*.txt`
+                pins beyond the minimum patched version, `.github/workflows/*.yml`,
+                or `scripts/pipeline_report.py`.
+              - Do NOT add new dependencies to "fix" findings.
+              - If a finding falls outside the auto-fix scope above, leave a
+                PR comment explaining why and what a human should do.
+
+      - name: Verify pipeline checks after auto-fix
+        if: steps.limits.outputs.proceed == 'true'
+        id: verify
+        env:
+          TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
+          TERRAVAULT_ENVIRONMENT: development
+          TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
+          TERRAVAULT_REDIS_URL: "redis://localhost:6379"
+          TERRAVAULT_LOG_LEVEL: INFO
+        run: |
+          set +e
+          git pull --ff-only origin "${{ github.event.pull_request.head.ref }}" || true
+          mkdir -p _verify
+          bandit -r terravault/ --ini .bandit -f json -o _verify/bandit-report.json -ll || true
+          safety check --json --output _verify/safety-report.json || true
+          pytest -q --junit-xml=_verify/pytest-junit.xml --cov=terravault --cov-report=xml:_verify/coverage.xml || true
+
+          python scripts/pipeline_report.py \
+            --input bandit-json=_verify/bandit-report.json \
+            --input safety-json=_verify/safety-report.json \
+            --input pytest-junit=_verify/pytest-junit.xml \
+            --input coverage-xml=_verify/coverage.xml \
+            --output-md pipeline-report-after-fix.md \
+            --output-json pipeline-metrics-after-fix.json \
+            --title "DevSecOps Pipeline Report (post auto-fix)" \
+            --commit "$(git rev-parse HEAD)" \
+            --pr "${{ github.event.pull_request.number }}"
+          OVERALL=$(python -c "import json; print(json.load(open('pipeline-metrics-after-fix.json'))['overall'])")
+          if [ "$OVERALL" = "pass" ]; then
+            echo "fixed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "fixed=false" >> "$GITHUB_OUTPUT"
+          fi
+          exit 0
+
+      - name: Upload post-fix consolidated report
+        if: steps.limits.outputs.proceed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-report-after-fix
+          path: |
+            pipeline-report-after-fix.md
+            pipeline-metrics-after-fix.json
+          retention-days: 14
+
+      - name: Comment on PR with auto-fix result
+        if: steps.limits.outputs.proceed == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const fixed = '${{ steps.verify.outputs.fixed }}' === 'true';
+            const attempt = '${{ steps.limits.outputs.attempt }}';
+            const max     = '${{ steps.limits.outputs.max }}';
+            const after = fs.existsSync('pipeline-report-after-fix.md')
+              ? fs.readFileSync('pipeline-report-after-fix.md', 'utf8')
+              : '_Post-fix report missing — see workflow logs._';
+            const header = fixed
+              ? `## ✅ Claude DevSecOps auto-fix succeeded (attempt ${attempt}/${max})`
+              : `## ⚠️ DevSecOps pipeline still failing after auto-fix attempt ${attempt}/${max}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `${header}\n\n${after}`,
+            });
+
+  # Optional: Deploy to staging (only on master push)
   deploy-staging:
     runs-on: ubuntu-latest
     needs: [security-scan, test, docker]

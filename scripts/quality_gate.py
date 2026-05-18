@@ -16,16 +16,19 @@ Thresholds (must match CLAUDE.md health stats):
 """
 from __future__ import annotations
 
+import datetime as _dt
+import json
 import os
 import re
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REPORT_PATH = Path(os.environ.get("GATE_REPORT_PATH", REPO_ROOT / "gate-report.md"))
+METRICS_PATH = Path(os.environ.get("GATE_METRICS_PATH", REPO_ROOT / "gate-metrics.json"))
 RATCHET_SCRIPT = REPO_ROOT / "scripts" / "ratchet.py"
 
 PYLINT_FLOOR = 10.0
@@ -38,6 +41,7 @@ class CheckResult:
     passed: bool
     summary: str
     details: str = ""
+    metrics: Dict[str, Any] = field(default_factory=dict)
 
 
 def _run(cmd: List[str]) -> Tuple[int, str]:
@@ -66,29 +70,37 @@ def check_pytest() -> CheckResult:
             "--cov=terravault",
             "--cov-report=xml",
             "--cov-report=term-missing",
+            "--junit-xml=pytest-junit.xml",
         ]
     )
+    summary_match = re.search(r"=+ ((?:\d+ (?:passed|failed|error|skipped)(?:, )?)+)", out)
+    metrics: Dict[str, Any] = {"summary_line": summary_match.group(1) if summary_match else None}
     if code != 0:
-        return CheckResult("pytest", False, "Tests failed", _tail(out))
-    return CheckResult("pytest", True, "All tests passed")
+        return CheckResult("pytest", False, "Tests failed", _tail(out), metrics)
+    return CheckResult("pytest", True, "All tests passed", "", metrics)
 
 
 def check_ratchet() -> CheckResult:
     code, out = _run([sys.executable, str(RATCHET_SCRIPT), "--check"])
     if code == 2:
         return CheckResult("ratchet", False, "Ratchet internal error", _tail(out))
-    summary_match = re.search(r"^\| (\w+) \| .* \| (PASS|FAIL) \|$", out, re.MULTILINE)
+    metrics: Dict[str, Any] = {}
+    for m in re.finditer(
+        r"^\| (\w+) \| ([^|]+) \| ([^|]+) \| [^|]+ \| (PASS|FAIL) \|$",
+        out,
+        re.MULTILINE,
+    ):
+        metrics[m.group(1)] = {
+            "baseline": _maybe_number(m.group(2).strip().rstrip("%")),
+            "current": _maybe_number(m.group(3).strip().rstrip("%")),
+            "status": m.group(4).lower(),
+        }
     if code != 0:
-        regressed = [
-            m.group(1)
-            for m in re.finditer(r"^\| (\w+) \| .* \| FAIL \|$", out, re.MULTILINE)
-        ]
+        regressed = [k for k, v in metrics.items() if v["status"] == "fail"]
         summary = "Regressed: " + ", ".join(regressed) if regressed else "Baseline regression"
-        return CheckResult("ratchet", False, summary, out)
-    summary = "All metrics tied or improved vs baseline"
-    if summary_match:
-        summary = "All three metrics within baseline (coverage, file length, duplication)"
-    return CheckResult("ratchet", True, summary, out)
+        return CheckResult("ratchet", False, summary, out, metrics)
+    summary = "All three metrics within baseline (coverage, file length, duplication)"
+    return CheckResult("ratchet", True, summary, out, metrics)
 
 
 def check_pylint() -> CheckResult:
@@ -110,17 +122,19 @@ def check_pylint() -> CheckResult:
             _tail(out),
         )
     score = float(match.group(1))
+    metrics: Dict[str, Any] = {"score": score, "floor": PYLINT_FLOOR}
     summary = f"Pylint score {score:.2f}/10 (floor {PYLINT_FLOOR:.2f}/10)"
     if score + 1e-6 < PYLINT_FLOOR:
-        return CheckResult("pylint", False, summary, _tail(out))
+        return CheckResult("pylint", False, summary, _tail(out), metrics)
     if code != 0:
         return CheckResult(
             "pylint",
             False,
             f"{summary} but pylint exited {code}",
             _tail(out),
+            metrics,
         )
-    return CheckResult("pylint", True, summary)
+    return CheckResult("pylint", True, summary, "", metrics)
 
 
 def check_flake8() -> CheckResult:
@@ -136,14 +150,16 @@ def check_flake8() -> CheckResult:
         ]
     )
     findings = [line for line in out.splitlines() if line.strip()]
+    metrics = {"finding_count": len(findings)}
     if code != 0 or findings:
         return CheckResult(
             "flake8",
             False,
             f"{len(findings)} finding(s)",
             _tail(out),
+            metrics,
         )
-    return CheckResult("flake8", True, "0 findings")
+    return CheckResult("flake8", True, "0 findings", "", metrics)
 
 
 def check_bandit() -> CheckResult:
@@ -161,14 +177,24 @@ def check_bandit() -> CheckResult:
             "screen",
         ]
     )
+    finding_match = re.search(r"Total issues \(by severity\):\s*\n\s*Undefined: (\d+)\s*\n\s*Low: (\d+)\s*\n\s*Medium: (\d+)\s*\n\s*High: (\d+)", out)
+    metrics: Dict[str, Any] = {}
+    if finding_match:
+        metrics = {
+            "undefined": int(finding_match.group(1)),
+            "low": int(finding_match.group(2)),
+            "medium": int(finding_match.group(3)),
+            "high": int(finding_match.group(4)),
+        }
     if code != 0:
         return CheckResult(
             "bandit",
             False,
             "Findings detected at -ll severity",
             _tail(out),
+            metrics,
         )
-    return CheckResult("bandit", True, "0 findings at -ll severity")
+    return CheckResult("bandit", True, "0 findings at -ll severity", "", metrics)
 
 
 def check_mypy() -> CheckResult:
@@ -181,9 +207,20 @@ def check_mypy() -> CheckResult:
             "--ignore-missing-imports",
         ]
     )
+    err_match = re.search(r"Found (\d+) error", out)
+    metrics: Dict[str, Any] = {"error_count": int(err_match.group(1)) if err_match else (0 if code == 0 else None)}
     if code != 0:
-        return CheckResult("mypy", False, "Type errors", _tail(out))
-    return CheckResult("mypy", True, "0 errors")
+        return CheckResult("mypy", False, "Type errors", _tail(out), metrics)
+    return CheckResult("mypy", True, "0 errors", "", metrics)
+
+
+def _maybe_number(s: str) -> Any:
+    try:
+        if "." in s:
+            return float(s)
+        return int(s)
+    except ValueError:
+        return s
 
 
 CHECKS: List[Callable[[], CheckResult]] = [
@@ -225,6 +262,23 @@ def render_report(results: List[CheckResult]) -> str:
     return "\n".join(lines)
 
 
+def render_metrics(results: List[CheckResult]) -> Dict[str, Any]:
+    overall_pass = all(r.passed for r in results)
+    return {
+        "overall": "pass" if overall_pass else "fail",
+        "generated_at": _dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "checks": [
+            {
+                "name": r.name,
+                "status": "pass" if r.passed else "fail",
+                "summary": r.summary,
+                "metrics": r.metrics,
+            }
+            for r in results
+        ],
+    }
+
+
 def main() -> int:
     results: List[CheckResult] = []
     for check in CHECKS:
@@ -239,6 +293,13 @@ def main() -> int:
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.write_text(render_report(results), encoding="utf-8")
     print(f"\nReport written to {REPORT_PATH}", flush=True)
+
+    METRICS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    METRICS_PATH.write_text(
+        json.dumps(render_metrics(results), indent=2, default=str),
+        encoding="utf-8",
+    )
+    print(f"Metrics written to {METRICS_PATH}", flush=True)
 
     return 0 if all(r.passed for r in results) else 1
 

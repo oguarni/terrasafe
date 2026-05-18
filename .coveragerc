@@ -1,5 +1,5 @@
 [run]
-source = terrasafe
+source = terravault
 omit =
     */tests/*
     */test_*.py
@@ -32,7 +32,7 @@ exclude_lines =
 
 [html]
 directory = htmlcov
-title = TerraSafe Coverage Report
+title = TerraVault Coverage Report
 
 [xml]
 output = coverage.xml

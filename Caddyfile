@@ -1,0 +1,27 @@
+{$TERRAVAULT_PUBLIC_DOMAIN} {
+	encode gzip zstd
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	@public_metrics {
+		path /metrics
+		not remote_ip private_ranges
+	}
+	respond @public_metrics 404
+
+	reverse_proxy terravault-api:8000 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-For {remote_host}
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

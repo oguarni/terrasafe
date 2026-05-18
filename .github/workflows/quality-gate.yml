@@ -56,6 +56,7 @@ jobs:
           TERRAVAULT_REDIS_URL: "redis://localhost:6379"
           TERRAVAULT_LOG_LEVEL: INFO
           GATE_REPORT_PATH: gate-report.md
+          GATE_METRICS_PATH: gate-metrics.json
         run: |
           set +e
           python scripts/quality_gate.py
@@ -72,7 +73,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: quality-gate-report
-          path: gate-report.md
+          path: |
+            gate-report.md
+            gate-metrics.json
           retention-days: 14
 
       - name: Comment on PR with failure report
@@ -194,6 +197,7 @@ jobs:
           TERRAVAULT_REDIS_URL: "redis://localhost:6379"
           TERRAVAULT_LOG_LEVEL: INFO
           GATE_REPORT_PATH: gate-report.md
+          GATE_METRICS_PATH: gate-metrics.json
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
           ATTEMPT: ${{ steps.limits.outputs.attempt }}
           MAX_ATTEMPTS: ${{ steps.limits.outputs.max }}
@@ -204,8 +208,9 @@ jobs:
             The TerraVault Quality Gate failed on PR #${{ github.event.pull_request.number }}.
             This is auto-fix attempt ${{ steps.limits.outputs.attempt }} of ${{ steps.limits.outputs.max }}.
 
-            Read `gate-report.md` at the repo root for the exact failures. The gate
-            enforces:
+            Read `gate-report.md` (human-readable) and `gate-metrics.json`
+            (structured per-check metrics: counts, scores, statuses) at the
+            repo root for the exact failures. The gate enforces:
               - pytest: every test passes
               - coverage: line-rate >= 74.00 %
               - pylint:  score == 10.00 / 10
@@ -252,6 +257,7 @@ jobs:
           TERRAVAULT_REDIS_URL: "redis://localhost:6379"
           TERRAVAULT_LOG_LEVEL: INFO
           GATE_REPORT_PATH: gate-report-after-fix.md
+          GATE_METRICS_PATH: gate-metrics-after-fix.json
         run: |
           set +e
           git pull --ff-only origin "${{ github.event.pull_request.head.ref }}" || true
@@ -269,7 +275,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: quality-gate-report-after-fix
-          path: gate-report-after-fix.md
+          path: |
+            gate-report-after-fix.md
+            gate-metrics-after-fix.json
           retention-days: 14
 
       - name: Comment on PR with auto-fix result

@@ -40,15 +40,30 @@ bandit-report.json
 # Quality Gate / Ratchet generated reports
 gate-report.md
 gate-report-after-fix.md
+gate-metrics.json
+gate-metrics-after-fix.json
 pylint-output.json
 pylint-report.txt
 ratchet-current.json
 
-# Stale / legacy ghost directory from terravault → terrasafe rename
-terravault/
+# Consolidated DevSecOps pipeline reports
+pipeline-report.md
+pipeline-report-after-fix.md
+pipeline-metrics.json
+pipeline-metrics-after-fix.json
+pytest-junit.xml
+terravault-scan-report.md
+terravault-scan-metrics.json
+
+# CI working directories (artifact staging)
+_artifacts/
+_verify/
+
+# Stale / legacy ghost directory from terrasafe → terravault rename
+terrasafe/
 
 # Architecture / diagram binary assets
-terrasafe-architecture.svg
+terravault-architecture.svg
 
 # Documentation, screenshots & assets
 docs/
@@ -67,6 +82,7 @@ config/local.yaml
 # Security reports
 *.sarif
 safety-report.txt
+safety-report.json
 trivy-report.json
 sbom.json
 sbom.xml

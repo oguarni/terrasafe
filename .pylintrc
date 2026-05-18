@@ -34,7 +34,7 @@ disable =
     # ----- Import ergonomics ----------------------------------------------
     # api.py and cli.py intentionally call load_dotenv() before imports;
     # flake8 already waives E402 for the same reason. Test fixtures use
-    # lazy imports to defer terrasafe package initialization until after
+    # lazy imports to defer terravault package initialization until after
     # env vars are patched.
     wrong-import-position,
     wrong-import-order,
