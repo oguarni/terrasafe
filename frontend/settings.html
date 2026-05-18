@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>TerraVault | Settings</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="/js/app.js"></script>
+    <script src="/js/settings.js" defer></script>
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+        body { background-color: #0b1326; color: #dae2fd; font-family: 'Inter', sans-serif; }
+    </style>
+
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-surface": "#dae2fd",
+                        "on-primary-container": "#00285d",
+                        "on-tertiary-fixed-variant": "#93000b",
+                        "on-secondary": "#233144",
+                        "background": "#0b1326",
+                        "outline-variant": "#424754",
+                        "error": "#ffb4ab",
+                        "secondary-container": "#3c4a5e",
+                        "surface-variant": "#2d3449",
+                        "inverse-surface": "#dae2fd",
+                        "primary-container": "#4d8eff",
+                        "tertiary-fixed-dim": "#ffb4ab",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-low": "#131b2e",
+                        "primary-fixed": "#d8e2ff",
+                        "on-tertiary-container": "#5c0004",
+                        "surface-bright": "#31394d",
+                        "on-secondary-container": "#abb9d2",
+                        "surface-container": "#171f33",
+                        "surface-container-highest": "#2d3449",
+                        "secondary-fixed-dim": "#b9c7e0",
+                        "tertiary-container": "#ff544a",
+                        "inverse-on-surface": "#283044",
+                        "surface-container-lowest": "#060e20",
+                        "on-error": "#690005",
+                        "on-primary-fixed": "#001a42",
+                        "tertiary-fixed": "#ffdad6",
+                        "outline": "#8c909f",
+                        "on-secondary-fixed-variant": "#3a485c",
+                        "on-background": "#dae2fd",
+                        "surface-container-high": "#222a3d",
+                        "on-surface-variant": "#c2c6d6",
+                        "surface-dim": "#0b1326",
+                        "inverse-primary": "#005ac2",
+                        "error-container": "#93000a",
+                        "tertiary": "#ffb4ab",
+                        "primary-fixed-dim": "#adc6ff",
+                        "on-primary": "#002e6a",
+                        "surface-tint": "#adc6ff",
+                        "secondary-fixed": "#d5e3fd",
+                        "on-primary-fixed-variant": "#004395",
+                        "secondary": "#b9c7e0",
+                        "on-secondary-fixed": "#0d1c2f",
+                        "primary": "#adc6ff",
+                        "on-tertiary": "#690005",
+                        "on-tertiary-fixed": "#410002",
+                        "surface": "#0b1326"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"],
+                        "mono": ["monospace"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+
+<body class="bg-background text-on-surface font-body min-h-screen selection:bg-primary/30">
+<nav class="flex justify-between items-center w-full px-8 h-16 max-w-full mx-auto bg-[#171f33]/60 backdrop-blur-xl font-['Inter'] antialiased tracking-tight text-sm font-medium docked full-width top-0 sticky z-50 no-border bg-opacity-60 tonal-shift shadow-none">
+    <div class="text-xl font-bold tracking-tighter text-[#adc6ff] flex items-center gap-2">
+        <span class="material-symbols-outlined" data-icon="shield">shield</span>
+        TerraVault
+    </div>
+    <div class="hidden md:flex items-center gap-8">
+        <a class="text-slate-400 hover:text-slate-200 transition-colors" href="/index.html">Dashboard</a>
+        <a class="text-slate-400 hover:text-slate-200 transition-colors" href="/scan.html">Scan</a>
+        <a class="text-slate-400 hover:text-slate-200 transition-colors" href="#">History</a>
+        <a class="text-[#adc6ff] border-b-2 border-[#adc6ff] pb-1" href="/settings.html">Settings</a>
+    </div>
+    <div class="flex items-center gap-4">
+        <button id="theme-toggle" class="p-2 text-slate-400 hover:bg-[#222a3d] rounded-lg transition-all duration-300 scale-95 active:scale-90">
+            <span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+        </button>
+        <div id="status-indicator" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-high border-l border-outline-variant/20">
+            <span class="w-2 h-2 rounded-full bg-slate-500 indicator-dot"></span>
+            <span class="text-xs font-mono text-slate-400 indicator-text">Checking</span>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row gap-12">
+    <aside class="w-full md:w-64 flex-shrink-0">
+        <h1 class="text-3xl font-extrabold tracking-tighter mb-8 text-on-surface">Configuration</h1>
+        <nav class="space-y-1">
+            <a class="flex items-center gap-3 px-4 py-3 bg-surface-container-high text-primary rounded-lg border-l-4 border-primary" href="#connection">
+                <span class="material-symbols-outlined" data-icon="settings_ethernet">settings_ethernet</span>
+                <span class="text-sm font-medium">Connectivity</span>
+            </a>
+            <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg" href="#about">
+                <span class="material-symbols-outlined" data-icon="info">info</span>
+                <span class="text-sm font-medium">About</span>
+            </a>
+        </nav>
+    </aside>
+
+    <div class="flex-1 space-y-10">
+        <section class="space-y-6" id="connection">
+            <div class="flex items-baseline justify-between mb-4">
+                <h2 class="text-xl font-bold tracking-tight text-on-surface">Connectivity & API</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-surface-container p-6 rounded-xl border-l-2 border-primary-container/30">
+                    <label class="block text-xs font-bold uppercase tracking-widest text-primary mb-4">API Key Access</label>
+                    <div class="relative">
+                        <input id="api-key-input" class="w-full bg-surface-container-lowest border-none rounded-lg py-3 px-4 text-on-surface font-mono text-sm focus:ring-1 focus:ring-primary-container transition-all" type="password" placeholder="Enter API Key"/>
+                        <button id="toggle-key-visibility" class="absolute right-3 top-2.5 text-outline hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+                        </button>
+                    </div>
+                    <p class="mt-3 text-xs text-on-surface-variant/60 italic">Your credential is stored in <span class="text-primary-container">localStorage</span>.</p>
+                </div>
+
+                <div class="bg-surface-container p-6 rounded-xl border-l-2 border-green-500/30">
+                    <div class="flex justify-between items-start mb-4">
+                        <label class="block text-xs font-bold uppercase tracking-widest text-green-400">Backend Endpoint</label>
+                    </div>
+                    <input id="backend-url-input" class="w-full bg-surface-container-lowest border-none rounded-lg py-3 px-4 text-on-surface font-mono text-sm focus:ring-1 focus:ring-green-500/50 transition-all" type="text" value="http://localhost:8000"/>
+                    <p class="mt-3 text-xs text-on-surface-variant/60">Auto-saves on change.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="pt-8 border-t border-outline-variant/10" id="about">
+            <div class="flex flex-col md:flex-row gap-12">
+                <div class="flex-1">
+                    <div class="inline-block px-3 py-1 bg-surface-container-highest rounded-full text-[10px] font-black text-primary tracking-[0.2em] mb-4">SYSTEM_INFO</div>
+                    <h2 class="text-5xl font-black tracking-tighter text-on-surface mb-4">TerraVault <span class="text-outline-variant font-light">v1.0.0</span></h2>
+                    <p class="text-sm leading-relaxed text-on-surface-variant/80 font-medium italic">
+                        Intelligent Terraform Security Scanner with hybrid 60% rules + 40% ML approach.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+</body>
+</html>
