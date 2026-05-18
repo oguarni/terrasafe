@@ -17,7 +17,7 @@
 - Async SQLAlchemy, singleton via `get_db_manager()`
 - `drop_all_tables()` refuses in production environment
 - Coverage: 100%
-- Tests mock via `patch('terrasafe.infrastructure.database.get_settings', return_value=mock_settings)`
+- Tests mock via `patch('terravault.infrastructure.database.get_settings', return_value=mock_settings)`
 
 ### `models.py` — ORM Models
 - Models: `Scan`, `Vulnerability`, `MLModelVersion`
@@ -52,7 +52,7 @@
 
 ## Testing Patterns
 
-- Database: mock `AsyncSession` via `patch('terrasafe.infrastructure.database.get_settings')` with `_make_mock_settings()` helper
+- Database: mock `AsyncSession` via `patch('terravault.infrastructure.database.get_settings')` with `_make_mock_settings()` helper
 - Parser: use `tmp_path` fixture for real temp files
 - No real DB integration tests exist
 - ML model: use `tmp_path` for model file operations

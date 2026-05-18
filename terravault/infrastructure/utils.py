@@ -1,4 +1,4 @@
-"""Shared utility functions for TerraSafe"""
+"""Shared utility functions for TerraVault"""
 
 
 def categorize_vulnerability(message: str) -> str:

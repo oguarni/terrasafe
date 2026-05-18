@@ -1,8 +1,8 @@
-# TerraSafe Project Guide
+# TerraVault Project Guide
 
 ## Overview
 
-TerraSafe is a hybrid Terraform security scanner implementing Clean Architecture with:
+TerraVault is a hybrid Terraform security scanner implementing Clean Architecture with:
 - **Architecture**: Clean Architecture layers (domain → application → infrastructure)
 - **Security Approach**: 60% rule-based detection (7 rules) + 40% ML anomaly detection (7-dim feature vector)
 - **Tech Stack**: FastAPI, PostgreSQL, Redis, Isolation Forest ML, Prometheus/Grafana
@@ -33,7 +33,7 @@ make coverage
 ### Clean Architecture Layers
 
 ```
-terrasafe/
+terravault/
   domain/          → Business entities and rules (security rules, severity enum)
   application/     → Use cases and orchestration (scanner, feature extraction)
   infrastructure/  → External services (database, ML models, parser, rate limiter)
@@ -62,11 +62,11 @@ docker-compose up -d postgres redis
 source .venv/bin/activate
 
 # Run API server
-uvicorn terrasafe.api:app --reload
+uvicorn terravault.api:app --reload
 
 # CLI usage
-python -m terrasafe.cli path/to/file.tf
-python -m terrasafe.cli --output-format json --threshold 50 file1.tf file2.tf
+python -m terravault.cli path/to/file.tf
+python -m terravault.cli --output-format json --threshold 50 file1.tf file2.tf
 ```
 
 ### Testing
@@ -76,7 +76,7 @@ python -m terrasafe.cli --output-format json --threshold 50 file1.tf file2.tf
 pytest
 
 # Run with coverage
-pytest --cov=terrasafe --cov-report=html
+pytest --cov=terravault --cov-report=html
 
 # Run specific test module
 pytest tests/test_security_scanner.py -v
@@ -90,16 +90,16 @@ pytest -m ml
 
 ```bash
 # Linting (flake8) — exclude E402 (dotenv load order) and E501 (marginal line length)
-flake8 terrasafe/ --max-line-length=120 --exclude=__pycache__ --ignore=E402,E501,W503,W504
+flake8 terravault/ --max-line-length=120 --exclude=__pycache__ --ignore=E402,E501,W503,W504
 
 # Type checking
-mypy terrasafe/ --ignore-missing-imports
+mypy terravault/ --ignore-missing-imports
 
 # Security scan (uses .bandit config — skips B101)
-bandit -r terrasafe/ --ini .bandit -f screen
+bandit -r terravault/ --ini .bandit -f screen
 
 # Formatting
-black terrasafe/ tests/
+black terravault/ tests/
 ```
 
 ### Linting Standards
@@ -111,7 +111,7 @@ black terrasafe/ tests/
 
 ## Security Notes
 
-- **Secrets**: Production credentials via AWS Secrets Manager (see `terrasafe/config/settings.py`)
+- **Secrets**: Production credentials via AWS Secrets Manager (see `terravault/config/settings.py`)
 - **Rate Limiting**: Fallback in-memory rate limiter if Redis unavailable
 - **API Keys**: Hashed with bcrypt, no plaintext storage
 - **Input Validation**: SHA-256 hashes, UUIDs, ML feature bounds all validated
@@ -122,12 +122,12 @@ Subdirectory CLAUDE.md files provide focused instructions per architectural laye
 
 | Layer | File | Topics |
 |---|---|---|
-| Entry Points | `terrasafe/CLAUDE.md` | API, CLI, formatters, metrics, middleware |
-| Config | `terrasafe/config/CLAUDE.md` | Settings (Pydantic), structured logging, correlation IDs |
-| Domain | `terrasafe/domain/CLAUDE.md` | 7 security rules, severity model, rule inventory, severity overrides |
-| Application | `terrasafe/application/CLAUDE.md` | Scan pipeline, scoring, caching, 7-dim feature extraction |
-| Infrastructure | `terrasafe/infrastructure/CLAUDE.md` | DB, cache, parser, repositories, rate limiter |
-| ML System | `terrasafe/infrastructure/CLAUDE_ML.md` | IsolationForest, training, drift detection, model files |
+| Entry Points | `terravault/CLAUDE.md` | API, CLI, formatters, metrics, middleware |
+| Config | `terravault/config/CLAUDE.md` | Settings (Pydantic), structured logging, correlation IDs |
+| Domain | `terravault/domain/CLAUDE.md` | 7 security rules, severity model, rule inventory, severity overrides |
+| Application | `terravault/application/CLAUDE.md` | Scan pipeline, scoring, caching, 7-dim feature extraction |
+| Infrastructure | `terravault/infrastructure/CLAUDE.md` | DB, cache, parser, repositories, rate limiter |
+| ML System | `terravault/infrastructure/CLAUDE_ML.md` | IsolationForest, training, drift detection, model files |
 | Tests | `tests/CLAUDE.md` | 72 focused tests, fixtures, markers, mocking patterns, per-module coverage |
 
 ## Known Issues
@@ -168,7 +168,7 @@ the report on the PR.
 | Metric | Direction | Source |
 |---|---|---|
 | `coverage_pct` | must not decrease | `coverage.xml` line-rate |
-| `files_over_300_sloc` | must not increase | `.py` files in `terrasafe/` over 300 lines |
+| `files_over_300_sloc` | must not increase | `.py` files in `terravault/` over 300 lines |
 | `duplicate_blocks` | must not increase | pylint `R0801` at `--min-similarity-lines=4` |
 
 The baseline lives in `.ratchet.json` (tracked in git). When a PR improves a
@@ -216,7 +216,7 @@ Project-specific slash commands for common workflows:
 |---|---|
 | `/diagnostic` | Full project health check (tests, coverage, lint, bandit, mypy) |
 | `/scan-tf` | Scan Terraform files for security vulnerabilities |
-| `/security-audit` | Deep security audit of the TerraSafe codebase |
+| `/security-audit` | Deep security audit of the TerraVault codebase |
 | `/coverage-gaps` | Identify untested code and suggest targeted tests |
 | `/rules-inventory` | Audit security rules engine coverage and gaps |
 | `/ml-status` | Check ML model health, drift, and configuration |

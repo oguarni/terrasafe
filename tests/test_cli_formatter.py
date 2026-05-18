@@ -1,7 +1,7 @@
 """Unit tests for the CLI presentation layer."""
 import pytest
 
-from terrasafe.cli_formatter import format_results_for_display
+from terravault.cli_formatter import format_results_for_display
 
 
 pytestmark = pytest.mark.unit

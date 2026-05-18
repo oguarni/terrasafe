@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="screenshots/terrasafe_icon.png" alt="TerraSafe Logo" width="200">
+  <img src="screenshots/terravault_icon.png" alt="TerraVault Logo" width="200">
 
-  # TerraSafe
+  # TerraVault
 
   **Hybrid Terraform Security Scanner — Deterministic Rules + ML Anomaly Detection**
 
@@ -15,7 +15,7 @@
 
   <br>
 
-  Catch Terraform misconfigurations, hardcoded secrets, and risky infrastructure patterns before they reach production. TerraSafe pairs **7 deterministic detection rules** with **Isolation Forest anomaly detection** to surface both known violations and deviations from learned secure baselines.
+  Catch Terraform misconfigurations, hardcoded secrets, and risky infrastructure patterns before they reach production. TerraVault pairs **7 deterministic detection rules** with **Isolation Forest anomaly detection** to surface both known violations and deviations from learned secure baselines.
 
 </div>
 
@@ -91,8 +91,8 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/oguarni/terrasafe.git
-cd terrasafe
+git clone https://github.com/oguarni/terravault.git
+cd terravault
 
 # Install everything (creates venv, installs deps)
 make install
@@ -105,9 +105,9 @@ make install
 make demo
 
 # Or scan a specific file
-python -m terrasafe.cli test_files/vulnerable.tf
-python -m terrasafe.cli test_files/secure.tf
-python -m terrasafe.cli test_files/mixed.tf
+python -m terravault.cli test_files/vulnerable.tf
+python -m terravault.cli test_files/secure.tf
+python -m terravault.cli test_files/mixed.tf
 ```
 
 ### Run Tests
@@ -125,10 +125,10 @@ make security-scan # Bandit SAST + Safety dependency check
 
 ## Architecture
 
-TerraSafe follows **Clean Architecture** with strict layer separation:
+TerraVault follows **Clean Architecture** with strict layer separation:
 
 ```
-terrasafe/
+terravault/
 ├── domain/            # Business rules, severity levels, vulnerability models
 ├── application/       # Use cases — IntelligentSecurityScanner orchestrator
 ├── infrastructure/    # Adapters — HCL parser, ML model, database, cache
@@ -176,22 +176,22 @@ graph TD
 
 ```bash
 # Scan a Terraform file
-python -m terrasafe.cli <path-to-file.tf>
+python -m terravault.cli <path-to-file.tf>
 
 # Scan via Makefile
 make scan FILE=test_files/vulnerable.tf
 
 # JSON output for CI integration
-python -m terrasafe.cli --output-format json --threshold 50 file1.tf file2.tf
+python -m terravault.cli --output-format json --threshold 50 file1.tf file2.tf
 
 # SARIF output for GitHub Code Scanning
-python -m terrasafe.cli --output-format sarif file.tf
+python -m terravault.cli --output-format sarif file.tf
 ```
 
 ### Example Output — Vulnerable Configuration
 
 ```
-TerraSafe - Intelligent Terraform Security Scanner
+TerraVault - Intelligent Terraform Security Scanner
 Using hybrid approach: Rules (60%) + ML Anomaly Detection (40%)
 
 ============================================================
@@ -374,8 +374,8 @@ make setup-hooks     # Install pre-commit hooks
 
 ```bash
 # Build and scan
-docker build -t terrasafe:latest .
-docker run --rm -v /path/to/terraform:/scan:ro terrasafe:latest /scan/main.tf
+docker build -t terravault:latest .
+docker run --rm -v /path/to/terraform:/scan:ro terravault:latest /scan/main.tf
 ```
 
 ### Full Stack (docker-compose)
@@ -386,7 +386,7 @@ docker-compose up -d
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| **terrasafe-api** | 8000 | FastAPI application |
+| **terravault-api** | 8000 | FastAPI application |
 | **PostgreSQL** | 5432 | Persistent scan storage |
 | **Redis** | 6379 | Caching and rate limiting |
 | **Prometheus** | 9090 | Metrics collection |
@@ -399,7 +399,7 @@ The Docker image runs as a **non-root user** with `--read-only` filesystem and `
 ## Monitoring & Observability
 
 - **Prometheus** scrapes `/metrics` every 10s — scan rates, cache hits, latencies, error rates
-- **Grafana** dashboard (`TerraSafe Overview`) with pre-configured panels:
+- **Grafana** dashboard (`TerraVault Overview`) with pre-configured panels:
   - Scan rate and cache hit ratio
   - Vulnerability distribution by severity and category
   - P95/P99 scan duration
@@ -447,7 +447,7 @@ The Docker image runs as a **non-root user** with `--read-only` filesystem and `
 
 <p align="center">
   <h3>Grafana Monitoring Dashboard</h3>
-  <img src="screenshots/terrasafe_dashboard_full.png" alt="TerraSafe Grafana Dashboard" width="800">
+  <img src="screenshots/terravault_dashboard_full.png" alt="TerraVault Grafana Dashboard" width="800">
 </p>
 
 ---
@@ -517,6 +517,6 @@ This project is licensed under **CC BY-NC-SA 4.0**. This license covers all curr
 
   Developed by **Gabriel Felipe Guarnieri** — UTFPR Software Engineering
 
-  [Quick Start Guide](QUICKSTART.md) · [API Documentation](http://localhost:8000/docs) · [Report an Issue](https://github.com/oguarni/terrasafe/issues)
+  [Quick Start Guide](QUICKSTART.md) · [API Documentation](http://localhost:8000/docs) · [Report an Issue](https://github.com/oguarni/terravault/issues)
 
 </div>

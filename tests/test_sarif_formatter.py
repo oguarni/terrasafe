@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from terrasafe.sarif_formatter import results_to_sarif
+from terravault.sarif_formatter import results_to_sarif
 
 
 pytestmark = pytest.mark.unit

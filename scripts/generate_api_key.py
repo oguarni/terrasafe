@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Utility script to generate API key hashes for TerraSafe.
+Utility script to generate API key hashes for TerraVault.
 
 This script helps generate bcrypt hashes of API keys for use in the
-TERRASAFE_API_KEY_HASH environment variable.
+TERRAVAULT_API_KEY_HASH environment variable.
 
 Usage:
     python scripts/generate_api_key.py
@@ -48,7 +48,7 @@ def hash_api_key(api_key: str) -> str:
 def main():
     """Main function."""
     parser = argparse.ArgumentParser(
-        description="Generate API key hashes for TerraSafe",
+        description="Generate API key hashes for TerraVault",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -85,7 +85,7 @@ Examples:
     args = parser.parse_args()
 
     print("=" * 70)
-    print("TerraSafe API Key Hash Generator")
+    print("TerraVault API Key Hash Generator")
     print("=" * 70)
     print()
 
@@ -137,7 +137,7 @@ Examples:
     print()
     print("1. Add the following to your .env file:")
     print()
-    print(f"   TERRASAFE_API_KEY_HASH={hashed_key}")
+    print(f"   TERRAVAULT_API_KEY_HASH={hashed_key}")
     print(f"   API_KEY_HASH={hashed_key}")
     print()
     print("2. Use this API key in your requests:")

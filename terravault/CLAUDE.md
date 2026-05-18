@@ -61,7 +61,7 @@ Top-level application entry points and cross-cutting concerns. These files wire 
 - Graceful degradation: all metrics no-op if `prometheus_client` not installed
 - `track_metrics` decorator: wraps sync/async functions, records scan results, errors
 - `_record_scan_result()` — records score, duration, confidence, vulnerabilities, cache hits
-- Metric families: `terrasafe_scans_total`, `terrasafe_scan_duration_seconds`, `terrasafe_vulnerabilities_detected_total`, etc.
+- Metric families: `terravault_scans_total`, `terravault_scan_duration_seconds`, `terravault_vulnerabilities_detected_total`, etc.
 - Coverage: 100%
 
 ### `main.py` — `uvicorn.run()` entry point

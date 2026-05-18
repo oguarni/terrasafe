@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""FastAPI REST API for TerraSafe with rate limiting and async support"""
+"""FastAPI REST API for TerraVault with rate limiting and async support"""
 import os
 import tempfile
 import asyncio
@@ -21,16 +21,16 @@ import bcrypt
 import aiofiles
 import aiofiles.os
 
-from terrasafe.infrastructure.parser import HCLParser
-from terrasafe.infrastructure.ml_model import ModelManager, MLPredictor
-from terrasafe.domain.security_rules import SecurityRuleEngine
-from terrasafe.application.scanner import IntelligentSecurityScanner
-from terrasafe.config.settings import get_settings
-from terrasafe.config.logging import setup_logging, get_logger, set_correlation_id, clear_correlation_id
-from terrasafe.infrastructure.database import get_db_manager
-from terrasafe.infrastructure.repositories import ScanRepository
-from terrasafe.infrastructure.rate_limiter import FallbackRateLimiter
-from terrasafe.infrastructure.validation import sanitize_filename
+from terravault.infrastructure.parser import HCLParser
+from terravault.infrastructure.ml_model import ModelManager, MLPredictor
+from terravault.domain.security_rules import SecurityRuleEngine
+from terravault.application.scanner import IntelligentSecurityScanner
+from terravault.config.settings import get_settings
+from terravault.config.logging import setup_logging, get_logger, set_correlation_id, clear_correlation_id
+from terravault.infrastructure.database import get_db_manager
+from terravault.infrastructure.repositories import ScanRepository
+from terravault.infrastructure.rate_limiter import FallbackRateLimiter
+from terravault.infrastructure.validation import sanitize_filename
 
 # Get settings
 settings = get_settings()
@@ -95,7 +95,7 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
     if settings.api_key_hash is None:
         raise HTTPException(
             status_code=503,
-            detail="API key authentication is not configured. Set TERRASAFE_API_KEY_HASH."
+            detail="API key authentication is not configured. Set TERRAVAULT_API_KEY_HASH."
         )
 
     if not api_key:
@@ -203,9 +203,9 @@ async def lifespan(app: FastAPI):
     # Startup
     if settings.api_key_hash is None:
         raise RuntimeError(
-            "TERRASAFE_API_KEY_HASH is not set. "
+            "TERRAVAULT_API_KEY_HASH is not set. "
             "API key authentication is required. "
-            "Set it via the TERRASAFE_API_KEY_HASH environment variable."
+            "Set it via the TERRAVAULT_API_KEY_HASH environment variable."
         )
 
     try:
@@ -230,7 +230,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="TerraSafe API",
+    title="TerraVault API",
     description="Intelligent Terraform Security Scanner with hybrid 60% rules + 40% ML approach",
     version="1.0.0",
     docs_url="/docs",
@@ -289,7 +289,7 @@ async def health_check() -> Dict[str, Any]:
 
     return {
         "status": "healthy",
-        "service": "TerraSafe",
+        "service": "TerraVault",
         "version": "1.0.0",
         "rate_limiting": {
             "enabled": True,  # Always enabled (fallback or Redis)
@@ -508,7 +508,7 @@ def main():
     - Reverse proxy (nginx/traefik)
     - HTTPS/TLS termination
     """
-    logger.info("Starting TerraSafe API server on %s:%s", settings.api_host, settings.api_port)
+    logger.info("Starting TerraVault API server on %s:%s", settings.api_host, settings.api_port)
     logger.info("Environment: %s", settings.environment)
     logger.info("Debug mode: %s", settings.debug)
 

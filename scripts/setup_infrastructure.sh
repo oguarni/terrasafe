@@ -1,11 +1,11 @@
 #!/bin/bash
-# TerraSafe Infrastructure Setup Script
-# This script sets up the complete infrastructure for TerraSafe
+# TerraVault Infrastructure Setup Script
+# This script sets up the complete infrastructure for TerraVault
 
 set -e  # Exit on error
 
 echo "=========================================="
-echo "TerraSafe Infrastructure Setup"
+echo "TerraVault Infrastructure Setup"
 echo "=========================================="
 echo ""
 
@@ -33,7 +33,7 @@ if [ ! -f .env ]; then
     print_warning ".env file not found. Creating from .env.example..."
     cp .env.example .env
     print_info ".env file created. Please update it with your configuration."
-    print_warning "⚠️  You must set TERRASAFE_API_KEY_HASH before continuing!"
+    print_warning "⚠️  You must set TERRAVAULT_API_KEY_HASH before continuing!"
     echo ""
     read -p "Press Enter to continue after updating .env file..."
 fi
@@ -81,7 +81,7 @@ else
 fi
 
 # Check PostgreSQL
-if docker-compose exec -T postgres pg_isready -U terrasafe_user > /dev/null 2>&1; then
+if docker-compose exec -T postgres pg_isready -U terravault_user > /dev/null 2>&1; then
     print_info "PostgreSQL is healthy ✓"
 else
     print_error "PostgreSQL is not responding!"
@@ -114,8 +114,8 @@ print_info "New migration version: $new_version"
 echo ""
 echo "Step 4: Starting API and Monitoring"
 echo "-----------------------------------"
-print_info "Starting TerraSafe API, Prometheus, and Grafana..."
-docker-compose up -d terrasafe-api prometheus grafana
+print_info "Starting TerraVault API, Prometheus, and Grafana..."
+docker-compose up -d terravault-api prometheus grafana
 
 print_info "Waiting for services to start..."
 sleep 10
@@ -123,9 +123,9 @@ sleep 10
 # Check API health
 print_info "Checking API health..."
 if curl -s http://localhost:8000/health > /dev/null; then
-    print_info "TerraSafe API is healthy ✓"
+    print_info "TerraVault API is healthy ✓"
 else
-    print_warning "API may not be ready yet. Check logs with: docker-compose logs terrasafe-api"
+    print_warning "API may not be ready yet. Check logs with: docker-compose logs terravault-api"
 fi
 
 # Step 5: Summary
@@ -152,7 +152,7 @@ echo "  • Check migrations:    alembic current"
 echo ""
 print_info "Next Steps:"
 echo "  1. Access Grafana at http://localhost:3000 (default: admin/admin)"
-echo "  2. View the TerraSafe Overview dashboard"
+echo "  2. View the TerraVault Overview dashboard"
 echo "  3. Test the API with: curl http://localhost:8000/health"
 echo "  4. Upload a Terraform file to scan via the API"
 echo ""

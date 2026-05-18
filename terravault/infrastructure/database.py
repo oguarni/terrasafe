@@ -1,5 +1,5 @@
 """
-Database infrastructure for TerraSafe using async SQLAlchemy.
+Database infrastructure for TerraVault using async SQLAlchemy.
 Provides connection management, session handling, and base models.
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy.pool import AsyncAdaptedQueuePool
 from sqlalchemy import text
 import logging
 
-from terrasafe.config.settings import get_settings
+from terravault.config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 

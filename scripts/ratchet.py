@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""TerraSafe metric ratchet.
+"""TerraVault metric ratchet.
 
-Enforces that three code-health metrics on the ``terrasafe/`` package never
+Enforces that three code-health metrics on the ``terravault/`` package never
 regress relative to the baseline stored in ``.ratchet.json``:
 
     coverage_pct          : line coverage % from coverage.xml (must be >= baseline)
@@ -38,7 +38,7 @@ from typing import Any, Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 BASELINE_PATH = REPO_ROOT / ".ratchet.json"
-PACKAGE_DIR = REPO_ROOT / "terrasafe"
+PACKAGE_DIR = REPO_ROOT / "terravault"
 COVERAGE_XML = REPO_ROOT / "coverage.xml"
 
 FILE_SLOC_THRESHOLD = 300
@@ -66,7 +66,7 @@ def _measure_coverage() -> float:
     if not COVERAGE_XML.exists():
         raise SystemExit(
             f"ratchet: {COVERAGE_XML.relative_to(REPO_ROOT)} not found. "
-            "Run `pytest --cov=terrasafe --cov-report=xml` first."
+            "Run `pytest --cov=terravault --cov-report=xml` first."
         )
     tree = ET.parse(COVERAGE_XML)
     rate = float(tree.getroot().attrib.get("line-rate", "0")) * 100
@@ -91,7 +91,7 @@ def _measure_duplicate_blocks() -> int:
             sys.executable,
             "-m",
             "pylint",
-            "terrasafe/",
+            "terravault/",
             "--disable=all",
             "--enable=R0801",
             f"--min-similarity-lines={MIN_SIMILARITY_LINES}",
@@ -253,7 +253,7 @@ def cmd_show() -> int:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="TerraSafe metric ratchet")
+    parser = argparse.ArgumentParser(description="TerraVault metric ratchet")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--check", action="store_true", help="compare current to baseline (default)")
     group.add_argument("--update", action="store_true", help="rewrite baseline from current state")

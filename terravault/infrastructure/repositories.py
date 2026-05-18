@@ -1,5 +1,5 @@
 """
-Repository pattern for database access in TerraSafe.
+Repository pattern for database access in TerraVault.
 Provides clean abstraction over database operations.
 """
 
@@ -9,10 +9,10 @@ from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
-from terrasafe.infrastructure.models import Scan, Vulnerability, MLModelVersion
-from terrasafe.domain.models import Vulnerability as DomainVulnerability
-from terrasafe.infrastructure.validation import validate_file_hash, validate_scan_id, sanitize_filename
-from terrasafe.infrastructure.utils import categorize_vulnerability
+from terravault.infrastructure.models import Scan, Vulnerability, MLModelVersion
+from terravault.domain.models import Vulnerability as DomainVulnerability
+from terravault.infrastructure.validation import validate_file_hash, validate_scan_id, sanitize_filename
+from terravault.infrastructure.utils import categorize_vulnerability
 
 logger = logging.getLogger(__name__)
 

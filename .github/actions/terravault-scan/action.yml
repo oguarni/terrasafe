@@ -1,4 +1,4 @@
-name: TerraSafe Security Scan
+name: TerraVault Security Scan
 description: Scan Terraform files for security vulnerabilities and post results as PR comments
 
 inputs:
@@ -42,7 +42,7 @@ outputs:
     value: ${{ steps.parse-results.outputs.failed }}
   sarif_file:
     description: Path to generated SARIF file
-    value: terrasafe-results.sarif
+    value: terravault-results.sarif
 
 runs:
   using: composite
@@ -60,7 +60,7 @@ runs:
       shell: bash
       run: |
         PYTHONPATH=${{ github.action_path }} python -c \
-          "from terrasafe.infrastructure.ml_model import MLPredictor; MLPredictor()"
+          "from terravault.infrastructure.ml_model import MLPredictor; MLPredictor()"
 
     - name: Detect Terraform files
       id: detect-files
@@ -125,7 +125,7 @@ runs:
       run: |
         # Build file list from multiline output
         mapfile -t FILES <<< "${{ steps.detect-files.outputs.tf_files }}"
-        PYTHONPATH=${{ github.action_path }} python -m terrasafe.cli \
+        PYTHONPATH=${{ github.action_path }} python -m terravault.cli \
           "${FILES[@]}" \
           --output-format json \
           --threshold "$THRESHOLD" \
@@ -140,12 +140,12 @@ runs:
         THRESHOLD: ${{ inputs.threshold }}
       run: |
         mapfile -t FILES <<< "${{ steps.detect-files.outputs.tf_files }}"
-        PYTHONPATH=${{ github.action_path }} python -m terrasafe.cli \
+        PYTHONPATH=${{ github.action_path }} python -m terravault.cli \
           "${FILES[@]}" \
           --output-format sarif \
           --threshold "$THRESHOLD" \
           --no-history \
-          > terrasafe-results.sarif 2>/dev/null || true
+          > terravault-results.sarif 2>/dev/null || true
         echo "SARIF output written."
 
     - name: Parse scan results
@@ -225,8 +225,8 @@ runs:
             ? '\n> **Warning**: More than 50 .tf files found. Only the first 50 were scanned.\n'
             : '';
 
-          const body = `<!-- terrasafe-scan -->
-          ## TerraSafe Security Scan Results
+          const body = `<!-- terravault-scan -->
+          ## TerraVault Security Scan Results
 
           **Threshold**: ${threshold} | **Status**: ${statusEmoji} ${status}
           ${capWarning}
@@ -242,7 +242,7 @@ runs:
             issue_number: context.issue.number,
           });
 
-          const existing = comments.find(c => c.body && c.body.includes('<!-- terrasafe-scan -->'));
+          const existing = comments.find(c => c.body && c.body.includes('<!-- terravault-scan -->'));
 
           if (existing) {
             await github.rest.issues.updateComment({

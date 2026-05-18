@@ -1,7 +1,7 @@
 """Tests for the input-validation helpers."""
 import pytest
 
-from terrasafe.infrastructure.validation import (
+from terravault.infrastructure.validation import (
     sanitize_filename,
     validate_file_hash,
     validate_scan_id,

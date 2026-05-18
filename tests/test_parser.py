@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from terrasafe.infrastructure.parser import (
+from terravault.infrastructure.parser import (
     FileSizeLimitError,
     HCLParser,
     TerraformParseError,

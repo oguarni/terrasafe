@@ -1,5 +1,5 @@
 """
-Redis caching placeholder for TerraSafe.
+Redis caching placeholder for TerraVault.
 
 SecureCache was removed — it was never integrated into the scan pipeline.
 The scanner uses instance-level dicts for caching. Rate limiting uses

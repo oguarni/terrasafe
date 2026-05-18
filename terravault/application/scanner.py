@@ -13,7 +13,7 @@ from ..infrastructure.parser import HCLParser, TerraformParseError
 from ..infrastructure.ml_model import MLPredictor
 
 try:
-    from terrasafe.metrics import track_metrics
+    from terravault.metrics import track_metrics
 except ImportError:
     # Metrics module not available (e.g., prometheus_client not installed)
     def track_metrics(func: Callable[..., Any]) -> Callable[..., Any]:  # type: ignore[misc]

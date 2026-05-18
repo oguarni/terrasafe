@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from terrasafe.domain.models import Severity
+from terravault.domain.models import Severity
 
 
 pytestmark = pytest.mark.unit

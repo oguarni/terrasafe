@@ -5,7 +5,7 @@ import hcl2
 import json
 import logging
 
-from terrasafe.config.settings import get_settings
+from terravault.config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 

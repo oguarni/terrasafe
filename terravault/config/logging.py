@@ -1,5 +1,5 @@
 """
-Centralized logging configuration for TerraSafe.
+Centralized logging configuration for TerraVault.
 Provides structured logging with correlation IDs for request tracing.
 """
 
@@ -110,7 +110,7 @@ def setup_logging(
             "handlers": list(handlers.keys()),
         },
         "loggers": {
-            "terrasafe": {
+            "terravault": {
                 "level": log_level,
                 "handlers": list(handlers.keys()),
                 "propagate": False,

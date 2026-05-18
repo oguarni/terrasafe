@@ -2,7 +2,7 @@
 apiVersion: 1
 
 providers:
-  - name: 'TerraSafe Dashboards'
+  - name: 'TerraVault Dashboards'
     orgId: 1
     folder: ''
     type: file

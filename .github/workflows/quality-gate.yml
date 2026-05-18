@@ -50,11 +50,11 @@ jobs:
         env:
           API_USERNAME: ${{ secrets.API_USERNAME }}
           API_PASSWORD: ${{ secrets.API_PASSWORD }}
-          TERRASAFE_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
-          TERRASAFE_ENVIRONMENT: development
-          TERRASAFE_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
-          TERRASAFE_REDIS_URL: "redis://localhost:6379"
-          TERRASAFE_LOG_LEVEL: INFO
+          TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
+          TERRAVAULT_ENVIRONMENT: development
+          TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
+          TERRAVAULT_REDIS_URL: "redis://localhost:6379"
+          TERRAVAULT_LOG_LEVEL: INFO
           GATE_REPORT_PATH: gate-report.md
         run: |
           set +e
@@ -188,11 +188,11 @@ jobs:
         env:
           API_USERNAME: ${{ secrets.API_USERNAME }}
           API_PASSWORD: ${{ secrets.API_PASSWORD }}
-          TERRASAFE_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
-          TERRASAFE_ENVIRONMENT: development
-          TERRASAFE_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
-          TERRASAFE_REDIS_URL: "redis://localhost:6379"
-          TERRASAFE_LOG_LEVEL: INFO
+          TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
+          TERRAVAULT_ENVIRONMENT: development
+          TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
+          TERRAVAULT_REDIS_URL: "redis://localhost:6379"
+          TERRAVAULT_LOG_LEVEL: INFO
           GATE_REPORT_PATH: gate-report.md
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
           ATTEMPT: ${{ steps.limits.outputs.attempt }}
@@ -201,7 +201,7 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: '--allowed-tools "Bash,Read,Edit,Write,Grep,Glob"'
           prompt: |
-            The TerraSafe Quality Gate failed on PR #${{ github.event.pull_request.number }}.
+            The TerraVault Quality Gate failed on PR #${{ github.event.pull_request.number }}.
             This is auto-fix attempt ${{ steps.limits.outputs.attempt }} of ${{ steps.limits.outputs.max }}.
 
             Read `gate-report.md` at the repo root for the exact failures. The gate
@@ -218,7 +218,7 @@ jobs:
               2. Apply the minimal change set that makes those checks pass without
                  altering unrelated behavior.
               3. Follow project conventions in `CLAUDE.md` and the per-layer guides
-                 under `terrasafe/*/CLAUDE.md`.
+                 under `terravault/*/CLAUDE.md`.
               4. After editing, verify locally:
                    `python scripts/quality_gate.py`
                  Iterate until it exits 0, or until you are confident the remaining
@@ -246,11 +246,11 @@ jobs:
         env:
           API_USERNAME: ${{ secrets.API_USERNAME }}
           API_PASSWORD: ${{ secrets.API_PASSWORD }}
-          TERRASAFE_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
-          TERRASAFE_ENVIRONMENT: development
-          TERRASAFE_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
-          TERRASAFE_REDIS_URL: "redis://localhost:6379"
-          TERRASAFE_LOG_LEVEL: INFO
+          TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
+          TERRAVAULT_ENVIRONMENT: development
+          TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
+          TERRAVAULT_REDIS_URL: "redis://localhost:6379"
+          TERRAVAULT_LOG_LEVEL: INFO
           GATE_REPORT_PATH: gate-report-after-fix.md
         run: |
           set +e

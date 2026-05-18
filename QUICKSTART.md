@@ -1,4 +1,4 @@
-# TerraSafe Quick Start Guide
+# TerraVault Quick Start Guide
 
 Full-stack deployment — API server, PostgreSQL, Redis, Prometheus, Grafana — running locally in under five minutes on a standard developer machine.
 
@@ -29,7 +29,7 @@ The script will:
 4. Start the API, Prometheus, and Grafana
 5. Verify every service is healthy before exiting
 
-Proceed to [Using TerraSafe](#using-terrasafe) once the script completes.
+Proceed to [Using TerraVault](#using-terravault) once the script completes.
 
 ---
 
@@ -72,7 +72,7 @@ alembic current
 
 ```bash
 # Start the API, Prometheus, and Grafana
-docker-compose up -d terrasafe-api prometheus grafana
+docker-compose up -d terravault-api prometheus grafana
 
 # Check status
 docker-compose ps
@@ -90,7 +90,7 @@ Expected response:
 ```json
 {
   "status": "healthy",
-  "service": "TerraSafe",
+  "service": "TerraVault",
   "version": "1.0.0",
   "database": {
     "connected": true,
@@ -101,7 +101,7 @@ Expected response:
 
 ---
 
-## Using TerraSafe
+## Using TerraVault
 
 ### Service Endpoints
 
@@ -151,9 +151,9 @@ See the [README API section](README.md#rest-api) for the full response format.
 2. Log in with `admin` / `admin`
 3. Change the default password when prompted
 
-### TerraSafe Overview Dashboard
+### TerraVault Overview Dashboard
 
-The pre-configured dashboard is located at **Dashboards > TerraSafe Overview** and includes:
+The pre-configured dashboard is located at **Dashboards > TerraVault Overview** and includes:
 
 - **Scan Rate** — Real-time scan requests per second
 - **Cache Hit Rate** — Percentage of cached responses
@@ -172,7 +172,7 @@ The pre-configured dashboard is located at **Dashboards > TerraSafe Overview** a
 
 ```bash
 # Access PostgreSQL
-docker-compose exec postgres psql -U terrasafe_user -d terrasafe
+docker-compose exec postgres psql -U terravault_user -d terravault
 
 # Query recent scans
 SELECT filename, score, confidence, created_at
@@ -190,8 +190,8 @@ GROUP BY severity;
 
 ```python
 import asyncio
-from terrasafe.infrastructure.database import get_db_manager
-from terrasafe.infrastructure.repositories import ScanRepository
+from terravault.infrastructure.database import get_db_manager
+from terravault.infrastructure.repositories import ScanRepository
 
 async def get_recent_scans():
     db = get_db_manager()
@@ -220,10 +220,10 @@ asyncio.run(get_recent_scans())
 docker-compose logs -f
 
 # View specific service logs
-docker-compose logs -f terrasafe-api
+docker-compose logs -f terravault-api
 
 # Restart a service
-docker-compose restart terrasafe-api
+docker-compose restart terravault-api
 
 # Stop all services
 docker-compose down
@@ -261,7 +261,7 @@ pytest tests/test_security.py -v
 pytest tests/test_performance.py -v
 
 # Run with coverage
-pytest tests/ --cov=terrasafe --cov-report=html
+pytest tests/ --cov=terravault --cov-report=html
 ```
 
 ---
@@ -346,7 +346,7 @@ For production environments:
 curl http://localhost:8000/health
 
 # Database health
-docker-compose exec postgres pg_isready -U terrasafe_user
+docker-compose exec postgres pg_isready -U terravault_user
 
 # Redis health
 docker-compose exec redis redis-cli ping
@@ -365,5 +365,5 @@ With the stack running locally, a good progression is:
 
 1. **Scan your own Terraform** — point `/scan` at a representative module from your project and inspect the findings
 2. **Wire into CI** — use JSON output in a pipeline step that fails the build above a chosen risk threshold
-3. **Tune severity overrides** — align the default severities with your organization's policy (see the domain guide in `terrasafe/domain/`)
+3. **Tune severity overrides** — align the default severities with your organization's policy (see the domain guide in `terravault/domain/`)
 4. **Harden for production** — follow the [Production Deployment](#production-deployment) checklist before exposing the API beyond localhost

@@ -48,7 +48,7 @@ def test_cli_text_output_is_human_readable_by_default(tmp_path, run_cli, scan_re
 
     stdout, _, _ = run_cli([str(tf)], result)
 
-    assert "TerraSafe" in stdout or "Risk" in stdout
+    assert "TerraVault" in stdout or "Risk" in stdout
 
 
 # ---------------------------------------------------------------------------

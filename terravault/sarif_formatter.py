@@ -1,4 +1,4 @@
-"""SARIF 2.1.0 output formatter for TerraSafe scan results."""
+"""SARIF 2.1.0 output formatter for TerraVault scan results."""
 import json
 from typing import Any, Dict, List
 
@@ -78,9 +78,9 @@ def results_to_sarif(results_list: List[Dict[str, Any]]) -> str:
         "runs": [{
             "tool": {
                 "driver": {
-                    "name": "TerraSafe",
+                    "name": "TerraVault",
                     "version": "1.0.0",
-                    "informationUri": "https://github.com/terrasafe/terrasafe",
+                    "informationUri": "https://github.com/terravault/terravault",
                     "rules": list(rules.values()),
                 }
             },

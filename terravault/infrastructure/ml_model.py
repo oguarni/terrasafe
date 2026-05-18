@@ -10,7 +10,7 @@ from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 import joblib
 
-from terrasafe.config.settings import get_settings
+from terravault.config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 

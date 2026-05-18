@@ -10,7 +10,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Application code
-COPY terrasafe/ ./terrasafe/
+COPY terravault/ ./terravault/
 RUN mkdir -p models
 
 # Security: run as non-root user
@@ -23,5 +23,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-CMD ["python", "-m", "terrasafe.api"]
+CMD ["python", "-m", "terravault.api"]
 

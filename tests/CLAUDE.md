@@ -14,14 +14,14 @@ Keep tests that:
 
 ## Environment Setup (critical ordering)
 
-`conftest.py` sets env vars **before** any terrasafe imports — settings are `lru_cache`d so import order matters:
+`conftest.py` sets env vars **before** any terravault imports — settings are `lru_cache`d so import order matters:
 
 ```python
-os.environ["TERRASAFE_API_KEY_HASH"] = "$2b$12$..."  # valid bcrypt hash (>=60 chars)
-os.environ["TERRASAFE_ENVIRONMENT"] = "development"
-os.environ["TERRASAFE_DATABASE_URL"] = "postgresql+asyncpg://test:test@localhost:5432/test"
-os.environ["TERRASAFE_REDIS_URL"] = "redis://localhost:6379"
-os.environ["TERRASAFE_LOG_LEVEL"] = "INFO"
+os.environ["TERRAVAULT_API_KEY_HASH"] = "$2b$12$..."  # valid bcrypt hash (>=60 chars)
+os.environ["TERRAVAULT_ENVIRONMENT"] = "development"
+os.environ["TERRAVAULT_DATABASE_URL"] = "postgresql+asyncpg://test:test@localhost:5432/test"
+os.environ["TERRAVAULT_REDIS_URL"] = "redis://localhost:6379"
+os.environ["TERRAVAULT_LOG_LEVEL"] = "INFO"
 ```
 
 ## Markers
@@ -38,8 +38,8 @@ Use `AsyncMock(spec=AsyncSession)` for async infra.
 
 ### Settings
 ```python
-patch('terrasafe.api.settings', mock_settings)                           # API tests
-patch('terrasafe.infrastructure.database.get_settings', return_value=m)  # infra
+patch('terravault.api.settings', mock_settings)                           # API tests
+patch('terravault.infrastructure.database.get_settings', return_value=m)  # infra
 ```
 
 ### Real file operations
@@ -54,8 +54,8 @@ Use `TestClient` from `starlette.testclient`.
 
 ## Anti-patterns
 
-- Importing terrasafe modules before env vars are set in conftest
+- Importing terravault modules before env vars are set in conftest
 - Using `@lru_cache` in test fixtures (state leakage)
 - Mocking `builtins.open` without also mocking `Path.exists` / `Path.is_file`
-- `TERRASAFE_API_KEY_HASH` shorter than a valid bcrypt hash
+- `TERRAVAULT_API_KEY_HASH` shorter than a valid bcrypt hash
 - Chasing 100% coverage with tests that mock the thing they claim to test

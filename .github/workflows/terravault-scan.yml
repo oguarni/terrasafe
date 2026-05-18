@@ -1,4 +1,4 @@
-name: TerraSafe Terraform Security Scan
+name: TerraVault Terraform Security Scan
 
 on:
   workflow_call:
@@ -30,7 +30,7 @@ permissions:
   security-events: write
 
 jobs:
-  terrasafe:
+  terravault:
     runs-on: ubuntu-latest
 
     steps:
@@ -39,15 +39,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Checkout TerraSafe action
+      - name: Checkout TerraVault action
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository }}
-          path: _terrasafe_action
+          path: _terravault_action
 
-      - name: Run TerraSafe scan
+      - name: Run TerraVault scan
         id: scan
-        uses: ./_terrasafe_action/.github/actions/terrasafe-scan
+        uses: ./_terravault_action/.github/actions/terravault-scan
         with:
           terraform_dir: ${{ inputs.terraform_dir }}
           threshold: ${{ inputs.threshold }}
@@ -58,18 +58,18 @@ jobs:
 
       - name: Upload SARIF to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('terrasafe-results.sarif') != ''
+        if: always() && hashFiles('terravault-results.sarif') != ''
         continue-on-error: true
         with:
-          sarif_file: terrasafe-results.sarif
-          category: terrasafe
+          sarif_file: terravault-results.sarif
+          category: terravault
 
       - name: Upload scan artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: terrasafe-scan-results
+          name: terravault-scan-results
           path: |
             scan_output.json
-            terrasafe-results.sarif
+            terravault-results.sarif
             scan_errors.log

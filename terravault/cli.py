@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TerraSafe - Main CLI entry point
+TerraVault - Main CLI entry point
 """
 import sys
 import os
@@ -14,12 +14,12 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-from terrasafe.infrastructure.parser import HCLParser
-from terrasafe.infrastructure.ml_model import ModelManager, MLPredictor
-from terrasafe.domain.security_rules import SecurityRuleEngine
-from terrasafe.application.scanner import IntelligentSecurityScanner
-from terrasafe.cli_formatter import format_results_for_display
-from terrasafe.sarif_formatter import results_to_sarif
+from terravault.infrastructure.parser import HCLParser
+from terravault.infrastructure.ml_model import ModelManager, MLPredictor
+from terravault.domain.security_rules import SecurityRuleEngine
+from terravault.application.scanner import IntelligentSecurityScanner
+from terravault.cli_formatter import format_results_for_display
+from terravault.sarif_formatter import results_to_sarif
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ def _save_history(results: dict, filepath: str) -> None:
         logger.error("Failed writing scan output %s: %s", json_output, e)
 
     history_path = Path("scan_history.json")
-    max_history_size = int(os.getenv("TERRASAFE_MAX_HISTORY_SIZE", "100"))
+    max_history_size = int(os.getenv("TERRAVAULT_MAX_HISTORY_SIZE", "100"))
 
     results_with_meta = dict(results)
     results_with_meta['timestamp'] = datetime.now(timezone.utc).isoformat()
@@ -102,8 +102,8 @@ def _ci_exit_code(results_list: list, threshold: int) -> int:
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="python -m terrasafe.cli",
-        description="TerraSafe - Intelligent Terraform Security Scanner",
+        prog="python -m terravault.cli",
+        description="TerraVault - Intelligent Terraform Security Scanner",
     )
     parser.add_argument(
         "files",
@@ -145,7 +145,7 @@ def main():
         filepath = args.files[0]
 
         if output_format == "text":
-            print("🔐 TerraSafe - Intelligent Terraform Security Scanner")
+            print("🔐 TerraVault - Intelligent Terraform Security Scanner")
             print("🤖 Using hybrid approach: Rules (60%) + ML Anomaly Detection (40%)")
 
         results = scanner.scan(filepath)

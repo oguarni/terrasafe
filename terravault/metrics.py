@@ -1,5 +1,5 @@
 """
-Prometheus metrics for TerraSafe.
+Prometheus metrics for TerraVault.
 Provides comprehensive monitoring and observability.
 """
 # pylint: disable=possibly-used-before-assignment
@@ -18,20 +18,20 @@ try:
 except ImportError:  # pragma: no cover
     METRICS_AVAILABLE = False
 
-from terrasafe.infrastructure.utils import categorize_vulnerability
+from terravault.infrastructure.utils import categorize_vulnerability
 
 logger = logging.getLogger(__name__)
 
 if METRICS_AVAILABLE:
     # API Request Metrics
     api_requests_total = Counter(
-        'terrasafe_api_requests_total',
+        'terravault_api_requests_total',
         'Total number of API requests',
         ['method', 'endpoint', 'status']
     )
 
     api_request_duration_seconds = Histogram(
-        'terrasafe_api_request_duration_seconds',
+        'terravault_api_request_duration_seconds',
         'API request duration in seconds',
         ['method', 'endpoint'],
         buckets=[0.01, 0.05, 0.1, 0.5, 1.0, 2.5, 5.0, 10.0]
@@ -39,70 +39,70 @@ if METRICS_AVAILABLE:
 
     # Scan Metrics
     scans_total = Counter(
-        'terrasafe_scans_total',
+        'terravault_scans_total',
         'Total number of scans performed',
         ['status', 'from_cache']
     )
 
     scan_duration = Histogram(
-        'terrasafe_scan_duration_seconds',
+        'terravault_scan_duration_seconds',
         'Scan duration in seconds',
         ['from_cache'],
         buckets=[0.01, 0.05, 0.1, 0.5, 1.0, 2.5, 5.0]
     )
 
     scan_score = Histogram(
-        'terrasafe_scan_score',
+        'terravault_scan_score',
         'Security score distribution',
         buckets=[10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     )
 
     scan_file_size_bytes = Histogram(
-        'terrasafe_scan_file_size_bytes',
+        'terravault_scan_file_size_bytes',
         'File size distribution in bytes',
         buckets=[1024, 10240, 102400, 1024000, 10240000]
     )
 
     # Vulnerability Metrics
     vulnerabilities_detected_total = Counter(
-        'terrasafe_vulnerabilities_detected_total',
+        'terravault_vulnerabilities_detected_total',
         'Total number of vulnerabilities detected',
         ['severity', 'category']
     )
 
     vulnerabilities_per_scan = Histogram(
-        'terrasafe_vulnerabilities_per_scan',
+        'terravault_vulnerabilities_per_scan',
         'Number of vulnerabilities per scan',
         buckets=[0, 1, 2, 5, 10, 20, 50]
     )
 
     # ML Model Metrics
     ml_prediction_confidence = Histogram(
-        'terrasafe_ml_prediction_confidence',
+        'terravault_ml_prediction_confidence',
         'ML model prediction confidence',
         ['confidence_level'],
         buckets=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     )
 
     ml_score_gauge = Gauge(
-        'terrasafe_ml_score',
+        'terravault_ml_score',
         'Latest ML model score'
     )
 
     # Cache Metrics
     cache_hits_total = Counter(
-        'terrasafe_cache_hits_total',
+        'terravault_cache_hits_total',
         'Total number of cache hits'
     )
 
     cache_misses_total = Counter(
-        'terrasafe_cache_misses_total',
+        'terravault_cache_misses_total',
         'Total number of cache misses'
     )
 
     # Database Metrics
     db_query_duration_seconds = Histogram(
-        'terrasafe_db_query_duration_seconds',
+        'terravault_db_query_duration_seconds',
         'Database query duration in seconds',
         ['operation'],
         buckets=[0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]
@@ -110,7 +110,7 @@ if METRICS_AVAILABLE:
 
     # Error Metrics
     errors_total = Counter(
-        'terrasafe_errors_total',
+        'terravault_errors_total',
         'Total number of errors',
         ['error_type', 'component']
     )
@@ -118,8 +118,8 @@ if METRICS_AVAILABLE:
     # Legacy metrics for backward compatibility
     scan_counter = scans_total
     vulnerability_counter = vulnerabilities_detected_total
-    risk_score_gauge = Gauge('terrasafe_last_risk_score', 'Last calculated risk score')
-    ml_confidence_gauge = Gauge('terrasafe_ml_confidence', 'ML model confidence', ['level'])
+    risk_score_gauge = Gauge('terravault_last_risk_score', 'Last calculated risk score')
+    ml_confidence_gauge = Gauge('terravault_ml_confidence', 'ML model confidence', ['level'])
 
 else:  # pragma: no cover
     logger.warning("Prometheus metrics not available. Install prometheus-client to enable metrics.")

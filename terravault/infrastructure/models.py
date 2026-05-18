@@ -1,5 +1,5 @@
 """
-Database models for TerraSafe.
+Database models for TerraVault.
 Defines tables for scans, vulnerabilities, and scan history.
 """
 
@@ -11,7 +11,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid import uuid4
 
-from terrasafe.infrastructure.database import Base
+from terravault.infrastructure.database import Base
 
 
 class Scan(Base):

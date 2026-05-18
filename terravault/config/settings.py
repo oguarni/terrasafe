@@ -1,5 +1,5 @@
 """
-Configuration management for TerraSafe using Pydantic Settings.
+Configuration management for TerraVault using Pydantic Settings.
 Provides type-safe configuration with validation and environment variable support.
 """
 
@@ -109,7 +109,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        env_prefix="TERRASAFE_",
+        env_prefix="TERRAVAULT_",
         extra="ignore",
         protected_namespaces=()  # Allow model_ prefix in field names
     )
@@ -158,7 +158,7 @@ class Settings(BaseSettings):
         if v.lower() in dangerous_values:
             raise ValueError(
                 "api_key_hash appears to be a placeholder value. "
-                "Please set a proper hashed API key via TERRASAFE_API_KEY_HASH environment variable."
+                "Please set a proper hashed API key via TERRAVAULT_API_KEY_HASH environment variable."
             )
         # Check minimum length (bcrypt hashes are 60 chars)
         if len(v) < 60:
@@ -208,14 +208,14 @@ class Settings(BaseSettings):
     def database_url_resolved(self) -> str:
         if self.is_production() and not self.database_url:
             try:
-                secret = self._get_secret("terrasafe/database")
+                secret = self._get_secret("terravault/database")
                 if secret:
-                    user = secret.get('username', 'terrasafe_user')
+                    user = secret.get('username', 'terravault_user')
                     # Use defaults if keys missing
                     password = secret.get('password', '')
                     host = secret.get('host', 'localhost')
                     port = secret.get('port', 5432)
-                    dbname = secret.get('dbname', 'terrasafe')
+                    dbname = secret.get('dbname', 'terravault')
                     return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{dbname}"
             except Exception as e:  # pylint: disable=broad-exception-caught
                 logger.warning("Failed to resolve database credentials from secrets: %s", e)

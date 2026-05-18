@@ -1,7 +1,7 @@
 # GitHub Actions Secrets Setup Guide
 
 ## Overview
-This guide explains how to configure repository secrets for the TerraSafe CI/CD pipeline after refactoring `tests/test_api.py` to use environment variables instead of hardcoded credentials.
+This guide explains how to configure repository secrets for the TerraVault CI/CD pipeline after refactoring `tests/test_api.py` to use environment variables instead of hardcoded credentials.
 
 ## Why This Is Required
 GitGuardian detected hardcoded credentials in `tests/test_api.py`. The file has been refactored to load credentials from environment variables:
@@ -39,7 +39,7 @@ python3 -m pytest tests/test_api.py -v
 
 Or in one command:
 ```bash
-cd /path/to/TerraSafe && source .env && export API_USERNAME API_PASSWORD && python3 -m pytest tests/test_api.py -v
+cd /path/to/TerraVault && source .env && export API_USERNAME API_PASSWORD && python3 -m pytest tests/test_api.py -v
 ```
 
 ## GitHub Actions Setup
@@ -106,7 +106,7 @@ jobs:
         API_USERNAME: ${{ secrets.API_USERNAME }}
         API_PASSWORD: ${{ secrets.API_PASSWORD }}
       run: |
-        python -m pytest tests/ -v --cov=terrasafe
+        python -m pytest tests/ -v --cov=terravault
 ```
 
 ### Step 3: Verify GitGuardian Passes
@@ -186,7 +186,7 @@ source .env && export API_USERNAME API_PASSWORD
 
 - [GitHub Actions - Encrypted Secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
 - [GitGuardian - Secret Detection](https://docs.gitguardian.com/)
-- [TerraSafe Security Documentation](./CLAUDE.md)
+- [TerraVault Security Documentation](./CLAUDE.md)
 
 ## Summary
 

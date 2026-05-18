@@ -18,7 +18,7 @@ def test_metrics_endpoint_exposes_scan_counter_when_available(api_client):
 
     assert response.status_code in (200, 503)
     if response.status_code == 200:
-        assert "terrasafe_scans_total" in response.text
+        assert "terravault_scans_total" in response.text
 
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-# Pre-commit hooks for TerraSafe
+# Pre-commit hooks for TerraVault
 repos:
   # Python code formatting
   - repo: https://github.com/psf/black
@@ -26,7 +26,7 @@ repos:
     rev: 1.8.3
     hooks:
       - id: bandit
-        args: ["-r", "terrasafe/", "--ini", ".bandit", "-ll"]
+        args: ["-r", "terravault/", "--ini", ".bandit", "-ll"]
         exclude: ^test_
 
   # Secret detection
@@ -38,9 +38,9 @@ repos:
   # Terraform file validation
   - repo: local
     hooks:
-      - id: terrasafe-scan
-        name: TerraSafe Security Scan
-        entry: python -m terrasafe.cli
+      - id: terravault-scan
+        name: TerraVault Security Scan
+        entry: python -m terravault.cli
         language: system
         files: \.tf$
         pass_filenames: true

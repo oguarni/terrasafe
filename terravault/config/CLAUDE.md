@@ -8,7 +8,7 @@ Application-wide configuration and structured logging. Settings are loaded once 
 
 ### `settings.py` — `Settings` (Pydantic BaseSettings)
 
-- All settings prefixed with `TERRASAFE_` env vars (e.g., `TERRASAFE_LOG_LEVEL`)
+- All settings prefixed with `TERRAVAULT_` env vars (e.g., `TERRAVAULT_LOG_LEVEL`)
 - `get_settings()` is `@lru_cache`d — singleton pattern, first call wins
 - `.env` file loaded automatically via `SettingsConfigDict`
 
@@ -47,5 +47,5 @@ Application-wide configuration and structured logging. Settings are loaded once 
 ## Anti-patterns
 
 - Never call `get_settings()` at module level in infrastructure modules — causes import-time failures
-- Never use short/placeholder values for `TERRASAFE_API_KEY_HASH` — validator rejects them
-- In tests, set env vars **before** importing any terrasafe module (settings are cached on first access)
+- Never use short/placeholder values for `TERRAVAULT_API_KEY_HASH` — validator rejects them
+- In tests, set env vars **before** importing any terravault module (settings are cached on first access)
