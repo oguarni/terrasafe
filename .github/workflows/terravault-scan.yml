@@ -1,0 +1,75 @@
+name: TerraVault Terraform Security Scan
+
+on:
+  workflow_call:
+    inputs:
+      terraform_dir:
+        description: Directory containing Terraform files
+        type: string
+        required: false
+        default: "."
+      threshold:
+        description: Risk score threshold (0-100)
+        type: string
+        required: false
+        default: "70"
+      fail_on_high_risk:
+        description: Fail workflow if any file exceeds threshold
+        type: string
+        required: false
+        default: "true"
+      python_version:
+        description: Python version to use
+        type: string
+        required: false
+        default: "3.10"
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  terravault:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout calling repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout TerraVault action
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          path: _terravault_action
+
+      - name: Run TerraVault scan
+        id: scan
+        uses: ./_terravault_action/.github/actions/terravault-scan
+        with:
+          terraform_dir: ${{ inputs.terraform_dir }}
+          threshold: ${{ inputs.threshold }}
+          fail_on_high_risk: ${{ inputs.fail_on_high_risk }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          scan_changed_only: "true"
+          post_comment: "true"
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('terravault-results.sarif') != ''
+        continue-on-error: true
+        with:
+          sarif_file: terravault-results.sarif
+          category: terravault
+
+      - name: Upload scan artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: terravault-scan-results
+          path: |
+            scan_output.json
+            terravault-results.sarif
+            scan_errors.log

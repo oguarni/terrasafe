@@ -1,4 +1,4 @@
-# Makefile for TerraSafe - Terraform Security Scanner
+# Makefile for TerraVault - Terraform Security Scanner
 .PHONY: help install test run-demo clean docker lint coverage api metrics test-api security-scan security-deps security-sast security-all setup-hooks quality-gate ratchet ratchet-update ratchet-show
 
 # Variables
@@ -6,11 +6,11 @@ PYTHON := python3
 VENV := .venv
 PIP := $(VENV)/bin/pip
 PYTEST := $(VENV)/bin/pytest
-CLI := PYTHONPATH=. $(VENV)/bin/python -m terrasafe.cli
+CLI := PYTHONPATH=. $(VENV)/bin/python -m terravault.cli
 
 # Default target
 help:
-	@echo "TerraSafe - Available commands:"
+	@echo "TerraVault - Available commands:"
 	@echo "  make install       - Set up virtual environment and install dependencies"
 	@echo "  make test          - Run all tests (unit + integration)"
 	@echo "  make test-unit     - Run unit tests only"
@@ -51,7 +51,7 @@ test: install
 # Run all tests including enhanced
 test-all: install
 	@echo "🧪 Running all tests with coverage..."
-	$(PYTEST) tests/ -v --cov=terrasafe --cov-report=term --cov-report=html
+	$(PYTEST) tests/ -v --cov=terravault --cov-report=term --cov-report=html
 
 # Run unit tests only
 test-unit: install
@@ -66,31 +66,31 @@ test-int: install
 # Generate coverage report
 coverage: install
 	@echo "📊 Generating coverage report..."
-	$(PYTEST) --cov=terrasafe --cov-report=term --cov-report=html
+	$(PYTEST) --cov=terravault --cov-report=term --cov-report=html
 	@echo "✅ Coverage report saved to htmlcov/index.html"
 
 # Generate HTML coverage report with detailed missing lines
 coverage-html: install
 	@echo "📊 Generating HTML coverage report..."
-	$(PYTEST) --cov=terrasafe --cov-report=html --cov-report=term-missing
+	$(PYTEST) --cov=terravault --cov-report=html --cov-report=term-missing
 	@echo "✅ Report available at htmlcov/index.html"
 
 # Run linting
 lint: install
 	@echo "🔍 Running code quality checks..."
-	$(VENV)/bin/flake8 terrasafe/ --max-line-length=120 --exclude=__pycache__ --ignore=E226,E402,E501,W503,W504
-	$(VENV)/bin/pylint terrasafe/ --max-line-length=120 --disable=E1101,E1102 --fail-under=8.5
+	$(VENV)/bin/flake8 terravault/ --max-line-length=120 --exclude=__pycache__ --ignore=E226,E402,E501,W503,W504
+	$(VENV)/bin/pylint terravault/ --max-line-length=120 --disable=E1101,E1102 --fail-under=8.5
 	@echo "✅ Linting complete"
 
 # Format code
 format: install
 	@echo "🎨 Formatting code..."
-	$(VENV)/bin/black terrasafe/ tests/
+	$(VENV)/bin/black terravault/ tests/
 	@echo "✅ Code formatted"
 
 # Run demo
 demo: install
-	@echo "🚀 Running TerraSafe demo..."
+	@echo "🚀 Running TerraVault demo..."
 	@chmod +x scripts/run_demo.sh
 	scripts/run_demo.sh
 
@@ -107,9 +107,9 @@ scan: install
 # Docker build and run
 docker:
 	@echo "🐳 Building Docker image..."
-	docker build -t terrasafe:latest .
+	docker build -t terravault:latest .
 	@echo "🚀 Running in Docker..."
-	docker run --rm -v $(PWD)/test_files:/app/test_files terrasafe:latest test_files/vulnerable.tf
+	docker run --rm -v $(PWD)/test_files:/app/test_files terravault:latest test_files/vulnerable.tf
 
 # Clean up
 clean:
@@ -127,18 +127,18 @@ clean:
 # Train model
 train-model: install
 	@echo "🤖 Training ML model..."
-	$(VENV)/bin/python -c "from terrasafe.infrastructure.ml_model import ModelManager; from terrasafe.application.scanner import IntelligentSecurityScanner; from terrasafe.infrastructure.parser import HCLParser; from terrasafe.domain.security_rules import SecurityRuleEngine; from terrasafe.infrastructure.ml_model import MLPredictor; parser = HCLParser(); rules = SecurityRuleEngine(); manager = ModelManager(); predictor = MLPredictor(manager); scanner = IntelligentSecurityScanner(parser, rules, predictor); print('Model initialized')"
+	$(VENV)/bin/python -c "from terravault.infrastructure.ml_model import ModelManager; from terravault.application.scanner import IntelligentSecurityScanner; from terravault.infrastructure.parser import HCLParser; from terravault.domain.security_rules import SecurityRuleEngine; from terravault.infrastructure.ml_model import MLPredictor; parser = HCLParser(); rules = SecurityRuleEngine(); manager = ModelManager(); predictor = MLPredictor(manager); scanner = IntelligentSecurityScanner(parser, rules, predictor); print('Model initialized')"
 	@echo "✅ Model trained and saved"
 
 # Run API server
 api: install
-	@echo "🚀 Starting TerraSafe API..."
-	$(VENV)/bin/python -m terrasafe.api
+	@echo "🚀 Starting TerraVault API..."
+	$(VENV)/bin/python -m terravault.api
 
 # Display Prometheus metrics
 metrics: install
 	@echo "📊 Starting with Prometheus metrics..."
-	$(VENV)/bin/python -c "from terrasafe.metrics import generate_latest; print(generate_latest().decode())"
+	$(VENV)/bin/python -c "from terravault.metrics import generate_latest; print(generate_latest().decode())"
 
 # Test API endpoints
 test-api: install
@@ -168,7 +168,7 @@ security-deps: install
 security-sast: install
 	@echo "🔍 Running SAST with Bandit..."
 	$(VENV)/bin/pip install bandit
-	$(VENV)/bin/bandit -r terrasafe/ --ini .bandit -f screen
+	$(VENV)/bin/bandit -r terravault/ --ini .bandit -f screen
 
 security-all: security-scan
 	@echo "🔒 Running comprehensive security audit..."
@@ -183,16 +183,16 @@ quality-gate: install
 # Ratchet metrics (coverage, file length, code duplication)
 ratchet: install
 	@echo "🔒 Checking ratchet baseline..."
-	$(VENV)/bin/python -m pytest --cov=terrasafe --cov-report=xml -q >/dev/null
+	$(VENV)/bin/python -m pytest --cov=terravault --cov-report=xml -q >/dev/null
 	$(VENV)/bin/python scripts/ratchet.py --check
 
 ratchet-show: install
-	$(VENV)/bin/python -m pytest --cov=terrasafe --cov-report=xml -q >/dev/null
+	$(VENV)/bin/python -m pytest --cov=terravault --cov-report=xml -q >/dev/null
 	$(VENV)/bin/python scripts/ratchet.py --show
 
 ratchet-update: install
 	@echo "📈 Rewriting .ratchet.json baseline..."
-	$(VENV)/bin/python -m pytest --cov=terrasafe --cov-report=xml -q >/dev/null
+	$(VENV)/bin/python -m pytest --cov=terravault --cov-report=xml -q >/dev/null
 	$(VENV)/bin/python scripts/ratchet.py --update
 
 # Pre-commit setup

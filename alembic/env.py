@@ -1,5 +1,5 @@
 """
-Alembic environment configuration for TerraSafe.
+Alembic environment configuration for TerraVault.
 Handles database migrations with async support.
 """
 
@@ -13,9 +13,9 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 # Import settings and models
-from terrasafe.config.settings import get_settings
-from terrasafe.infrastructure.database import Base
-from terrasafe.infrastructure.models import (
+from terravault.config.settings import get_settings
+from terravault.infrastructure.database import Base
+from terravault.infrastructure.models import (
     Scan, Vulnerability, MLModelVersion
 )
 

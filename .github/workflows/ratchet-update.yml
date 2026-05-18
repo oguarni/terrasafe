@@ -48,13 +48,13 @@ jobs:
         env:
           API_USERNAME: ${{ secrets.API_USERNAME }}
           API_PASSWORD: ${{ secrets.API_PASSWORD }}
-          TERRASAFE_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
-          TERRASAFE_ENVIRONMENT: development
-          TERRASAFE_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
-          TERRASAFE_REDIS_URL: "redis://localhost:6379"
-          TERRASAFE_LOG_LEVEL: INFO
+          TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
+          TERRAVAULT_ENVIRONMENT: development
+          TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
+          TERRAVAULT_REDIS_URL: "redis://localhost:6379"
+          TERRAVAULT_LOG_LEVEL: INFO
         run: |
-          python -m pytest --cov=terrasafe --cov-report=xml -q
+          python -m pytest --cov=terravault --cov-report=xml -q
 
       - name: Recompute ratchet baseline
         run: python scripts/ratchet.py --update

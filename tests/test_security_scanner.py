@@ -8,10 +8,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from terrasafe.application.scanner import IntelligentSecurityScanner
-from terrasafe.domain.security_rules import SecurityRuleEngine
-from terrasafe.infrastructure.ml_model import MLPredictor
-from terrasafe.infrastructure.parser import HCLParser
+from terravault.application.scanner import IntelligentSecurityScanner
+from terravault.domain.security_rules import SecurityRuleEngine
+from terravault.infrastructure.ml_model import MLPredictor
+from terravault.infrastructure.parser import HCLParser
 
 
 pytestmark = pytest.mark.unit

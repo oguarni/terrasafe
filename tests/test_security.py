@@ -2,9 +2,9 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from terrasafe.api import app, hash_api_key, verify_api_key_hash
-from terrasafe.config.settings import Settings
-from terrasafe.infrastructure.parser import HCLParser, TerraformParseError
+from terravault.api import app, hash_api_key, verify_api_key_hash
+from terravault.config.settings import Settings
+from terravault.infrastructure.parser import HCLParser, TerraformParseError
 
 
 # ---------------------------------------------------------------------------

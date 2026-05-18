@@ -1,10 +1,10 @@
-# docker-compose.yml - Production-ready multi-service setup for TerraSafe
+# docker-compose.yml - Production-ready multi-service setup for TerraVault
 
 services:
   # Redis for caching and rate limiting
   redis:
     image: redis:7-alpine
-    container_name: terrasafe-redis
+    container_name: terravault-redis
     restart: unless-stopped
     ports:
       - "127.0.0.1:6379:6379"
@@ -12,7 +12,7 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - terrasafe-network
+      - terravault-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -27,22 +27,22 @@ services:
   # PostgreSQL for persistent storage
   postgres:
     image: postgres:15-alpine
-    container_name: terrasafe-postgres
+    container_name: terravault-postgres
     restart: unless-stopped
     ports:
       - "127.0.0.1:5432:5432"
     environment:
-      - POSTGRES_DB=terrasafe
-      - POSTGRES_USER=terrasafe_user
+      - POSTGRES_DB=terravault
+      - POSTGRES_USER=terravault_user
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-CHANGE_ME_IN_PRODUCTION}
       - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - terrasafe-network
+      - terravault-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U terrasafe_user -d terrasafe"]
+      test: ["CMD-SHELL", "pg_isready -U terravault_user -d terravault"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -53,12 +53,12 @@ services:
         max-file: "3"
 
   # API Server (Main Application)
-  terrasafe-api:
+  terravault-api:
     build:
       context: .
       dockerfile: Dockerfile
-    image: terrasafe-api:latest
-    container_name: terrasafe-api
+    image: terravault-api:latest
+    container_name: terravault-api
     restart: unless-stopped
     ports:
       - "127.0.0.1:8000:8000"
@@ -68,34 +68,34 @@ services:
       - .env
     environment:
       # API Configuration
-      - TERRASAFE_API_HOST=0.0.0.0
-      - TERRASAFE_API_PORT=8000
+      - TERRAVAULT_API_HOST=0.0.0.0
+      - TERRAVAULT_API_PORT=8000
       # API Key Hash (loaded from .env file via env_file directive)
-      - TERRASAFE_API_KEY_HASH=${TERRASAFE_API_KEY_HASH}
+      - TERRAVAULT_API_KEY_HASH=${TERRAVAULT_API_KEY_HASH}
 
       # Redis Configuration
-      - TERRASAFE_REDIS_URL=redis://redis:6379
-      - TERRASAFE_REDIS_MAX_CONNECTIONS=50
+      - TERRAVAULT_REDIS_URL=redis://redis:6379
+      - TERRAVAULT_REDIS_MAX_CONNECTIONS=50
 
       # Database Configuration
-      - TERRASAFE_DATABASE_URL=postgresql+asyncpg://terrasafe_user:${POSTGRES_PASSWORD:-CHANGE_ME_IN_PRODUCTION}@postgres:5432/terrasafe
+      - TERRAVAULT_DATABASE_URL=postgresql+asyncpg://terravault_user:${POSTGRES_PASSWORD:-CHANGE_ME_IN_PRODUCTION}@postgres:5432/terravault
 
       # Security Configuration
-      - TERRASAFE_MAX_FILE_SIZE_MB=10
-      - TERRASAFE_SCAN_TIMEOUT_SECONDS=30
-      - TERRASAFE_RATE_LIMIT_REQUESTS=100
-      - TERRASAFE_RATE_LIMIT_WINDOW_SECONDS=60
+      - TERRAVAULT_MAX_FILE_SIZE_MB=10
+      - TERRAVAULT_SCAN_TIMEOUT_SECONDS=30
+      - TERRAVAULT_RATE_LIMIT_REQUESTS=100
+      - TERRAVAULT_RATE_LIMIT_WINDOW_SECONDS=60
 
       # Environment
-      - TERRASAFE_ENVIRONMENT=production
-      - TERRASAFE_LOG_LEVEL=INFO
-      - TERRASAFE_LOG_FORMAT=json
-      - TERRASAFE_DEBUG=false
+      - TERRAVAULT_ENVIRONMENT=production
+      - TERRAVAULT_LOG_LEVEL=INFO
+      - TERRAVAULT_LOG_FORMAT=json
+      - TERRAVAULT_DEBUG=false
 
       # CORS (JSON array format for Pydantic)
-      - TERRASAFE_API_CORS_ORIGINS=["http://localhost:3000","https://yourdomain.com"]
+      - TERRAVAULT_API_CORS_ORIGINS=["http://localhost:3000","https://yourdomain.com"]
     networks:
-      - terrasafe-network
+      - terravault-network
     depends_on:
       redis:
         condition: service_healthy
@@ -116,7 +116,7 @@ services:
   # Prometheus for metrics collection
   prometheus:
     image: prom/prometheus:latest
-    container_name: terrasafe-prometheus
+    container_name: terravault-prometheus
     restart: unless-stopped
     ports:
       - "127.0.0.1:9090:9090"
@@ -131,9 +131,9 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
     networks:
-      - terrasafe-network
+      - terravault-network
     depends_on:
-      - terrasafe-api
+      - terravault-api
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
       interval: 30s
@@ -148,7 +148,7 @@ services:
   # Grafana for visualization
   grafana:
     image: grafana/grafana:latest
-    container_name: terrasafe-grafana
+    container_name: terravault-grafana
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
@@ -163,7 +163,7 @@ services:
       - GF_SERVER_ROOT_URL=http://localhost:3000
       - GF_INSTALL_PLUGINS=
     networks:
-      - terrasafe-network
+      - terravault-network
     depends_on:
       - prometheus
     healthcheck:
@@ -178,16 +178,16 @@ services:
         max-file: "3"
 
 networks:
-  terrasafe-network:
+  terravault-network:
     driver: bridge
-    name: terrasafe-network
+    name: terravault-network
 
 volumes:
   redis_data:
-    name: terrasafe-redis-data
+    name: terravault-redis-data
   postgres_data:
-    name: terrasafe-postgres-data
+    name: terravault-postgres-data
   prometheus_data:
-    name: terrasafe-prometheus-data
+    name: terravault-prometheus-data
   grafana_data:
-    name: terrasafe-grafana-data
+    name: terravault-grafana-data

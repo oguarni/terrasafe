@@ -1,6 +1,6 @@
 """Pytest configuration and shared fixtures.
 
-Env vars are set *before* any terrasafe import because ``get_settings`` is
+Env vars are set *before* any terravault import because ``get_settings`` is
 ``lru_cache``d and snapshots them on first use.
 """
 import io
@@ -10,13 +10,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-os.environ['TERRASAFE_API_KEY_HASH'] = '$2b$12$c4dkSX9x2RbksUcaTWgpAuGc3YbAGhwYiiHI6pLiSBviheWuzrWLi'
-os.environ['TERRASAFE_ENVIRONMENT'] = 'development'
-os.environ['TERRASAFE_DATABASE_URL'] = 'postgresql+asyncpg://test:test@localhost:5432/test'
-os.environ['TERRASAFE_REDIS_URL'] = 'redis://localhost:6379'
-os.environ['TERRASAFE_LOG_LEVEL'] = 'INFO'
+os.environ['TERRAVAULT_API_KEY_HASH'] = '$2b$12$c4dkSX9x2RbksUcaTWgpAuGc3YbAGhwYiiHI6pLiSBviheWuzrWLi'
+os.environ['TERRAVAULT_ENVIRONMENT'] = 'development'
+os.environ['TERRAVAULT_DATABASE_URL'] = 'postgresql+asyncpg://test:test@localhost:5432/test'
+os.environ['TERRAVAULT_REDIS_URL'] = 'redis://localhost:6379'
+os.environ['TERRAVAULT_LOG_LEVEL'] = 'INFO'
 
-from terrasafe.config.settings import get_settings  # noqa: E402
+from terravault.config.settings import get_settings  # noqa: E402
 
 get_settings.cache_clear()
 
@@ -34,7 +34,7 @@ def setup_test_environment():
 def reset_rate_limiter():
     """Clear the FastAPI rate limiter so sibling tests don't hit 429s."""
     try:
-        from terrasafe.api import app
+        from terravault.api import app
         limiter = getattr(app.state, 'limiter', None)
         if limiter is None:
             yield
@@ -216,14 +216,14 @@ def api_key():
 
 @pytest.fixture
 def api_key_hash():
-    from terrasafe.api import hash_api_key
+    from terravault.api import hash_api_key
     return hash_api_key(TEST_API_KEY)
 
 
 @pytest.fixture
 def mock_api_settings(api_key_hash):
-    """Patch ``terrasafe.api.settings`` with values tuned for the test client."""
-    with patch('terrasafe.api.settings') as mock:
+    """Patch ``terravault.api.settings`` with values tuned for the test client."""
+    with patch('terravault.api.settings') as mock:
         mock.api_key_hash = api_key_hash
         mock.allowed_hosts = "*"
         mock.max_file_size_bytes = 10 * 1024 * 1024
@@ -238,7 +238,7 @@ def mock_api_settings(api_key_hash):
 @pytest.fixture
 def api_client(mock_api_settings):
     from fastapi.testclient import TestClient
-    from terrasafe.api import app
+    from terravault.api import app
     return TestClient(app)
 
 
@@ -284,7 +284,7 @@ def error_result_factory():
 
 @pytest.fixture
 def run_cli():
-    """Invoke ``terrasafe.cli.main`` with patched argv/scanner.
+    """Invoke ``terravault.cli.main`` with patched argv/scanner.
 
     Returns ``(stdout, stderr, exit_code)``. The history-persistence call is
     patched through a ``MagicMock`` stored on ``run_cli.save_spy`` so tests
@@ -293,7 +293,7 @@ def run_cli():
     save_spy = MagicMock()
 
     def _invoke(argv, mock_results):
-        from terrasafe import cli
+        from terravault import cli
 
         scanner = MagicMock()
         if isinstance(mock_results, list):
@@ -304,11 +304,11 @@ def run_cli():
         stdout_buf = io.StringIO()
         stderr_buf = io.StringIO()
 
-        with patch.object(sys, 'argv', ['terrasafe'] + argv), \
+        with patch.object(sys, 'argv', ['terravault'] + argv), \
              patch.object(cli, '_build_scanner', return_value=scanner), \
              patch('sys.stdout', stdout_buf), \
              patch('sys.stderr', stderr_buf), \
-             patch('terrasafe.cli._save_history', save_spy):
+             patch('terravault.cli._save_history', save_spy):
             try:
                 cli.main()
                 exit_code = 0
@@ -327,7 +327,7 @@ def run_cli():
 
 @pytest.fixture
 def engine():
-    from terrasafe.domain.security_rules import SecurityRuleEngine
+    from terravault.domain.security_rules import SecurityRuleEngine
     return SecurityRuleEngine()
 
 

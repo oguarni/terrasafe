@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from terrasafe.domain.models import Severity
+from terravault.domain.models import Severity
 
 
 pytestmark = pytest.mark.unit
@@ -68,7 +68,7 @@ def test_severity_override_remaps_missing_logging_from_high_to_medium(engine):
     tf_content = {"resource": [VPC_RESOURCE]}
     mock_settings = type("S", (), {"severity_overrides": {"missing_logging": "MEDIUM"}})()
 
-    with patch("terrasafe.domain.security_rules.get_settings", return_value=mock_settings):
+    with patch("terravault.domain.security_rules.get_settings", return_value=mock_settings):
         vulns = engine.analyze(tf_content, "")
 
     logging_vulns = [v for v in vulns if "missing logging" in v.message.lower()]

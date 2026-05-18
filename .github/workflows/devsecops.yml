@@ -29,8 +29,8 @@ jobs:
     - name: Run Bandit (SAST)
       run: |
         pip install bandit
-        bandit -r terrasafe/ --ini .bandit -f json -o bandit-report.json || true
-        bandit -r terrasafe/ --ini .bandit -ll -f screen
+        bandit -r terravault/ --ini .bandit -f json -o bandit-report.json || true
+        bandit -r terravault/ --ini .bandit -ll -f screen
 
     # Dependency vulnerability scanning
     - name: Safety Check
@@ -77,13 +77,13 @@ jobs:
 
     - name: Run tests
       env:
-        TERRASAFE_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
-        TERRASAFE_ENVIRONMENT: "development"
-        TERRASAFE_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
-        TERRASAFE_REDIS_URL: "redis://localhost:6379"
-        TERRASAFE_LOG_LEVEL: "INFO"
+        TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
+        TERRAVAULT_ENVIRONMENT: "development"
+        TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
+        TERRAVAULT_REDIS_URL: "redis://localhost:6379"
+        TERRAVAULT_LOG_LEVEL: "INFO"
       run: |
-        pytest -v --cov=terrasafe --cov-report=xml
+        pytest -v --cov=terravault --cov-report=xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -100,9 +100,9 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Run TerraSafe composite action on test_files/
-      id: terrasafe
-      uses: ./.github/actions/terrasafe-scan
+    - name: Run TerraVault composite action on test_files/
+      id: terravault
+      uses: ./.github/actions/terravault-scan
       with:
         terraform_dir: test_files
         threshold: "70"
@@ -113,11 +113,11 @@ jobs:
 
     - name: Upload SARIF to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v4
-      if: always() && hashFiles('terrasafe-results.sarif') != ''
+      if: always() && hashFiles('terravault-results.sarif') != ''
       continue-on-error: true
       with:
-        sarif_file: terrasafe-results.sarif
-        category: terrasafe-integration
+        sarif_file: terravault-results.sarif
+        category: terravault-integration
 
     - name: Archive scan results
       uses: actions/upload-artifact@v4
@@ -126,7 +126,7 @@ jobs:
         name: scan-results
         path: |
           scan_output.json
-          terrasafe-results.sarif
+          terravault-results.sarif
           scan_errors.log
 
   # Docker security and build
@@ -141,12 +141,12 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t terrasafe:${{ github.sha }} .
+        docker build -t terravault:${{ github.sha }} .
 
     - name: Run Trivy on Docker image
       uses: aquasecurity/trivy-action@0.35.0
       with:
-        image-ref: 'terrasafe:${{ github.sha }}'
+        image-ref: 'terravault:${{ github.sha }}'
         format: 'sarif'
         output: 'trivy-results.sarif'
         severity: 'CRITICAL,HIGH'
@@ -160,8 +160,8 @@ jobs:
     - name: Test Docker container
       run: |
         docker run --rm -v $(pwd)/test_files:/app/test_files \
-          terrasafe:${{ github.sha }} \
-          python -m terrasafe.cli test_files/secure.tf
+          terravault:${{ github.sha }} \
+          python -m terravault.cli test_files/secure.tf
 
   # Optional: Deploy to staging (only on main branch)
   deploy-staging:

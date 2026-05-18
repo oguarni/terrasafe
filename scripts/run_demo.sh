@@ -33,24 +33,24 @@ mkdir -p models
 # Initialize ML model if needed (first run)
 if [ ! -f "models/isolation_forest.pkl" ]; then
     echo "🤖 Training ML model (first run only)..."
-    python -m terrasafe.main test_files/secure.tf > /dev/null 2>&1 || true
+    python -m terravault.main test_files/secure.tf > /dev/null 2>&1 || true
     echo "✓ ML model ready"
 fi
 
 echo ""
 echo "▶ TEST 1: HIGH RISK Configuration (vulnerable.tf)"
 echo "═══════════════════════════════════════════════════════"
-python -m terrasafe.main test_files/vulnerable.tf || true
+python -m terravault.main test_files/vulnerable.tf || true
 
 echo ""
 echo "▶ TEST 2: SECURE Configuration (secure.tf)"
 echo "═══════════════════════════════════════════════════════"
-python -m terrasafe.main test_files/secure.tf
+python -m terravault.main test_files/secure.tf
 
 echo ""
 echo "▶ TEST 3: MEDIUM RISK Configuration (mixed.tf)"
 echo "═══════════════════════════════════════════════════════"
-python -m terrasafe.main test_files/mixed.tf || true
+python -m terravault.main test_files/mixed.tf || true
 
 echo ""
 echo "═══════════════════════════════════════════════════════"

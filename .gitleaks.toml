@@ -1,12 +1,12 @@
-# Gitleaks configuration for TerraSafe
-# TerraSafe is a Terraform security scanner, so test files intentionally
+# Gitleaks configuration for TerraVault
+# TerraVault is a Terraform security scanner, so test files intentionally
 # contain hardcoded secrets as test fixtures for vulnerability detection.
 
-title = "TerraSafe Gitleaks Configuration"
+title = "TerraVault Gitleaks Configuration"
 
 # Allow rules - paths and patterns that are intentional/safe to ignore
 [allowlist]
-  description = "TerraSafe test fixtures and example files with intentional secrets"
+  description = "TerraVault test fixtures and example files with intentional secrets"
   
   # Test fixture files that intentionally contain vulnerable configurations
   paths = [

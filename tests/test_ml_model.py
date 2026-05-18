@@ -6,7 +6,7 @@ import pytest
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
-from terrasafe.infrastructure.ml_model import (
+from terravault.infrastructure.ml_model import (
     MLPredictor,
     ModelManager,
     ModelNotTrainedError,

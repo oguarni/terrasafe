@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the TerraSafe Quality Gate.
+"""Run the TerraVault Quality Gate.
 
 Single source of truth for CI and local runs. Executes every check and
 emits a structured Markdown report at $GATE_REPORT_PATH (default:
@@ -63,7 +63,7 @@ def check_pytest() -> CheckResult:
             sys.executable,
             "-m",
             "pytest",
-            "--cov=terrasafe",
+            "--cov=terravault",
             "--cov-report=xml",
             "--cov-report=term-missing",
         ]
@@ -97,7 +97,7 @@ def check_pylint() -> CheckResult:
             sys.executable,
             "-m",
             "pylint",
-            "terrasafe/",
+            "terravault/",
             "--score=y",
         ]
     )
@@ -129,7 +129,7 @@ def check_flake8() -> CheckResult:
             sys.executable,
             "-m",
             "flake8",
-            "terrasafe/",
+            "terravault/",
             "--max-line-length=120",
             "--exclude=__pycache__",
             "--ignore=E226,E402,E501,W503,W504",
@@ -153,7 +153,7 @@ def check_bandit() -> CheckResult:
             "-m",
             "bandit",
             "-r",
-            "terrasafe/",
+            "terravault/",
             "--ini",
             ".bandit",
             "-ll",
@@ -177,7 +177,7 @@ def check_mypy() -> CheckResult:
             sys.executable,
             "-m",
             "mypy",
-            "terrasafe/",
+            "terravault/",
             "--ignore-missing-imports",
         ]
     )
@@ -199,7 +199,7 @@ CHECKS: List[Callable[[], CheckResult]] = [
 def render_report(results: List[CheckResult]) -> str:
     overall_pass = all(r.passed for r in results)
     lines = [
-        "# TerraSafe Quality Gate Report",
+        "# TerraVault Quality Gate Report",
         "",
         f"**Overall:** {'PASSED ✅' if overall_pass else 'FAILED ❌'}",
         "",

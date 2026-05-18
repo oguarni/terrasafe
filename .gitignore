@@ -108,7 +108,7 @@ models/versions/
 models/current_version.txt
 
 # ===================================
-# TerraSafe Scan Artifacts (generated)
+# TerraVault Scan Artifacts (generated)
 # ===================================
 scan_results/
 scan_results.txt
@@ -219,14 +219,14 @@ alembic/__pycache__/
 # ===================================
 # Project-Specific Artifacts
 # ===================================
-terrasafe-architecture.svg
+terravault-architecture.svg
 
 # ===================================
 # Stale / Legacy Directories
 # ===================================
-# Ghost directory left over from terravault → terrasafe rename;
+# Ghost directory left over from terrasafe → terravault rename;
 # only contains .pyc files but should never be re-introduced.
-terravault/
+terrasafe/
 
 # ===================================
 # Ratchet / Quality Gate Artifacts
@@ -235,3 +235,5 @@ terravault/
 pylint-output.json
 pylint-report.txt
 ratchet-current.json
+gate-metrics.json
+pytest-junit.xml
