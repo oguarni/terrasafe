@@ -9,15 +9,24 @@
 		-Server
 	}
 
+	# Block /metrics from non-private clients (Prometheus scrapes via internal network)
 	@public_metrics {
 		path /metrics
 		not remote_ip private_ranges
 	}
 	respond @public_metrics 404
 
-	reverse_proxy terravault-api:8000 {
-		header_up X-Forwarded-Proto {scheme}
-		header_up X-Forwarded-For {remote_host}
+	# API surface — explicit paths only; everything else falls through to the SPA
+	@api path /scan /scan/* /health /docs /redoc /openapi.json /api/docs /api/docs/* /metrics
+	handle @api {
+		reverse_proxy terravault-api:8000
+	}
+
+	# Frontend static files
+	handle {
+		root * /srv/frontend
+		try_files {path} {path}.html /index.html
+		file_server
 	}
 
 	log {

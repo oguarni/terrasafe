@@ -1,15 +1,32 @@
-# GCP Learning Sandbox — Cloud Run + Cloud SQL
+# Deploy TerraVault to Google Cloud (Compute Engine VM)
 
-A **second** deployment of TerraVault targeting Google Cloud Platform.
-The goal is *not* to replace Oracle Cloud Always Free (see
-[DEPLOY_ORACLE.md](DEPLOY_ORACLE.md)) — it is to:
+Target: a publicly reachable TerraVault deployment on a Google Cloud
+**Compute Engine** VM running the full `docker-compose.yml` stack
+(API + Postgres + Redis + Prometheus + Grafana + Caddy TLS) behind a
+free DuckDNS subdomain with automatic HTTPS via Let's Encrypt.
 
-1. Burn the **R$ 1,786 GCP credits expiring 2026-07-22** before they
-   evaporate, and
-2. Add a *"Deployed on GCP Cloud Run with Cloud SQL"* line to your CV.
+This mirrors the local stack one-to-one, so everything you see in
+`docker compose up` locally — including the web dashboard and the
+Grafana/Prometheus monitoring — runs in production unchanged.
 
-Once credits are exhausted, **shut this down** — Oracle stays live as
-the permanent portfolio URL.
+---
+
+## What you'll have when you're done
+
+```
+https://terravault-<yourname>.duckdns.org/          → Web dashboard (frontend)
+https://terravault-<yourname>.duckdns.org/scan.html → Scan upload page
+https://terravault-<yourname>.duckdns.org/health    → 200 OK
+https://terravault-<yourname>.duckdns.org/docs      → Swagger UI
+https://terravault-<yourname>.duckdns.org/scan      → API key gated (POST)
+http://127.0.0.1:3000  (SSH tunnel only)            → Grafana
+http://127.0.0.1:9090  (SSH tunnel only)            → Prometheus
+```
+
+Caddy serves the static frontend at `/` and reverse-proxies the
+explicit API paths (`/scan`, `/health`, `/docs`, `/redoc`,
+`/openapi.json`, `/api/docs`) to the FastAPI container. The frontend
+calls the API on the same origin, so no CORS round-trip is needed.
 
 ---
 
@@ -17,36 +34,39 @@ the permanent portfolio URL.
 
 ```
 Client
-  ↓ HTTPS (managed cert on *.run.app)
-Cloud Run service (terravault-api)         ← container image from Artifact Registry
-  ↓ Unix socket via Cloud SQL Auth Proxy sidecar
-Cloud SQL (db-f1-micro PostgreSQL)
-  ↑
-Secret Manager (TERRAVAULT_API_KEY_HASH, POSTGRES_PASSWORD)
+  ↓ HTTPS :443 (Let's Encrypt cert, auto-renewed by Caddy)
+GCE VM (e2-medium, Ubuntu 22.04)
+  └─ docker compose stack on a private bridge network:
+       Caddy        → TLS termination + static frontend + reverse proxy
+       terravault-api (FastAPI)
+       postgres     → scan history
+       redis        → cache + rate limiting
+       prometheus   → metrics scrape (private)
+       grafana      → dashboards (private)
 ```
 
-Components dropped vs. the docker-compose stack:
-
-- **Redis** — Cloud Run instances are short-lived; rate limiting uses
-  the in-memory `FallbackRateLimiter` (already wired in the codebase).
-- **Prometheus / Grafana** — Cloud Run auto-exports metrics to Cloud
-  Monitoring; if you want dashboards, build them in Cloud Monitoring.
+Only Caddy (80/443) is exposed publicly. Postgres, Redis, Prometheus,
+Grafana, and the API direct port are reachable only inside the VM or
+through an SSH tunnel.
 
 ---
 
-## Cost estimate (with credits)
+## Cost
 
-| Service | Configuration | Monthly |
-|---|---|---|
-| Cloud Run | scale-to-zero, ~1k requests/day | ~$0 (free tier) |
-| Cloud SQL | db-f1-micro, 10 GB SSD, no HA | ~$10 |
-| Artifact Registry | 1 image, ~500 MB | ~$0 (free tier) |
-| Secret Manager | 4 secrets | ~$0 (free tier) |
-| Egress | <1 GB/mo | ~$0 |
-| **Total** | | **~$10/mo** |
+GCE has **no perpetual free VM in São Paulo** (`southamerica-east1`).
+An `e2-medium` there is ~US$25/mo, comfortably covered by trial/promo
+credits. Two ways to keep the bill low:
 
-R$ 1,786 ≈ US$ 300 → roughly **6 months** of runway if you launch today
-(2026-05-17). Credits expire 2026-07-22 — about **two billing cycles**.
+| Option | Region | Machine | Monthly | Notes |
+|---|---|---|---|---|
+| São Paulo (low latency) | `southamerica-east1` | `e2-medium` | ~$25 | Best latency from Brazil; pay with credits |
+| Always-Free tier | `us-west1` / `us-central1` / `us-east1` | `e2-micro` | ~$0 | 1 free `e2-micro`/mo, but only 1 GB RAM — tight for the full stack, add swap |
+| Static external IP | any | — | ~$0 while attached | Charged only when reserved but **un**attached |
+
+This guide uses **`southamerica-east1` + `e2-medium`**. To run on the
+free tier instead, swap `--zone`, `--machine-type=e2-micro`, and the
+region in every command below, then add the swap file from
+[Troubleshooting](#troubleshooting).
 
 ---
 
@@ -56,230 +76,291 @@ R$ 1,786 ≈ US$ 300 → roughly **6 months** of runway if you launch today
 # Install gcloud CLI
 curl -sSL https://sdk.cloud.google.com | bash
 exec -l $SHELL
-gcloud init           # log in, pick or create a project
+gcloud init                       # log in, pick or create a project
 gcloud auth application-default login
 
 # Set defaults
 export PROJECT_ID=$(gcloud config get-value project)
-export REGION=southamerica-east1     # São Paulo
-gcloud config set run/region $REGION
-gcloud config set artifacts/location $REGION
-```
+export REGION=southamerica-east1
+export ZONE=southamerica-east1-b
+gcloud config set compute/region $REGION
+gcloud config set compute/zone $ZONE
 
-Enable APIs:
-
-```bash
-gcloud services enable \
-  run.googleapis.com \
-  artifactregistry.googleapis.com \
-  sqladmin.googleapis.com \
-  secretmanager.googleapis.com \
-  cloudbuild.googleapis.com
+# Enable the Compute Engine API
+gcloud services enable compute.googleapis.com
 ```
 
 ---
 
-## 1. Create Cloud SQL (Postgres db-f1-micro)
+## 1. Reserve a static external IP
+
+A static IP means your DuckDNS record never has to chase a changing
+address.
 
 ```bash
-export DB_INSTANCE=terravault-db
-export DB_NAME=terravault
-export DB_USER=terravault_user
-export DB_PASSWORD=$(openssl rand -base64 32)
-
-gcloud sql instances create $DB_INSTANCE \
-  --database-version=POSTGRES_15 \
-  --tier=db-f1-micro \
-  --region=$REGION \
-  --storage-size=10GB \
-  --storage-type=SSD \
-  --no-backup \
-  --authorized-networks=""    # private only — Cloud Run reaches it via socket
-
-gcloud sql databases create $DB_NAME --instance=$DB_INSTANCE
-gcloud sql users create $DB_USER --instance=$DB_INSTANCE --password=$DB_PASSWORD
-
-# Note the connection name — looks like project:region:instance
-export DB_CONN=$(gcloud sql instances describe $DB_INSTANCE --format='value(connectionName)')
-echo $DB_CONN
+gcloud compute addresses create terravault-ip --region=$REGION
+export VM_IP=$(gcloud compute addresses describe terravault-ip \
+  --region=$REGION --format='value(address)')
+echo $VM_IP
 ```
 
 ---
 
-## 2. Push secrets to Secret Manager
+## 2. Open ingress ports 80 and 443
+
+GCP's default network ships the convenience tags `http-server` and
+`https-server`, whose firewall rules already allow TCP 80 and 443. We
+attach those tags to the VM in the next step. Caddy also speaks HTTP/3
+over **UDP 443**, which the built-in rules do not cover — add it:
 
 ```bash
-# API key + hash (use the repo's generator)
+gcloud compute firewall-rules create terravault-https-udp \
+  --direction=INGRESS \
+  --action=ALLOW \
+  --rules=udp:443 \
+  --target-tags=https-server \
+  --source-ranges=0.0.0.0/0
+```
+
+Do **not** open 3000 (Grafana), 9090 (Prometheus), 5432 (Postgres),
+6379 (Redis), or 8000 (API direct). Caddy is the only public ingress;
+everything else is reached via SSH tunnel.
+
+---
+
+## 3. Provision the VM
+
+```bash
+gcloud compute instances create terravault-prod \
+  --zone=$ZONE \
+  --machine-type=e2-medium \
+  --image-family=ubuntu-2204-lts \
+  --image-project=ubuntu-os-cloud \
+  --boot-disk-size=30GB \
+  --boot-disk-type=pd-balanced \
+  --address=$VM_IP \
+  --tags=http-server,https-server
+
+# Wait ~30s for SSH to come up, then connect
+gcloud compute ssh terravault-prod --zone=$ZONE
+```
+
+`gcloud compute ssh` generates and registers an SSH key for you on
+first use — no manual key upload needed.
+
+---
+
+## 4. Register a free DuckDNS subdomain
+
+1. Go to <https://www.duckdns.org/> → log in with GitHub/Google.
+2. Create a subdomain: `terravault-<yourname>` (e.g.
+   `terravault-guarnieri.duckdns.org`).
+3. Set the **current IP** field to your VM's static IP (`echo $VM_IP`
+   from step 1) and click **update ip**.
+4. Save your **DuckDNS token** (top of page).
+
+Because the IP is reserved/static, you do **not** need the DuckDNS
+auto-updater cron. (If you ever delete and recreate the VM with a new
+IP, just update the DuckDNS record once.)
+
+---
+
+## 5. Install Docker on the VM
+
+Run these **on the VM** (after `gcloud compute ssh`):
+
+```bash
+# Docker engine + compose plugin
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Verify
+docker --version
+docker compose version
+```
+
+---
+
+## 6. Clone the repo and prepare secrets
+
+```bash
+git clone https://github.com/oguarni/terravault.git
+cd terravault
+
+# Generate strong secrets (script ships in the repo)
+python3 -m pip install --user bcrypt
 python3 scripts/generate_secrets.py > .env.secrets
-source <(grep -E '^(TERRAVAULT_API_KEY|TERRAVAULT_API_KEY_HASH)=' .env.secrets)
+cat .env.secrets    # copy the values — write API key plaintext into your password manager
+```
 
-echo -n "$TERRAVAULT_API_KEY_HASH" | \
-  gcloud secrets create terravault-api-key-hash --data-file=-
+Build the `.env` file:
 
-echo -n "$DB_PASSWORD" | \
-  gcloud secrets create terravault-db-password --data-file=-
+```bash
+cp .env.example .env
+$EDITOR .env
+```
 
-# Save the plain API key in your password manager, then:
+Set these exact keys in `.env` (use the values from `.env.secrets`):
+
+```ini
+TERRAVAULT_ENVIRONMENT=production
+TERRAVAULT_DEBUG=false
+
+TERRAVAULT_API_KEY_HASH=<paste from .env.secrets>
+POSTGRES_PASSWORD=<paste from .env.secrets>
+GRAFANA_ADMIN_PASSWORD=<paste from .env.secrets>
+
+TERRAVAULT_PUBLIC_DOMAIN=terravault-<yourname>.duckdns.org
+TERRAVAULT_API_CORS_ORIGINS=["https://terravault-<yourname>.duckdns.org"]
+TERRAVAULT_API_TRUSTED_HOSTS=["terravault-<yourname>.duckdns.org","localhost","127.0.0.1"]
+```
+
+Then shred the secrets dump:
+
+```bash
 shred -u .env.secrets
 ```
 
 ---
 
-## 3. Build and push the container image
+## 7. Initialize the ML model (`models/` ships empty)
+
+The repo ships only `models/.gitkeep`; the first scan needs a model
+on disk. The bootstrap script trains and persists one using the
+default IsolationForest config:
 
 ```bash
-# Create Artifact Registry repo
-gcloud artifacts repositories create terravault \
-  --repository-format=docker \
-  --location=$REGION
-
-# Authenticate Docker against AR
-gcloud auth configure-docker $REGION-docker.pkg.dev
-
-# Build + push (Cloud Build does both in one step — no local Docker needed)
-gcloud builds submit \
-  --tag $REGION-docker.pkg.dev/$PROJECT_ID/terravault/api:latest
+python3 -m pip install --user -r requirements.txt
+bash scripts/init_models.sh
+ls models/   # expect: isolation_forest.pkl, scaler.pkl, training_metadata.json, versions/
 ```
 
-> Cloud Build counts against credits but is generous on the free tier
-> (120 build-minutes/day). A TerraVault build is ~2 min.
+The API container mounts `./models` read-only, so this step **must**
+run on the host before `docker compose up`.
 
 ---
 
-## 4. Deploy to Cloud Run
+## 8. Launch the stack
 
 ```bash
-gcloud run deploy terravault-api \
-  --image=$REGION-docker.pkg.dev/$PROJECT_ID/terravault/api:latest \
-  --region=$REGION \
-  --platform=managed \
-  --allow-unauthenticated \
-  --port=8000 \
-  --cpu=1 \
-  --memory=1Gi \
-  --concurrency=20 \
-  --min-instances=0 \
-  --max-instances=3 \
-  --timeout=60 \
-  --add-cloudsql-instances=$DB_CONN \
-  --set-env-vars="TERRAVAULT_ENVIRONMENT=production,TERRAVAULT_DEBUG=false,TERRAVAULT_LOG_FORMAT=json" \
-  --set-env-vars="TERRAVAULT_API_HOST=0.0.0.0,TERRAVAULT_API_PORT=8000" \
-  --set-env-vars="TERRAVAULT_REDIS_URL=redis://disabled" \
-  --set-env-vars="TERRAVAULT_DATABASE_URL=postgresql+asyncpg://$DB_USER:PLACEHOLDER@/$DB_NAME?host=/cloudsql/$DB_CONN" \
-  --set-env-vars='TERRAVAULT_API_CORS_ORIGINS=["*"]' \
-  --set-env-vars='TERRAVAULT_API_TRUSTED_HOSTS=["*"]' \
-  --set-secrets="TERRAVAULT_API_KEY_HASH=terravault-api-key-hash:latest"
+docker compose up -d
+docker compose ps
+docker compose logs -f caddy   # watch Let's Encrypt cert issuance
 ```
 
-> `TERRAVAULT_API_TRUSTED_HOSTS=["*"]` is acceptable here because Cloud
-> Run's frontend already validates the host header against your service
-> URL. Don't reuse this on a raw VM.
-
-After deploy you get a URL like
-`https://terravault-api-xxxxxx-rj.a.run.app`.
-
-The first request will be slow (~5 s cold start while the ML model
-loads). Subsequent requests hit the warm instance.
+Caddy will provision the TLS cert in ~30 seconds the first time. Look
+for `certificate obtained successfully` in the Caddy logs.
 
 ---
 
-## 5. Inject the DB password into the env URL
-
-The `--set-env-vars` flag can't reference Secret Manager values
-inline, so re-deploy with the real password substituted:
+## 9. Smoke test from your laptop
 
 ```bash
-DB_PASSWORD=$(gcloud secrets versions access latest --secret=terravault-db-password)
-gcloud run services update terravault-api \
-  --region=$REGION \
-  --update-env-vars="TERRAVAULT_DATABASE_URL=postgresql+asyncpg://$DB_USER:$DB_PASSWORD@/$DB_NAME?host=/cloudsql/$DB_CONN"
-unset DB_PASSWORD
-```
-
-(Alternative: bind the whole URL as a secret. The above is the simplest
-path for a sandbox.)
-
----
-
-## 6. Run the Alembic migration once
-
-Cloud Run runs the FastAPI app on startup but does not run migrations.
-Run them from your laptop against the Cloud SQL instance via the
-auth proxy:
-
-```bash
-# Install + start the auth proxy in another terminal
-curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.11.0/cloud-sql-proxy.linux.amd64
-chmod +x cloud-sql-proxy
-./cloud-sql-proxy $DB_CONN
-
-# In the original terminal:
-DB_PASSWORD=$(gcloud secrets versions access latest --secret=terravault-db-password)
-DATABASE_URL="postgresql+asyncpg://$DB_USER:$DB_PASSWORD@127.0.0.1:5432/$DB_NAME" \
-  alembic upgrade head
-```
-
----
-
-## 7. Smoke test
-
-```bash
-SERVICE_URL=$(gcloud run services describe terravault-api --region=$REGION --format='value(status.url)')
+DOMAIN=terravault-<yourname>.duckdns.org
 API_KEY=<from your password manager>
 
-curl -fsS $SERVICE_URL/health | jq .
-curl -fsS -X POST -H "X-API-Key: $API_KEY" \
+# 1. TLS reachable
+curl -fsS https://$DOMAIN/health | jq .
+
+# 2. Frontend served at /
+curl -fsS https://$DOMAIN/ | head -n 5    # expect <!DOCTYPE html> ... <title>TerraVault | Security Dashboard</title>
+xdg-open https://$DOMAIN/                  # browser: dashboard
+
+# 3. Swagger UI
+xdg-open https://$DOMAIN/docs
+
+# 4. Authenticated scan
+curl -fsS -X POST \
+  -H "X-API-Key: $API_KEY" \
   -F "file=@test_files/vulnerable.tf" \
-  $SERVICE_URL/scan | jq .
-```
+  https://$DOMAIN/scan | jq .
 
-Cloud Monitoring auto-collects request rate, latency, and error rate.
-View at: <https://console.cloud.google.com/run/detail/$REGION/terravault-api/metrics>
+# 5. Metrics blocked from public
+curl -i https://$DOMAIN/metrics    # expect 404
+```
 
 ---
 
-## CI/CD (optional — adds the real CV bullet)
+## 10. Reach Grafana + Prometheus (private, via SSH tunnel)
 
-Add `.github/workflows/deploy-gcp.yml` that builds + pushes + deploys
-on every push to `master`:
-
-```yaml
-name: Deploy to Cloud Run
-on:
-  push: { branches: [master] }
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    permissions: { id-token: write, contents: read }
-    steps:
-      - uses: actions/checkout@v4
-      - uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
-          service_account: ${{ secrets.GCP_DEPLOY_SA }}
-      - uses: google-github-actions/setup-gcloud@v2
-      - run: |
-          gcloud builds submit --tag southamerica-east1-docker.pkg.dev/${{ vars.GCP_PROJECT }}/terravault/api:${{ github.sha }}
-          gcloud run deploy terravault-api \
-            --image=southamerica-east1-docker.pkg.dev/${{ vars.GCP_PROJECT }}/terravault/api:${{ github.sha }} \
-            --region=southamerica-east1
-```
-
-This requires a Workload Identity Federation pool — set up via
-`gcloud iam workload-identity-pools create-cred-config`.
-
----
-
-## Cleanup before credits expire
-
-Run this on **2026-07-15** (one week before expiry) to avoid surprises:
+`gcloud compute ssh` forwards local ports with the standard `ssh -L`
+flags after a `--`:
 
 ```bash
-gcloud run services delete terravault-api --region=$REGION --quiet
-gcloud sql instances delete $DB_INSTANCE --quiet
-gcloud artifacts repositories delete terravault --location=$REGION --quiet
-gcloud secrets delete terravault-api-key-hash --quiet
-gcloud secrets delete terravault-db-password --quiet
+gcloud compute ssh terravault-prod --zone=$ZONE -- \
+  -L 3000:127.0.0.1:3000 -L 9090:127.0.0.1:9090
+
+# then on your laptop:
+xdg-open http://127.0.0.1:3000   # Grafana — admin / GRAFANA_ADMIN_PASSWORD
+xdg-open http://127.0.0.1:9090   # Prometheus
 ```
 
-The Oracle Cloud deployment remains untouched.
+---
+
+## Operations
+
+### Update to a new commit
+
+```bash
+gcloud compute ssh terravault-prod --zone=$ZONE
+cd terravault
+git pull
+docker compose up -d --build terravault-api
+```
+
+### Rotate the API key
+
+```bash
+python3 scripts/generate_secrets.py    # only use the API key fields
+$EDITOR .env                            # replace TERRAVAULT_API_KEY_HASH
+docker compose up -d terravault-api
+```
+
+### Backups
+
+The `terravault-postgres-data` volume holds scan history. Dump it and
+push to a Cloud Storage bucket (Standard storage is a few cents/GB-mo,
+or use the 5 GB always-free regional bucket in the US):
+
+```bash
+# one-time bucket
+gcloud storage buckets create gs://terravault-backups-$PROJECT_ID --location=$REGION
+
+# on the VM
+docker compose exec -T postgres pg_dump -U terravault_user terravault \
+  | gzip > backup-$(date +%F).sql.gz
+gcloud storage cp backup-$(date +%F).sql.gz gs://terravault-backups-$PROJECT_ID/
+```
+
+### Stop the VM to pause billing
+
+```bash
+gcloud compute instances stop terravault-prod --zone=$ZONE   # stops compute charges
+gcloud compute instances start terravault-prod --zone=$ZONE  # static IP is retained
+```
+
+---
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| Caddy stuck on `obtaining certificate` | Port 80 not reachable | Confirm the VM has the `http-server`/`https-server` tags and DuckDNS points at `$VM_IP` |
+| 421 Misdirected Request | `TERRAVAULT_API_TRUSTED_HOSTS` doesn't include your DuckDNS domain | Edit `.env`, `docker compose up -d terravault-api` |
+| `bcrypt` errors at startup | `TERRAVAULT_API_KEY_HASH` is the plaintext key, not the hash | Re-run `scripts/generate_secrets.py`, use the `_HASH` value |
+| Out of memory on `docker compose up` (e2-micro/small) | Not enough RAM for the full stack | Add swap: `sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo '/swapfile none swap sw 0 0' \| sudo tee -a /etc/fstab` |
+| HTTP/3 not negotiating | UDP 443 blocked | Confirm the `terravault-https-udp` firewall rule from step 2 exists |
+
+---
+
+## Teardown
+
+To remove everything and stop all charges:
+
+```bash
+gcloud compute instances delete terravault-prod --zone=$ZONE --quiet
+gcloud compute addresses delete terravault-ip --region=$REGION --quiet
+gcloud compute firewall-rules delete terravault-https-udp --quiet
+# optional: gcloud storage rm -r gs://terravault-backups-$PROJECT_ID
+```

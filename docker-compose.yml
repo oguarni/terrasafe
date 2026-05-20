@@ -125,6 +125,7 @@ services:
       - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./frontend:/srv/frontend:ro
       - caddy_data:/data
       - caddy_config:/config
     environment:
@@ -221,6 +222,7 @@ volumes:
     name: terravault-postgres-data
   prometheus_data:
     name: terravault-prometheus-data
+  grafana_data:
     name: terravault-grafana-data
   caddy_data:
     name: terravault-caddy-data
