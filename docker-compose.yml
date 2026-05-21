@@ -6,6 +6,12 @@ services:
     image: redis:7-alpine
     container_name: terravault-redis
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 320M
     ports:
       - "127.0.0.1:6379:6379"
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
@@ -29,6 +35,12 @@ services:
     image: postgres:15-alpine
     container_name: terravault-postgres
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     ports:
       - "127.0.0.1:5432:5432"
     environment:
@@ -60,6 +72,12 @@ services:
     image: terravault-api:latest
     container_name: terravault-api
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 768M
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
@@ -119,6 +137,12 @@ services:
     image: caddy:2-alpine
     container_name: terravault-caddy
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 128M
     ports:
       - "80:80"
       - "443:443"
@@ -148,9 +172,16 @@ services:
 
   # Prometheus for metrics collection
   prometheus:
-    image: prom/prometheus:latest
+    # Pinned (was :latest) for reproducible deploys; v2.53 is the current LTS line.
+    image: prom/prometheus:v2.53.3
     container_name: terravault-prometheus
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     ports:
       - "127.0.0.1:9090:9090"
     volumes:
@@ -180,9 +211,16 @@ services:
 
   # Grafana for visualization
   grafana:
-    image: grafana/grafana:latest
+    # Pinned (was :latest) for reproducible deploys.
+    image: grafana/grafana:11.3.1
     container_name: terravault-grafana
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
