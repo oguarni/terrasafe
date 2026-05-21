@@ -5,6 +5,14 @@
 .git.bak/
 
 # ===================================
+# Database backups (runtime dumps)
+# ===================================
+# Local output dir for scripts/backup_db.sh on the deploy VM before the dump
+# is shipped to GCS. Untracked runtime artifacts — keep the deploy working
+# tree clean so scripts/deploy_vm.sh's dirty-tree guard does not abort.
+backups/
+
+# ===================================
 # Python
 # ===================================
 __pycache__/
