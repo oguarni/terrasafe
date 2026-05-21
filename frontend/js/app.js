@@ -74,6 +74,52 @@ const App = {
         // keep only latest 50
         if (this.state.scans.length > 50) this.state.scans.pop();
         localStorage.setItem('scans', JSON.stringify(this.state.scans));
+    },
+
+    // Pre-computed scan of test_files/vulnerable.tf, matching the backend
+    // /scan JSON contract, so visitors can see a populated dashboard, risk
+    // gauge, intelligence breakdown, and vulnerability table in one click —
+    // no file upload or API key required.
+    demoScan: {
+        file: 'vulnerable.tf',
+        score: 81,
+        rule_based_score: 100,
+        ml_score: 53.3,
+        confidence: 'LOW',
+        summary: { critical: 2, high: 4, medium: 2, low: 0, info: 0 },
+        vulnerabilities: [
+            { severity: 'CRITICAL', points: 30, message: 'Open security group - SSH port 22 exposed to internet', resource: 'web_sg', remediation: 'Restrict SSH access to specific IP ranges' },
+            { severity: 'CRITICAL', points: 30, message: 'Hardcoded password detected', resource: 'Database/Instance', remediation: 'Use variables or secrets manager for sensitive data' },
+            { severity: 'HIGH', points: 20, message: 'Unencrypted RDS instance', resource: 'main_db', remediation: 'Enable storage_encrypted = true' },
+            { severity: 'HIGH', points: 20, message: 'Unencrypted EBS volume', resource: 'data_volume', remediation: 'Enable encrypted = true' },
+            { severity: 'HIGH', points: 20, message: 'S3 bucket with public access enabled', resource: 'public_bucket', remediation: 'Enable all public access blocks' },
+            { severity: 'HIGH', points: 20, message: 'Missing logging - no CloudTrail or CloudWatch log group detected', resource: 'Logging', remediation: 'Add aws_cloudtrail or aws_cloudwatch_log_group to enable audit logging' },
+            { severity: 'MEDIUM', points: 10, message: 'HTTP/HTTPS port 80 open to internet', resource: 'web_sg', remediation: 'Consider using a CDN or WAF for public web services' },
+            { severity: 'MEDIUM', points: 10, message: 'Missing VPC flow logs - aws_vpc present but no aws_flow_log detected', resource: 'VPC', remediation: 'Add an aws_flow_log resource to enable VPC traffic logging' }
+        ]
+    },
+
+    hasDemo() {
+        return this.state.scans.some(s => s.demo);
+    },
+
+    loadDemo() {
+        let demo = this.state.scans.find(s => s.demo);
+        if (!demo) {
+            demo = { id: 'demo', timestamp: new Date().toISOString(), demo: true, ...this.demoScan };
+            this.state.scans.unshift(demo);
+            if (this.state.scans.length > 50) this.state.scans.pop();
+            localStorage.setItem('scans', JSON.stringify(this.state.scans));
+        }
+        return demo;
+    },
+
+    clearDemo() {
+        const before = this.state.scans.length;
+        this.state.scans = this.state.scans.filter(s => !s.demo);
+        if (this.state.scans.length !== before) {
+            localStorage.setItem('scans', JSON.stringify(this.state.scans));
+        }
     }
 };
 

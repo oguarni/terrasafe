@@ -13,6 +13,76 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentFile = null;
 
+    // API key onboarding modal
+    const apiKeyModal = document.getElementById('api-key-modal');
+    const modalKeyInput = document.getElementById('modal-api-key-input');
+    const modalSaveKey = document.getElementById('modal-save-key');
+    const modalCloseKey = document.getElementById('modal-close-key');
+    const modalKeyError = document.getElementById('modal-key-error');
+
+    function openKeyModal() {
+        if (!apiKeyModal) return;
+        modalKeyInput.value = App.state.apiKey || '';
+        modalKeyError.classList.add('hidden');
+        apiKeyModal.classList.remove('hidden');
+        modalKeyInput.focus();
+    }
+
+    function closeKeyModal() {
+        if (apiKeyModal) apiKeyModal.classList.add('hidden');
+    }
+
+    function saveModalKey() {
+        const val = modalKeyInput.value.trim();
+        if (!val) {
+            modalKeyError.textContent = 'Please enter an API key to continue.';
+            modalKeyError.classList.remove('hidden');
+            return;
+        }
+        App.state.apiKey = val;
+        localStorage.setItem('apiKey', val);
+        closeKeyModal();
+    }
+
+    if (modalSaveKey) modalSaveKey.addEventListener('click', saveModalKey);
+    if (modalCloseKey) modalCloseKey.addEventListener('click', closeKeyModal);
+    if (modalKeyInput) {
+        modalKeyInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') saveModalKey();
+        });
+    }
+    if (apiKeyModal) {
+        apiKeyModal.addEventListener('click', (e) => {
+            if (e.target === apiKeyModal) closeKeyModal();
+        });
+    }
+
+    // Prompt immediately on load when no key is configured
+    if (!App.state.apiKey) openKeyModal();
+
+    // Load Demo Scan — render a pre-computed sample result, bypassing file
+    // upload and API auth so visitors can explore the output instantly.
+    function loadDemoAndRender() {
+        const demo = App.loadDemo();
+        errorEl.classList.add('hidden');
+        renderResults(demo);
+        resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    const demoBtn = document.getElementById('demo-btn');
+    if (demoBtn) demoBtn.addEventListener('click', loadDemoAndRender);
+
+    // Escape hatch from the API-key modal so first-time visitors are not
+    // forced to enter a key before they can see what TerraVault produces.
+    const modalDemoLink = document.getElementById('modal-demo-link');
+    if (modalDemoLink) {
+        modalDemoLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeKeyModal();
+            loadDemoAndRender();
+        });
+    }
+
     dropZone.addEventListener('click', () => fileInput.click());
 
     dropZone.addEventListener('dragover', (e) => {
@@ -77,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentFile) return;
 
         if (!App.state.apiKey) {
-            showError('API Key is missing. Please configure it in Settings.');
+            openKeyModal();
             return;
         }
 

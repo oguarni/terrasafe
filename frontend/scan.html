@@ -143,6 +143,17 @@
                 <span id="scan-btn-text">INITIATE SECURITY SCAN</span>
             </button>
             <div id="scan-error" class="hidden text-sm text-error mt-2 font-mono break-all text-center"></div>
+
+            <div class="flex items-center gap-3 py-1">
+                <div class="h-px flex-1 bg-outline-variant/20"></div>
+                <span class="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant/50">or</span>
+                <div class="h-px flex-1 bg-outline-variant/20"></div>
+            </div>
+            <button id="demo-btn" class="w-full bg-surface-container-high text-on-surface font-medium py-3 rounded-full flex items-center justify-center gap-2 hover:bg-surface-container-highest transition-all border border-outline-variant/20 active:scale-[0.98]">
+                <span class="material-symbols-outlined text-primary" data-icon="auto_awesome">auto_awesome</span>
+                Load Demo Scan
+            </button>
+            <p class="text-xs text-on-surface-variant/60 text-center">Preview a scan of a sample vulnerable.tf &mdash; no upload or API key needed.</p>
         </div>
 
         <!-- Results -->
@@ -195,8 +206,8 @@
                 <div class="px-6 py-4 border-b border-outline-variant/10 flex items-center justify-between">
                     <h3 class="font-bold text-lg">Detected Vulnerabilities</h3>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+                <div class="w-full overflow-x-auto">
+                    <table class="w-full min-w-[720px] text-left border-collapse">
                         <thead>
                             <tr class="bg-surface-container-low text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                                 <th class="px-6 py-4">Severity</th>
@@ -215,5 +226,38 @@
         </div>
     </div>
 </main>
+
+<!-- API Key onboarding modal -->
+<div id="api-key-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="bg-surface-container border border-outline-variant/20 rounded-2xl max-w-md w-full p-8 shadow-2xl relative">
+        <button id="modal-close-key" class="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface transition-colors">
+            <span class="material-symbols-outlined" data-icon="close">close</span>
+        </button>
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-primary text-2xl" data-icon="key" style="font-variation-settings: 'FILL' 1;">key</span>
+            </div>
+            <div>
+                <h2 class="text-xl font-bold tracking-tight">API Key Required</h2>
+                <p class="text-xs text-on-surface-variant">Authenticate to run security scans</p>
+            </div>
+        </div>
+        <p class="text-sm text-on-surface-variant mb-6 leading-relaxed">
+            TerraVault needs an API key to scan your infrastructure. Enter your key below to get started &mdash; it is stored only in this browser's <span class="text-primary-container font-mono">localStorage</span>.
+        </p>
+        <input id="modal-api-key-input" type="password" placeholder="Enter your API Key" autocomplete="off"
+               class="w-full bg-surface-container-lowest border-none rounded-lg py-3 px-4 text-on-surface font-mono text-sm focus:ring-1 focus:ring-primary transition-all mb-3"/>
+        <div id="modal-key-error" class="hidden text-xs text-error mb-3 font-mono"></div>
+        <div class="flex items-center gap-3 mt-3">
+            <button id="modal-save-key" class="flex-1 bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold py-3 rounded-full hover:opacity-90 transition-all active:scale-[0.98]">
+                Save &amp; Continue
+            </button>
+            <a href="/settings.html" class="px-4 py-3 text-sm text-on-surface-variant hover:text-primary transition-colors font-medium whitespace-nowrap">Open Settings</a>
+        </div>
+        <button id="modal-demo-link" class="w-full mt-4 text-center text-xs text-on-surface-variant hover:text-primary transition-colors">
+            Just exploring? <span class="text-primary font-semibold">Load a demo scan instead &rarr;</span>
+        </button>
+    </div>
+</div>
 </body>
 </html>

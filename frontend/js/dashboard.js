@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const lastScanEl = document.getElementById('last-scan-time');
     const tableBody = document.getElementById('recent-scans-table');
     const sysStatus = document.getElementById('sys-status');
+    const clearDemoBtn = document.getElementById('clear-demo-btn');
 
     function escapeHtml(unsafe) {
         return (unsafe || "").toString()
@@ -15,9 +16,38 @@ document.addEventListener('DOMContentLoaded', () => {
              .replace(/'/g, "&#039;");
     }
 
+    function wireDemoButton() {
+        const btn = document.getElementById('demo-btn');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                App.loadDemo();
+                updateDashboard();
+            });
+        }
+    }
+
+    function renderEmptyState() {
+        totalEl.textContent = '0';
+        avgScoreEl.textContent = '--';
+        totalVulnsEl.textContent = '0';
+        lastScanEl.textContent = '--';
+        if (clearDemoBtn) clearDemoBtn.classList.add('hidden');
+        tableBody.innerHTML = `
+            <tr><td colspan="5" class="px-6 py-10 text-center">
+                <p class="text-on-surface-variant text-sm mb-5">No scans yet &mdash; your scan history is kept locally in this browser.</p>
+                <button id="demo-btn" class="inline-flex items-center gap-2 bg-primary/10 text-primary font-semibold px-5 py-2.5 rounded-full hover:bg-primary/20 transition-all active:scale-[0.98]">
+                    <span class="material-symbols-outlined text-lg" data-icon="auto_awesome">auto_awesome</span>
+                    Load Demo Scan
+                </button>
+                <p class="text-xs text-on-surface-variant/50 mt-3">Loads a sample vulnerable.tf result so you can explore the dashboard.</p>
+            </td></tr>`;
+        wireDemoButton();
+    }
+
     function updateDashboard() {
         const scans = App.state.scans;
         if (!scans || scans.length === 0) {
+            renderEmptyState();
             return;
         }
 
@@ -66,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-primary text-lg" data-icon="description">description</span>
                         <span class="font-mono text-sm">${safeFile}</span>
+                        ${scan.demo ? '<span class="px-1.5 py-0.5 rounded bg-primary/15 text-primary text-[9px] font-black tracking-wider">DEMO</span>' : ''}
                     </div>
                 </td>
                 <td class="px-6 py-5">
@@ -84,10 +115,19 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             tableBody.appendChild(tr);
         });
+
+        if (clearDemoBtn) clearDemoBtn.classList.toggle('hidden', !App.hasDemo());
     }
 
     // Initial render
     updateDashboard();
+
+    if (clearDemoBtn) {
+        clearDemoBtn.addEventListener('click', () => {
+            App.clearDemo();
+            updateDashboard();
+        });
+    }
 
     // Re-render periodically to catch cross-tab saves
     window.addEventListener('storage', (e) => {

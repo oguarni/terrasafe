@@ -149,11 +149,22 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <section class="lg:col-span-2 space-y-6">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-4 flex-wrap">
                 <h2 class="text-2xl font-bold tracking-tight text-on-surface">Recent Analysis</h2>
+                <div class="flex items-center gap-4">
+                    <button id="clear-demo-btn" class="hidden inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-error/80 hover:text-error transition-colors">
+                        <span class="material-symbols-outlined text-[14px]" data-icon="delete">delete</span>
+                        Clear demo
+                    </button>
+                    <span class="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-on-surface-variant/70" title="This history is rendered from your browser's localStorage and is never synced to a server-side account.">
+                        <span class="material-symbols-outlined text-[14px]" data-icon="lock">lock</span>
+                        Private &middot; stored in this browser
+                    </span>
+                </div>
             </div>
             <div class="bg-surface-container rounded-xl overflow-hidden">
-                <table class="w-full text-left border-collapse">
+                <div class="w-full overflow-x-auto">
+                <table class="w-full min-w-[640px] text-left border-collapse">
                     <thead>
                         <tr class="bg-surface-container-high/50 text-on-surface-variant text-[10px] font-bold uppercase tracking-widest">
                             <th class="px-6 py-4">Resource File</th>
@@ -164,9 +175,10 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-outline-variant/10" id="recent-scans-table">
-                        <tr><td colspan="5" class="px-6 py-5 text-center text-on-surface-variant text-sm">No scans found in history.</td></tr>
+                        <tr><td colspan="5" class="px-6 py-5 text-center text-on-surface-variant text-sm">No scans yet &mdash; your scan history is kept locally in this browser.</td></tr>
                     </tbody>
                 </table>
+                </div>
             </div>
         </section>
 
