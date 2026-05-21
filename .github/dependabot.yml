@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Keep GitHub Actions pinned to SHAs but auto-bumped when upstream releases.
+  # Dependabot updates the pinned commit and the trailing "# vX" comment together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "ci"

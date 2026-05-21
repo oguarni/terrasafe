@@ -187,7 +187,7 @@ jobs:
 
       - name: Run Claude auto-fix
         if: steps.limits.outputs.proceed == 'true'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@20c8abf165d5f85ab3fc970db9498436377dc9d1 # v1
         env:
           API_USERNAME: ${{ secrets.API_USERNAME }}
           API_PASSWORD: ${{ secrets.API_PASSWORD }}
@@ -232,7 +232,7 @@ jobs:
                    `git add -A`
                    `git commit -m "chore(quality-gate): auto-fix attempt ${{ steps.limits.outputs.attempt }}"`
               6. Push to the PR branch:
-                   `git push origin HEAD:${{ github.event.pull_request.head.ref }}`
+                   `git push origin HEAD:"$PR_BRANCH"`
 
             Hard constraints:
               - Do NOT add features, refactors, or abstractions beyond what the
@@ -258,9 +258,10 @@ jobs:
           TERRAVAULT_LOG_LEVEL: INFO
           GATE_REPORT_PATH: gate-report-after-fix.md
           GATE_METRICS_PATH: gate-metrics-after-fix.json
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
           set +e
-          git pull --ff-only origin "${{ github.event.pull_request.head.ref }}" || true
+          git pull --ff-only origin "$PR_BRANCH" || true
           python scripts/quality_gate.py
           rc=$?
           if [ "$rc" -eq 0 ]; then
