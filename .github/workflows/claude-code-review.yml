@@ -13,6 +13,8 @@ on:
 
 jobs:
   claude-review:
+    # Only the repo owner may run this review.
+    if: github.actor == 'oguarni'
     runs-on: ubuntu-latest
     permissions:
       contents: read
