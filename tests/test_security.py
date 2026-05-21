@@ -58,6 +58,22 @@ def test_settings_rejects_invalid_api_key_hash(bad_hash, expected_fragment):
         Settings(api_key_hash=bad_hash)
 
 
+@pytest.mark.parametrize(
+    "environment, enable_docs, expected",
+    [
+        pytest.param("production", None, False, id="prod_default_off"),
+        pytest.param("development", None, True, id="dev_default_on"),
+        pytest.param("staging", None, True, id="staging_default_on"),
+        pytest.param("production", True, True, id="prod_explicit_on"),
+        pytest.param("development", False, False, id="dev_explicit_off"),
+    ],
+)
+def test_docs_enabled_secure_default(environment, enable_docs, expected):
+    settings = Settings(environment=environment, enable_docs=enable_docs)
+
+    assert settings.docs_enabled is expected
+
+
 # ---------------------------------------------------------------------------
 # Correlation ID middleware
 # ---------------------------------------------------------------------------
