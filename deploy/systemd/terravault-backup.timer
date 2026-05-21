@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the TerraVault Postgres backup daily
+
+[Timer]
+# 03:00 every day, plus a catch-up run if the VM was off at the scheduled time.
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+# Spread load / avoid exact-minute thundering herd on shared infra.
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
