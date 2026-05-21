@@ -229,12 +229,18 @@ async def lifespan(app: FastAPI):
         logger.error("Error closing database connection: %s", e)
 
 
+# Interactive docs and the OpenAPI schema are gated behind settings.docs_enabled
+# (off in production by default). Disabling docs_url also requires nulling
+# openapi_url, otherwise the schema would still be served at /openapi.json.
+_docs_enabled = settings.docs_enabled
+
 app = FastAPI(
     title="TerraVault API",
     description="Intelligent Terraform Security Scanner with hybrid 60% rules + 40% ML approach",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if _docs_enabled else None,
+    redoc_url="/redoc" if _docs_enabled else None,
+    openapi_url="/openapi.json" if _docs_enabled else None,
     debug=settings.debug,
     lifespan=lifespan
 )

@@ -1,6 +1,6 @@
 const App = {
     state: {
-        backendUrl: localStorage.getItem('backendUrl') || 'http://localhost:8000',
+        backendUrl: localStorage.getItem('backendUrl') || window.location.origin,
         apiKey: localStorage.getItem('apiKey') || '',
         theme: localStorage.getItem('theme') || 'dark',
         scans: JSON.parse(localStorage.getItem('scans') || '[]'),

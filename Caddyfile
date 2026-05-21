@@ -9,19 +9,38 @@
 		-Server
 	}
 
-	@public_metrics {
-		path /metrics
-		not remote_ip private_ranges
+	# Metrics: internal clients only. A standalone `respond` runs AFTER `handle`
+	# in Caddy's directive order, so the rule must live in its own handle block
+	# (handle blocks are mutually exclusive, evaluated in written order) to
+	# actually pre-empt the API proxy below — otherwise /metrics leaks publicly.
+	handle /metrics {
+		@private remote_ip private_ranges
+		reverse_proxy @private terravault-api:8000
+		respond 404
 	}
-	respond @public_metrics 404
 
-	reverse_proxy terravault-api:8000 {
-		header_up X-Forwarded-Proto {scheme}
-		header_up X-Forwarded-For {remote_host}
+	# API surface — explicit paths only; everything else falls through to the SPA
+	@api path /scan /scan/* /health /docs /redoc /openapi.json /api/docs /api/docs/*
+	handle @api {
+		reverse_proxy terravault-api:8000
+	}
+
+	# Frontend static files
+	handle {
+		root * /srv/frontend
+		try_files {path} {path}.html /index.html
+		file_server
 	}
 
 	log {
 		output stdout
 		format json
 	}
+}
+
+# Plain-HTTP health endpoint for the Docker container healthcheck.
+# Bound to http://localhost so it is NOT redirected to HTTPS (Caddy has no
+# cert for "localhost"); responds 200 directly so `wget` reports healthy.
+http://localhost {
+	respond /health "OK" 200
 }

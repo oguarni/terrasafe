@@ -108,6 +108,14 @@ class Settings(BaseSettings):
     # Environment
     environment: str = Field(default="development", description="Environment: development, staging, production")
     debug: bool = Field(default=False, description="Enable debug mode")
+    enable_docs: Optional[bool] = Field(
+        default=None,
+        description=(
+            "Expose interactive API docs (/docs, /redoc, /openapi.json). "
+            "When unset, defaults to enabled outside production and disabled in production. "
+            "Set TERRAVAULT_ENABLE_DOCS=true to publish Swagger on a production portfolio site."
+        )
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -178,6 +186,16 @@ class Settings(BaseSettings):
 
     def is_production(self) -> bool:
         return self.environment == "production"
+
+    @property
+    def docs_enabled(self) -> bool:
+        """Whether to expose /docs, /redoc, and /openapi.json.
+
+        Secure default: off in production unless explicitly enabled.
+        """
+        if self.enable_docs is None:
+            return not self.is_production()
+        return self.enable_docs
 
     def is_development(self) -> bool:
         return self.environment == "development"

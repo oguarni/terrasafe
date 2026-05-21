@@ -20,10 +20,13 @@ Top-level application entry points and cross-cutting concerns. These files wire 
 |---|---|---|---|---|
 | `/health` | GET | No | No | Service status, DB health, rate limiter status |
 | `/scan` | POST | API key | 10/min | Upload and scan `.tf` file; saves results to DB |
-| `/metrics` | GET | No | No | Prometheus metrics (requires `prometheus-client`) |
+| `/metrics` | GET | No¹ | No | Prometheus metrics (requires `prometheus-client`) |
 | `/api/docs` | GET | No | No | API usage documentation |
-| `/docs` | GET | No | No | Swagger UI (FastAPI default) |
-| `/redoc` | GET | No | No | ReDoc (FastAPI default) |
+| `/docs` | GET | No² | No | Swagger UI (FastAPI default) |
+| `/redoc` | GET | No² | No | ReDoc (FastAPI default) |
+
+¹ No app-level auth, but Caddy 404s `/metrics` for non-private clients (see `Caddyfile`).
+² `/docs`, `/redoc`, and `/openapi.json` are gated by `settings.docs_enabled` — off in production unless `TERRAVAULT_ENABLE_DOCS=true`; they return 404 when disabled.
 
 #### Middleware
 

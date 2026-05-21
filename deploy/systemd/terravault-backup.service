@@ -1,0 +1,20 @@
+[Unit]
+Description=TerraVault Postgres backup
+# Don't run before the docker stack is up.
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+# Adjust User and WorkingDirectory to match your VM (where the repo is cloned).
+User=YOUR_VM_USER
+WorkingDirectory=/home/YOUR_VM_USER/terravault
+# systemd's default PATH omits /snap/bin, where the snap-installed gcloud lives.
+# Without this the GCS upload silently can't find gcloud. Drop /snap/bin if
+# gcloud is installed elsewhere on your VM.
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+# Off-box copy + dead-man-switch ping. Leave GCS_BUCKET/HEALTHCHECK_URL out to skip.
+Environment=BACKUP_KEEP=7
+Environment=GCS_BUCKET=gs://terravault-backups-YOUR_PROJECT_ID
+# Environment=HEALTHCHECK_URL=https://hc-ping.com/your-uuid
+ExecStart=/usr/bin/env bash scripts/backup_db.sh

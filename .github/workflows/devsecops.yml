@@ -40,9 +40,12 @@ jobs:
     - name: Safety Check
       id: safety
       run: |
-        pip install safety
+        # Pin safety: 3.7.0 changed the CLI so `--output` is a format, not a
+        # file path. Use --save-json to write the report; pin to stop the
+        # invocation drifting again on the next upstream release.
+        pip install 'safety==3.7.0'
         set +e
-        safety check --json --output safety-report.json
+        safety check --save-json safety-report.json
         echo "safety_exit=$?" >> "$GITHUB_OUTPUT"
         exit 0
 
@@ -405,7 +408,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
-          pip install bandit safety
+          pip install bandit 'safety==3.7.0'
 
       - name: Download consolidated report
         if: steps.limits.outputs.proceed == 'true'
@@ -513,7 +516,7 @@ jobs:
           git pull --ff-only origin "${{ github.event.pull_request.head.ref }}" || true
           mkdir -p _verify
           bandit -r terravault/ --ini .bandit -f json -o _verify/bandit-report.json -ll || true
-          safety check --json --output _verify/safety-report.json || true
+          safety check --save-json _verify/safety-report.json || true
           pytest -q --junit-xml=_verify/pytest-junit.xml --cov=terravault --cov-report=xml:_verify/coverage.xml || true
 
           python scripts/pipeline_report.py \

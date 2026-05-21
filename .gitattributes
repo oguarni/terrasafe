@@ -1,0 +1,16 @@
+# Normalize line endings. Text is auto-detected and stored as LF in the repo.
+* text=auto
+
+# Files that execute on Linux MUST stay LF even when checked out on Windows,
+# otherwise a trailing \r breaks the shebang / systemd parsing.
+*.sh        text eol=lf
+Caddyfile   text eol=lf
+Dockerfile  text eol=lf
+*.service   text eol=lf
+*.timer     text eol=lf
+Makefile    text eol=lf
+
+# Binary assets — never touch.
+*.pkl   binary
+*.png   binary
+*.jpg   binary
