@@ -35,12 +35,12 @@ jobs:
 
     steps:
       - name: Checkout calling repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Checkout TerraVault action
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ github.repository }}
           path: _terravault_action
@@ -66,7 +66,7 @@ jobs:
 
       - name: Set up Python for report generation
         if: always()
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ inputs.python_version }}
 
@@ -96,7 +96,7 @@ jobs:
           always() &&
           github.event_name == 'pull_request' &&
           hashFiles('terravault-scan-report.md') != ''
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -127,7 +127,7 @@ jobs:
             }
 
       - name: Upload scan artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: terravault-scan-results
