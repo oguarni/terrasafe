@@ -309,9 +309,13 @@ xdg-open http://127.0.0.1:9090   # Prometheus
 ```bash
 gcloud compute ssh terravault-prod --zone=$ZONE
 cd terravault
-git pull
-docker compose up -d --build terravault-api
+bash scripts/deploy_vm.sh   # ff-only pull, rebuild, health-gate, smoke test
 ```
+
+`deploy_vm.sh` aborts on a dirty tree or an unhealthy container, so a bad
+roll fails loudly instead of silently serving a broken stack. To update
+only the API without touching images, the manual path still works:
+`git pull && docker compose up -d --build terravault-api`.
 
 ### Rotate the API key
 
