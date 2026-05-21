@@ -17,7 +17,7 @@ Grafana/Prometheus monitoring — runs in production unchanged.
 https://terravault-<yourname>.duckdns.org/          → Web dashboard (frontend)
 https://terravault-<yourname>.duckdns.org/scan.html → Scan upload page
 https://terravault-<yourname>.duckdns.org/health    → 200 OK
-https://terravault-<yourname>.duckdns.org/docs      → Swagger UI
+https://terravault-<yourname>.duckdns.org/docs      → Swagger UI (off in prod by default; see ENABLE_DOCS)
 https://terravault-<yourname>.duckdns.org/scan      → API key gated (POST)
 http://127.0.0.1:3000  (SSH tunnel only)            → Grafana
 http://127.0.0.1:9090  (SSH tunnel only)            → Prometheus
@@ -214,6 +214,10 @@ GRAFANA_ADMIN_PASSWORD=<paste from .env.secrets>
 TERRAVAULT_PUBLIC_DOMAIN=terravault-<yourname>.duckdns.org
 TERRAVAULT_API_CORS_ORIGINS=["https://terravault-<yourname>.duckdns.org"]
 TERRAVAULT_API_TRUSTED_HOSTS=["terravault-<yourname>.duckdns.org","localhost","127.0.0.1"]
+
+# Interactive docs (/docs, /redoc, /openapi.json) are OFF in production by
+# default. Uncomment to publish Swagger UI on your portfolio site:
+# TERRAVAULT_ENABLE_DOCS=true
 ```
 
 Then shred the secrets dump:
@@ -267,7 +271,7 @@ curl -fsS https://$DOMAIN/health | jq .
 curl -fsS https://$DOMAIN/ | head -n 5    # expect <!DOCTYPE html> ... <title>TerraVault | Security Dashboard</title>
 xdg-open https://$DOMAIN/                  # browser: dashboard
 
-# 3. Swagger UI
+# 3. Swagger UI — only if you set TERRAVAULT_ENABLE_DOCS=true (off in prod by default)
 xdg-open https://$DOMAIN/docs
 
 # 4. Authenticated scan
@@ -319,19 +323,56 @@ docker compose up -d terravault-api
 
 ### Backups
 
-The `terravault-postgres-data` volume holds scan history. Dump it and
-push to a Cloud Storage bucket (Standard storage is a few cents/GB-mo,
-or use the 5 GB always-free regional bucket in the US):
+The `terravault-postgres-data` volume holds scan history. `scripts/backup_db.sh`
+dumps it, rotates local copies, and (optionally) pushes the dump to a Cloud
+Storage bucket. `scripts/restore_db.sh` loads one back.
 
 ```bash
-# one-time bucket
+# one-time bucket (Standard storage is a few cents/GB-mo, or use the 5 GB
+# always-free regional bucket in a US region)
 gcloud storage buckets create gs://terravault-backups-$PROJECT_ID --location=$REGION
 
-# on the VM
-docker compose exec -T postgres pg_dump -U terravault_user terravault \
-  | gzip > backup-$(date +%F).sql.gz
-gcloud storage cp backup-$(date +%F).sql.gz gs://terravault-backups-$PROJECT_ID/
+# manual backup on the VM (from the repo root)
+GCS_BUCKET=gs://terravault-backups-$PROJECT_ID bash scripts/backup_db.sh
+
+# restore a specific dump (interactive confirmation; OVERWRITES the DB)
+bash scripts/restore_db.sh gs://terravault-backups-$PROJECT_ID/terravault-<timestamp>.sql.gz
 ```
+
+Automate it with the shipped systemd units (daily at 03:00, with catch-up
+if the VM was off). Edit the `User`, `WorkingDirectory`, and `GCS_BUCKET`
+placeholders in `deploy/systemd/terravault-backup.service` first:
+
+```bash
+sudo cp deploy/systemd/terravault-backup.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now terravault-backup.timer
+systemctl list-timers terravault-backup.timer   # confirm next run
+journalctl -u terravault-backup.service          # inspect the last run
+```
+
+`backup_db.sh` exits non-zero on any failure and, if `HEALTHCHECK_URL` is
+set, pings it on success — wire that to a dead-man switch (see Monitoring).
+
+### Monitoring & alerting
+
+Grafana + Prometheus run on the VM, but they go dark if the whole VM does —
+so the alert that matters most comes from *outside* the box. Add a free
+external monitor; nothing to install on the VM:
+
+1. **Uptime** — point [UptimeRobot](https://uptimerobot.com) or
+   [Healthchecks.io](https://healthchecks.io) at
+   `https://terravault-<yourname>.duckdns.org/health` (HTTP keyword check for
+   `"status":"healthy"`, 1–5 min interval). It pages you on a full outage,
+   a lapsed TLS cert, or DuckDNS drift.
+2. **Backup dead-man switch** — create a Healthchecks.io check with a daily
+   period, then set `HEALTHCHECK_URL=https://hc-ping.com/<uuid>` in
+   `deploy/systemd/terravault-backup.service`. `backup_db.sh` pings it only on
+   success, so a *missed* ping (failed or skipped backup) alerts you — the
+   failure mode a "did it run?" check would miss.
+
+Internal dashboards stay where they are (SSH tunnel, step 10); these external
+checks are purely the "is the front door open?" layer.
 
 ### Stop the VM to pause billing
 
