@@ -256,6 +256,11 @@ docker compose logs -f caddy   # watch Let's Encrypt cert issuance
 Caddy will provision the TLS cert in ~30 seconds the first time. Look
 for `certificate obtained successfully` in the Caddy logs.
 
+The API container's entrypoint runs `alembic upgrade head` on startup, so
+the database schema is created automatically — no manual migration step.
+Confirm it applied: `docker compose logs terravault-api | grep alembic`
+should show `Running upgrade … -> …` then `migrations applied`.
+
 ---
 
 ## 9. Smoke test from your laptop
@@ -331,9 +336,26 @@ The `terravault-postgres-data` volume holds scan history. `scripts/backup_db.sh`
 dumps it, rotates local copies, and (optionally) pushes the dump to a Cloud
 Storage bucket. `scripts/restore_db.sh` loads one back.
 
+> **VM scope gotcha:** a VM created with the default scopes gets
+> `devstorage.read_only`, so uploads fail with a 403 even if IAM allows them.
+> Grant the VM's service account write on the bucket **and** upgrade its
+> storage scope (the scope change requires a stop/start; the static IP and
+> TLS cert survive):
+> ```bash
+> SA=$(gcloud compute instances describe terravault-prod --zone=$ZONE --format='value(serviceAccounts[0].email)')
+> gcloud storage buckets add-iam-policy-binding gs://terravault-backups-$PROJECT_ID \
+>   --member="serviceAccount:$SA" --role=roles/storage.objectAdmin
+> gcloud compute instances stop terravault-prod --zone=$ZONE
+> gcloud compute instances set-service-account terravault-prod --zone=$ZONE \
+>   --service-account=$SA --scopes=storage-rw,logging-write,monitoring-write,trace,service-control,service-management,pubsub
+> gcloud compute instances start terravault-prod --zone=$ZONE
+> ```
+> Avoid this on a fresh VM by adding `--scopes=storage-rw,…` to the `instances create` in step 3.
+
 ```bash
 # one-time bucket (Standard storage is a few cents/GB-mo, or use the 5 GB
-# always-free regional bucket in a US region)
+# always-free regional bucket in a US region; set a lifecycle to auto-delete
+# old dumps and stay within the free quota)
 gcloud storage buckets create gs://terravault-backups-$PROJECT_ID --location=$REGION
 
 # manual backup on the VM (from the repo root)
