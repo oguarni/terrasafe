@@ -19,7 +19,7 @@ setup(
         "redis",
         "bcrypt",
         "aiofiles",
-        "python-multipart",
+        "python-multipart>=0.0.27",
         "python-dotenv",
         "slowapi",
         "prometheus-client",

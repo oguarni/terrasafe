@@ -7,7 +7,7 @@ joblib==1.4.2
 # API and web framework
 fastapi==0.131.0
 uvicorn[standard]==0.34.0
-python-multipart==0.0.20
+python-multipart==0.0.27
 
 # Configuration and environment
 python-dotenv==1.0.0
