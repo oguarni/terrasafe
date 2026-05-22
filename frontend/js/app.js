@@ -3,7 +3,14 @@ const App = {
         backendUrl: localStorage.getItem('backendUrl') || window.location.origin,
         apiKey: localStorage.getItem('apiKey') || '',
         theme: localStorage.getItem('theme') || 'dark',
-        scans: JSON.parse(localStorage.getItem('scans') || '[]'),
+        scans: (() => {
+            try { return JSON.parse(localStorage.getItem('scans') || '[]'); } 
+            catch (e) { 
+                console.warn('Corrupt scan data detected. Resetting history.');
+                localStorage.removeItem('scans'); 
+                return []; 
+            }
+        })(),
         sysOk: false
     },
 

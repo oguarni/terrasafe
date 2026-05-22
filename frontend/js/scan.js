@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorEl = document.getElementById('scan-error');
 
     let currentFile = null;
+    let pendingScan = false;
 
     // API key onboarding modal
     const apiKeyModal = document.getElementById('api-key-modal');
@@ -42,6 +43,11 @@ document.addEventListener('DOMContentLoaded', () => {
         App.state.apiKey = val;
         localStorage.setItem('apiKey', val);
         closeKeyModal();
+        
+        if (pendingScan && currentFile) {
+            pendingScan = false;
+            scanBtn.click();
+        }
     }
 
     if (modalSaveKey) modalSaveKey.addEventListener('click', saveModalKey);
@@ -84,6 +90,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            fileInput.click();
+        }
+    });
 
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -147,6 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentFile) return;
 
         if (!App.state.apiKey) {
+            pendingScan = true;
             openKeyModal();
             return;
         }

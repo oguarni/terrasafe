@@ -91,11 +91,11 @@
     <div class="hidden md:flex items-center gap-8">
         <a class="text-slate-400 hover:text-slate-200 transition-colors" href="/index.html">Dashboard</a>
         <a class="text-[#adc6ff] border-b-2 border-[#adc6ff] pb-1" href="/scan.html">Scan</a>
-        <a class="text-slate-400 hover:text-slate-200 transition-colors" href="#">History</a>
+        <a class="text-slate-400 hover:text-slate-200 transition-colors" href="/index.html#history">History</a>
         <a class="text-slate-400 hover:text-slate-200 transition-colors" href="/settings.html">Settings</a>
     </div>
     <div class="flex items-center gap-4">
-        <button id="theme-toggle" class="p-2 text-slate-400 hover:bg-[#222a3d] rounded-lg transition-all duration-300 scale-95 active:scale-90">
+        <button id="theme-toggle" aria-label="Toggle application theme" class="p-2 text-slate-400 hover:bg-[#222a3d] rounded-lg transition-all duration-300 scale-95 active:scale-90">
             <span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
         </button>
         <div id="status-indicator" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-high border-l border-outline-variant/20">
@@ -114,7 +114,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Controls -->
         <div class="lg:col-span-1 space-y-6">
-            <div id="drop-zone" class="cursor-pointer bg-surface-container rounded-xl p-8 border-2 border-dashed border-outline-variant/30 flex flex-col items-center justify-center text-center transition-all hover:border-primary/50 group">
+            <div id="drop-zone" tabindex="0" role="button" aria-label="Upload Terraform template" class="cursor-pointer bg-surface-container rounded-xl p-8 border-2 border-dashed border-outline-variant/30 flex flex-col items-center justify-center text-center transition-all hover:border-primary/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background group">
                 <input type="file" id="file-input" class="hidden" accept=".tf,.json" />
                 <div class="w-16 h-16 bg-surface-container-high rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <span class="material-symbols-outlined text-primary text-3xl" data-icon="cloud_upload">cloud_upload</span>
@@ -132,7 +132,7 @@
                         <p id="file-name" class="font-medium text-sm truncate">--</p>
                         <p id="file-size" class="text-xs text-on-surface-variant">-- KB</p>
                     </div>
-                    <button id="clear-file" class="text-on-surface-variant hover:text-error transition-colors">
+                    <button id="clear-file" aria-label="Remove selected file" class="text-on-surface-variant hover:text-error transition-colors">
                         <span class="material-symbols-outlined text-xl" data-icon="close">close</span>
                     </button>
                 </div>
@@ -230,7 +230,7 @@
 <!-- API Key onboarding modal -->
 <div id="api-key-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
     <div class="bg-surface-container border border-outline-variant/20 rounded-2xl max-w-md w-full p-8 shadow-2xl relative">
-        <button id="modal-close-key" class="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface transition-colors">
+        <button id="modal-close-key" aria-label="Close API Key modal" class="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface transition-colors">
             <span class="material-symbols-outlined" data-icon="close">close</span>
         </button>
         <div class="flex items-center gap-3 mb-4">
