@@ -160,14 +160,14 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('file', currentFile);
 
         try {
-            const res = await fetch(`${App.state.backendUrl}/scan`, {
+            const res = await App.fetchWithTimeout(`${App.state.backendUrl}/scan`, {
                 method: 'POST',
                 headers: {
                     'X-API-Key': App.state.apiKey,
                     'Accept': 'application/json'
                 },
                 body: formData
-            });
+            }, 30000);
 
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
@@ -187,69 +187,79 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function escapeHtml(unsafe) {
-        return (unsafe || "").toString()
-             .replace(/&/g, "&amp;")
-             .replace(/</g, "&lt;")
-             .replace(/>/g, "&gt;")
-             .replace(/"/g, "&quot;")
-             .replace(/'/g, "&#039;");
+    // Pure: maps a severity level to its distinct color, background, and icon.
+    // Every level (CRITICAL/HIGH/MEDIUM/LOW/INFO) is visually distinguishable;
+    // unknown levels fall back to the muted INFO style.
+    function severityStyle(severity) {
+        switch (severity) {
+            case 'CRITICAL': return { color: 'text-error', bg: 'bg-error/10', icon: 'dangerous' };
+            case 'HIGH': return { color: 'text-tertiary-container', bg: 'bg-tertiary-container/10', icon: 'report' };
+            case 'MEDIUM': return { color: 'text-amber-400', bg: 'bg-amber-400/10', icon: 'warning' };
+            case 'LOW': return { color: 'text-sky-400', bg: 'bg-sky-400/10', icon: 'arrow_downward' };
+            default: return { color: 'text-on-surface-variant', bg: 'bg-on-surface-variant/10', icon: 'info' };
+        }
     }
 
-    function renderResults(data) {
-        resultsPanel.style.display = 'block';
+    // Pure: maps a 0-100 risk score to the gauge's rotation in degrees
+    // (0 -> 180deg at the left, 100 -> 360deg at the right).
+    function gaugeRotation(score) {
+        return 180 + (Number(score) * 1.8);
+    }
 
-        // Update Gauge
+    function renderGauge(data) {
         document.getElementById('scan-confidence').textContent = `CONFIDENCE: ${data.confidence || '--'}`;
         document.getElementById('risk-score').textContent = data.score;
-        const deg = 180 + (data.score * 1.8); // 0 = 180deg, 100 = 360deg
-        document.getElementById('risk-gauge').style.transform = `rotate(${deg}deg)`;
+        document.getElementById('risk-gauge').style.transform = `rotate(${gaugeRotation(data.score)}deg)`;
+    }
 
-        // Update Breakdowns
+    function renderBreakdown(data) {
         document.getElementById('rule-score-val').textContent = data.rule_based_score.toFixed(2);
         document.getElementById('rule-score-bar').style.width = `${data.rule_based_score}%`;
-
         document.getElementById('ml-score-val').textContent = data.ml_score.toFixed(2);
         document.getElementById('ml-score-bar').style.width = `${data.ml_score}%`;
+    }
 
-        // Update Vulnerabilities Table
+    function buildVulnRow(v) {
+        const style = severityStyle(v.severity);
+        const safeSeverity = App.escapeHtml(v.severity);
+        const safeMessage = App.escapeHtml(v.message);
+        const safeResource = App.escapeHtml(v.resource);
+        const safeRemediation = App.escapeHtml(v.remediation);
+        const safePoints = App.escapeHtml(v.points || 0);
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-surface-container-high transition-colors';
+        tr.innerHTML = `
+            <td class="px-6 py-4">
+                <span class="inline-flex items-center gap-1.5 ${style.bg} ${style.color} px-2.5 py-1 rounded-full text-[10px] font-black">
+                    <span class="material-symbols-outlined text-[14px]" data-icon="${style.icon}" style="font-variation-settings: 'FILL' 1;">${style.icon}</span>
+                    ${safeSeverity}
+                </span>
+            </td>
+            <td class="px-6 py-4 font-medium">${safeMessage}</td>
+            <td class="px-6 py-4 font-mono text-xs text-secondary">${safeResource}</td>
+            <td class="px-6 py-4 text-xs text-on-surface-variant">${safeRemediation}</td>
+            <td class="px-6 py-4 text-right font-mono font-bold ${style.color}">${safePoints}</td>
+        `;
+        return tr;
+    }
+
+    function renderVulnTable(vulnerabilities) {
         const tbody = document.getElementById('vulns-table');
         tbody.innerHTML = '';
 
-        if (!data.vulnerabilities || data.vulnerabilities.length === 0) {
+        if (!vulnerabilities || vulnerabilities.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center">No vulnerabilities found!</td></tr>';
             return;
         }
 
-        data.vulnerabilities.forEach(v => {
-            let colorCls = 'text-primary';
-            let bgCls = 'bg-primary/10';
-            let icon = 'info';
+        vulnerabilities.forEach(v => tbody.appendChild(buildVulnRow(v)));
+    }
 
-            if (v.severity === 'CRITICAL') { colorCls = 'text-error'; bgCls = 'bg-error/10'; icon = 'warning'; }
-            else if (v.severity === 'HIGH') { colorCls = 'text-tertiary-container'; bgCls = 'bg-tertiary-container/10'; icon = 'report'; }
-            else if (v.severity === 'MEDIUM') { colorCls = 'text-orange-400'; bgCls = 'bg-orange-400/10'; icon = 'warning'; }
-
-            const safeMessage = escapeHtml(v.message);
-            const safeResource = escapeHtml(v.resource);
-            const safeRemediation = escapeHtml(v.remediation);
-            const safePoints = escapeHtml(v.points || 0);
-
-            const tr = document.createElement('tr');
-            tr.className = 'hover:bg-surface-container-high transition-colors';
-            tr.innerHTML = `
-                <td class="px-6 py-4">
-                    <span class="inline-flex items-center gap-1.5 ${bgCls} ${colorCls} px-2.5 py-1 rounded-full text-[10px] font-black">
-                        <span class="material-symbols-outlined text-[14px]" data-icon="${icon}" style="font-variation-settings: 'FILL' 1;">${icon}</span>
-                        ${v.severity}
-                    </span>
-                </td>
-                <td class="px-6 py-4 font-medium">${safeMessage}</td>
-                <td class="px-6 py-4 font-mono text-xs text-secondary">${safeResource}</td>
-                <td class="px-6 py-4 text-xs text-on-surface-variant">${safeRemediation}</td>
-                <td class="px-6 py-4 text-right font-mono font-bold ${colorCls}">${safePoints}</td>
-            `;
-            tbody.appendChild(tr);
-        });
+    function renderResults(data) {
+        resultsPanel.style.display = 'block';
+        renderGauge(data);
+        renderBreakdown(data);
+        renderVulnTable(data.vulnerabilities);
     }
 });

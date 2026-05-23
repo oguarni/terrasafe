@@ -3,7 +3,14 @@ const App = {
         backendUrl: localStorage.getItem('backendUrl') || window.location.origin,
         apiKey: localStorage.getItem('apiKey') || '',
         theme: localStorage.getItem('theme') || 'dark',
-        scans: JSON.parse(localStorage.getItem('scans') || '[]'),
+        scans: (() => {
+            try { return JSON.parse(localStorage.getItem('scans') || '[]'); }
+            catch (e) {
+                console.warn('Corrupt scan data detected. Resetting history.');
+                localStorage.removeItem('scans');
+                return [];
+            }
+        })(),
         sysOk: false
     },
 
@@ -35,14 +42,45 @@ const App = {
         }
     },
 
+    // Single source of truth for HTML escaping, shared across pages. Returns
+    // '' only for null/undefined so falsy-but-valid values like 0 survive.
+    escapeHtml(unsafe) {
+        if (unsafe === null || unsafe === undefined) return '';
+        return unsafe.toString()
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    },
+
+    // fetch() with an abort-based timeout. Translates the two failure modes the
+    // user cannot otherwise diagnose — unreachable backend and hung backend —
+    // into friendly, actionable messages. Non-OK HTTP responses are returned
+    // as-is so callers can read status-specific error detail.
+    async fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            return await fetch(url, { ...options, signal: controller.signal });
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                throw new Error('The request timed out. Please verify the backend service is running.');
+            }
+            throw new Error('Unable to reach the backend service. Please verify it is running and the endpoint is correct in Settings.');
+        } finally {
+            clearTimeout(timer);
+        }
+    },
+
     async checkHealth() {
         const indicatorDot = document.querySelector('.indicator-dot');
         const indicatorText = document.querySelector('.indicator-text');
 
         try {
-            const res = await fetch(`${this.state.backendUrl}/health`, {
+            const res = await this.fetchWithTimeout(`${this.state.backendUrl}/health`, {
                 headers: { 'Accept': 'application/json' }
-            });
+            }, 8000);
             if (res.ok) {
                 this.state.sysOk = true;
                 if(indicatorDot) {
