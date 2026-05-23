@@ -90,11 +90,11 @@
     <div class="hidden md:flex items-center gap-8">
         <a class="text-slate-400 hover:text-slate-200 transition-colors" href="/index.html">Dashboard</a>
         <a class="text-slate-400 hover:text-slate-200 transition-colors" href="/scan.html">Scan</a>
-        <a class="text-slate-400 hover:text-slate-200 transition-colors" href="#">History</a>
+        <a class="text-slate-400 hover:text-slate-200 transition-colors" href="/index.html#history">History</a>
         <a class="text-[#adc6ff] border-b-2 border-[#adc6ff] pb-1" href="/settings.html">Settings</a>
     </div>
     <div class="flex items-center gap-4">
-        <button id="theme-toggle" class="p-2 text-slate-400 hover:bg-[#222a3d] rounded-lg transition-all duration-300 scale-95 active:scale-90">
+        <button id="theme-toggle" aria-label="Toggle application theme" class="p-2 text-slate-400 hover:bg-[#222a3d] rounded-lg transition-all duration-300 scale-95 active:scale-90">
             <span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
         </button>
         <div id="status-indicator" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-high border-l border-outline-variant/20">
@@ -129,11 +129,14 @@
                     <label class="block text-xs font-bold uppercase tracking-widest text-primary mb-4">API Key Access</label>
                     <div class="relative">
                         <input id="api-key-input" class="w-full bg-surface-container-lowest border-none rounded-lg py-3 px-4 text-on-surface font-mono text-sm focus:ring-1 focus:ring-primary-container transition-all" type="password" placeholder="Enter API Key"/>
-                        <button id="toggle-key-visibility" class="absolute right-3 top-2.5 text-outline hover:text-primary transition-colors">
+                        <button id="toggle-key-visibility" aria-label="Toggle API Key visibility" class="absolute right-3 top-2.5 text-outline hover:text-primary transition-colors">
                             <span class="material-symbols-outlined" data-icon="visibility">visibility</span>
                         </button>
                     </div>
                     <p class="mt-3 text-xs text-on-surface-variant/60 italic">Your credential is stored in <span class="text-primary-container">localStorage</span>.</p>
+                    <button onclick="localStorage.clear(); window.location.reload();" class="mt-4 text-xs font-bold text-error uppercase tracking-widest hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-error rounded">
+                        Revoke Local Data
+                    </button>
                 </div>
 
                 <div class="bg-surface-container p-6 rounded-xl border-l-2 border-green-500/30">
