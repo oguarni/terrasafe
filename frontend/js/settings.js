@@ -61,4 +61,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Keep the sidebar highlight on the section matching the current hash
+    // (falling back to the first link). Toggles color only — the constant
+    // border-l-4 avoids any layout shift between states.
+    const sidebarLinks = document.querySelectorAll('#settings-sidebar a[href^="#"]');
+    if (sidebarLinks.length) {
+        const ACTIVE = ['bg-surface-container-high', 'text-primary', 'border-primary'];
+        const INACTIVE = ['text-on-surface-variant', 'hover:bg-surface-container', 'border-transparent'];
+        const syncSidebar = () => {
+            const current = Array.from(sidebarLinks).find(
+                (link) => link.getAttribute('href') === window.location.hash
+            ) || sidebarLinks[0];
+            sidebarLinks.forEach((link) => {
+                const isActive = link === current;
+                ACTIVE.forEach((cls) => link.classList.toggle(cls, isActive));
+                INACTIVE.forEach((cls) => link.classList.toggle(cls, !isActive));
+            });
+        };
+        window.addEventListener('hashchange', syncSidebar);
+        syncSidebar();
+    }
 });

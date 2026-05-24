@@ -1,0 +1,149 @@
+/*
+ * TerraVault theme tokens.
+ *
+ * Each Material token is stored as space-separated RGB channels so Tailwind's
+ * `rgb(var(--c-token) / <alpha-value>)` color definitions (see js/theme.js)
+ * keep working with opacity modifiers (e.g. `bg-primary/10`). `:root` holds the
+ * light palette; `.dark` on <html> overrides it with the dark palette. Toggling
+ * the `.dark` class (js/app.js) therefore swaps the whole interface.
+ */
+
+:root {
+    /* Primary */
+    --c-primary: 0 90 194;
+    --c-on-primary: 255 255 255;
+    --c-primary-container: 37 99 235;
+    --c-on-primary-container: 255 255 255;
+    --c-inverse-primary: 173 198 255;
+    --c-surface-tint: 0 90 194;
+
+    /* Secondary */
+    --c-secondary: 86 94 113;
+    --c-on-secondary: 255 255 255;
+    --c-secondary-container: 218 226 249;
+    --c-on-secondary-container: 19 28 43;
+
+    /* Tertiary (danger accent) */
+    --c-tertiary: 186 26 26;
+    --c-on-tertiary: 255 255 255;
+    --c-tertiary-container: 211 47 47;
+    --c-on-tertiary-container: 255 255 255;
+
+    /* Error */
+    --c-error: 186 26 26;
+    --c-on-error: 255 255 255;
+    --c-error-container: 255 218 214;
+    --c-on-error-container: 65 0 2;
+
+    /* Surfaces & background */
+    --c-background: 250 249 253;
+    --c-on-background: 26 27 33;
+    --c-surface: 250 249 253;
+    --c-on-surface: 26 27 33;
+    --c-surface-variant: 225 226 236;
+    --c-on-surface-variant: 68 70 79;
+    --c-surface-dim: 218 217 224;
+    --c-surface-bright: 250 249 253;
+    --c-surface-container-lowest: 255 255 255;
+    --c-surface-container-low: 244 243 247;
+    --c-surface-container: 238 237 241;
+    --c-surface-container-high: 232 231 235;
+    --c-surface-container-highest: 226 226 230;
+
+    /* Outline */
+    --c-outline: 117 119 127;
+    --c-outline-variant: 197 198 208;
+
+    /* Inverse */
+    --c-inverse-surface: 47 48 54;
+    --c-inverse-on-surface: 241 240 247;
+
+    /* Fixed accents (identical across themes) */
+    --c-primary-fixed: 216 226 255;
+    --c-primary-fixed-dim: 173 198 255;
+    --c-on-primary-fixed: 0 26 66;
+    --c-on-primary-fixed-variant: 0 67 149;
+    --c-secondary-fixed: 213 227 253;
+    --c-secondary-fixed-dim: 185 199 224;
+    --c-on-secondary-fixed: 13 28 47;
+    --c-on-secondary-fixed-variant: 58 72 92;
+    --c-tertiary-fixed: 255 218 214;
+    --c-tertiary-fixed-dim: 255 180 171;
+    --c-on-tertiary-fixed: 65 0 2;
+    --c-on-tertiary-fixed-variant: 147 0 11;
+}
+
+.dark {
+    /* Primary */
+    --c-primary: 173 198 255;
+    --c-on-primary: 0 46 106;
+    --c-primary-container: 77 142 255;
+    --c-on-primary-container: 0 40 93;
+    --c-inverse-primary: 0 90 194;
+    --c-surface-tint: 173 198 255;
+
+    /* Secondary */
+    --c-secondary: 185 199 224;
+    --c-on-secondary: 35 49 68;
+    --c-secondary-container: 60 74 94;
+    --c-on-secondary-container: 171 185 210;
+
+    /* Tertiary (danger accent) */
+    --c-tertiary: 255 180 171;
+    --c-on-tertiary: 105 0 5;
+    --c-tertiary-container: 255 84 74;
+    --c-on-tertiary-container: 92 0 4;
+
+    /* Error */
+    --c-error: 255 180 171;
+    --c-on-error: 105 0 5;
+    --c-error-container: 147 0 10;
+    --c-on-error-container: 255 218 214;
+
+    /* Surfaces & background */
+    --c-background: 11 19 38;
+    --c-on-background: 218 226 253;
+    --c-surface: 11 19 38;
+    --c-on-surface: 218 226 253;
+    --c-surface-variant: 45 52 73;
+    --c-on-surface-variant: 194 198 214;
+    --c-surface-dim: 11 19 38;
+    --c-surface-bright: 49 57 77;
+    --c-surface-container-lowest: 6 14 32;
+    --c-surface-container-low: 19 27 46;
+    --c-surface-container: 23 31 51;
+    --c-surface-container-high: 34 42 61;
+    --c-surface-container-highest: 45 52 73;
+
+    /* Outline */
+    --c-outline: 140 144 159;
+    --c-outline-variant: 66 71 84;
+
+    /* Inverse */
+    --c-inverse-surface: 218 226 253;
+    --c-inverse-on-surface: 40 48 68;
+
+    /* Fixed accents (identical across themes) */
+    --c-primary-fixed: 216 226 255;
+    --c-primary-fixed-dim: 173 198 255;
+    --c-on-primary-fixed: 0 26 66;
+    --c-on-primary-fixed-variant: 0 67 149;
+    --c-secondary-fixed: 213 227 253;
+    --c-secondary-fixed-dim: 185 199 224;
+    --c-on-secondary-fixed: 13 28 47;
+    --c-on-secondary-fixed-variant: 58 72 92;
+    --c-tertiary-fixed: 255 218 214;
+    --c-tertiary-fixed-dim: 255 180 171;
+    --c-on-tertiary-fixed: 65 0 2;
+    --c-on-tertiary-fixed-variant: 147 0 11;
+}
+
+body {
+    background-color: rgb(var(--c-background));
+    color: rgb(var(--c-on-surface));
+    font-family: 'Inter', sans-serif;
+}
+
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
