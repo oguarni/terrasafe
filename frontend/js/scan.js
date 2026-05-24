@@ -20,17 +20,55 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalSaveKey = document.getElementById('modal-save-key');
     const modalCloseKey = document.getElementById('modal-close-key');
     const modalKeyError = document.getElementById('modal-key-error');
+    let lastFocusedBeforeModal = null;
+
+    // Visible, tabbable controls inside the modal, in DOM order.
+    function modalFocusable() {
+        return Array.from(apiKeyModal.querySelectorAll(
+            'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )).filter((el) => el.offsetParent !== null);
+    }
+
+    // While the modal is open: Escape closes it, and Tab is trapped so focus
+    // cannot reach the page behind the overlay.
+    function handleModalKeydown(e) {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeKeyModal();
+            return;
+        }
+        if (e.key !== 'Tab') return;
+        const focusable = modalFocusable();
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+        }
+    }
 
     function openKeyModal() {
         if (!apiKeyModal) return;
+        lastFocusedBeforeModal = document.activeElement;
         modalKeyInput.value = App.state.apiKey || '';
         modalKeyError.classList.add('hidden');
         apiKeyModal.classList.remove('hidden');
         modalKeyInput.focus();
+        document.addEventListener('keydown', handleModalKeydown);
     }
 
     function closeKeyModal() {
-        if (apiKeyModal) apiKeyModal.classList.add('hidden');
+        if (!apiKeyModal) return;
+        apiKeyModal.classList.add('hidden');
+        document.removeEventListener('keydown', handleModalKeydown);
+        if (lastFocusedBeforeModal && typeof lastFocusedBeforeModal.focus === 'function') {
+            lastFocusedBeforeModal.focus();
+        }
+        lastFocusedBeforeModal = null;
     }
 
     function saveModalKey() {

@@ -140,7 +140,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Re-render periodically to catch cross-tab saves
     window.addEventListener('storage', (e) => {
         if (e.key === 'scans') {
-            App.state.scans = JSON.parse(e.newValue || '[]');
+            try {
+                App.state.scans = JSON.parse(e.newValue || '[]');
+            } catch (err) {
+                // Another tab wrote malformed JSON; keep the dashboard alive.
+                console.warn('Corrupt scan data received from another tab. Ignoring update.');
+                App.state.scans = [];
+            }
             updateDashboard();
         }
     });

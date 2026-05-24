@@ -91,19 +91,29 @@
     <div class="hidden md:flex items-center gap-8">
         <a class="text-slate-400 hover:text-slate-200 transition-colors" href="/index.html">Dashboard</a>
         <a class="text-[#adc6ff] border-b-2 border-[#adc6ff] pb-1" href="/scan.html">Scan</a>
-        <a class="text-slate-400 hover:text-slate-200 transition-colors" href="/index.html#history">History</a>
         <a class="text-slate-400 hover:text-slate-200 transition-colors" href="/settings.html">Settings</a>
     </div>
     <div class="flex items-center gap-4">
         <button id="theme-toggle" aria-label="Toggle application theme" class="p-2 text-slate-400 hover:bg-[#222a3d] rounded-lg transition-all duration-300 scale-95 active:scale-90">
             <span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
         </button>
-        <div id="status-indicator" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-high border-l border-outline-variant/20">
+        <div id="status-indicator" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-high border-l border-outline-variant/20">
             <span class="w-2 h-2 rounded-full bg-slate-500 indicator-dot"></span>
             <span class="text-xs font-mono text-slate-400 indicator-text">Checking</span>
         </div>
+        <button id="mobile-nav-toggle" type="button" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-nav" class="md:hidden p-2 text-slate-400 hover:bg-[#222a3d] rounded-lg transition-all">
+            <span class="material-symbols-outlined" data-icon="menu">menu</span>
+        </button>
     </div>
 </nav>
+<!-- Mobile navigation -->
+<div id="mobile-nav" class="hidden md:hidden sticky top-16 z-40 bg-[#171f33]/95 backdrop-blur-xl border-b border-outline-variant/20">
+    <nav class="flex flex-col px-8 py-3 gap-1 text-sm font-medium" aria-label="Mobile">
+        <a class="block px-3 py-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-[#222a3d] transition-colors" href="/index.html">Dashboard</a>
+        <a class="block px-3 py-2 rounded-lg text-[#adc6ff] bg-[#222a3d]" href="/scan.html">Scan</a>
+        <a class="block px-3 py-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-[#222a3d] transition-colors" href="/settings.html">Settings</a>
+    </nav>
+</div>
 
 <main class="max-w-[1440px] mx-auto px-8 py-10">
     <header class="mb-12">
@@ -228,7 +238,7 @@
 </main>
 
 <!-- API Key onboarding modal -->
-<div id="api-key-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+<div id="api-key-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
     <div class="bg-surface-container border border-outline-variant/20 rounded-2xl max-w-md w-full p-8 shadow-2xl relative">
         <button id="modal-close-key" aria-label="Close API Key modal" class="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface transition-colors">
             <span class="material-symbols-outlined" data-icon="close">close</span>
@@ -238,7 +248,7 @@
                 <span class="material-symbols-outlined text-primary text-2xl" data-icon="key" style="font-variation-settings: 'FILL' 1;">key</span>
             </div>
             <div>
-                <h2 class="text-xl font-bold tracking-tight">API Key Required</h2>
+                <h2 id="modal-title" class="text-xl font-bold tracking-tight">API Key Required</h2>
                 <p class="text-xs text-on-surface-variant">Authenticate to run security scans</p>
             </div>
         </div>

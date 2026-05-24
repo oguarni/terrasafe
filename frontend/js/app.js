@@ -30,6 +30,17 @@ const App = {
                 this.applyTheme(newTheme);
             });
         }
+
+        const mobileToggle = document.getElementById('mobile-nav-toggle');
+        const mobileNav = document.getElementById('mobile-nav');
+        if (mobileToggle && mobileNav) {
+            mobileToggle.addEventListener('click', () => {
+                const isOpen = !mobileNav.classList.toggle('hidden');
+                mobileToggle.setAttribute('aria-expanded', String(isOpen));
+                const icon = mobileToggle.querySelector('.material-symbols-outlined');
+                if (icon) icon.textContent = isOpen ? 'close' : 'menu';
+            });
+        }
     },
 
     applyTheme(theme) {

@@ -93,19 +93,29 @@
     <div class="hidden md:flex items-center gap-8">
         <a class="text-[#adc6ff] border-b-2 border-[#adc6ff] pb-1" href="/index.html">Dashboard</a>
         <a class="text-slate-400 hover:text-slate-200 transition-colors" href="/scan.html">Scan</a>
-        <a class="text-slate-400 hover:text-slate-200 transition-colors" href="/index.html#history">History</a>
         <a class="text-slate-400 hover:text-slate-200 transition-colors" href="/settings.html">Settings</a>
     </div>
     <div class="flex items-center gap-4">
-        <div id="status-indicator" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-high">
+        <div id="status-indicator" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-high">
             <span class="w-2 h-2 bg-slate-500 rounded-full indicator-dot"></span>
             <span class="text-[10px] font-mono uppercase tracking-widest text-slate-500 indicator-text">Checking</span>
         </div>
         <button id="theme-toggle" aria-label="Toggle application theme" class="p-2 text-slate-400 hover:bg-[#222a3d] rounded-lg transition-all duration-300 scale-95 active:scale-90">
             <span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
         </button>
+        <button id="mobile-nav-toggle" type="button" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-nav" class="md:hidden p-2 text-slate-400 hover:bg-[#222a3d] rounded-lg transition-all">
+            <span class="material-symbols-outlined" data-icon="menu">menu</span>
+        </button>
     </div>
 </nav>
+<!-- Mobile navigation -->
+<div id="mobile-nav" class="hidden md:hidden sticky top-16 z-40 bg-[#171f33]/95 backdrop-blur-xl border-b border-outline-variant/20">
+    <nav class="flex flex-col px-8 py-3 gap-1 text-sm font-medium" aria-label="Mobile">
+        <a class="block px-3 py-2 rounded-lg text-[#adc6ff] bg-[#222a3d]" href="/index.html">Dashboard</a>
+        <a class="block px-3 py-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-[#222a3d] transition-colors" href="/scan.html">Scan</a>
+        <a class="block px-3 py-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-[#222a3d] transition-colors" href="/settings.html">Settings</a>
+    </nav>
+</div>
 <main class="max-w-7xl mx-auto px-8 py-10 space-y-10">
     <header class="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div class="space-y-1">

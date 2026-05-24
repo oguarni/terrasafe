@@ -48,4 +48,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    const revokeDataBtn = document.getElementById('revoke-data-btn');
+    if (revokeDataBtn) {
+        revokeDataBtn.addEventListener('click', () => {
+            const confirmed = window.confirm(
+                'Permanently delete all local data (API key, backend URL, and scan history) from this browser? This cannot be undone.'
+            );
+            if (confirmed) {
+                localStorage.clear();
+                window.location.reload();
+            }
+        });
+    }
 });
