@@ -10,7 +10,7 @@
   [![Coverage 74%](https://img.shields.io/badge/coverage-74%25-dfb317)](tests/)
   [![Pylint 10.00](https://img.shields.io/badge/pylint-10.00%2F10-2ea44f)](https://pylint.pycqa.org/)
   [![SAST Clean](https://img.shields.io/badge/SAST-0%20issues-2ea44f)](https://bandit.readthedocs.io/)
-  [![License CC BY-NC-SA 4.0](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey)](LICENSE)
+  [![License AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
   [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
   <br>
@@ -509,7 +509,16 @@ Isolation Forest was selected after evaluating alternatives against four practic
 
 ## License
 
-This project is licensed under **CC BY-NC-SA 4.0**. This license covers all current and historical commits. See the [LICENSE](LICENSE) file for details.
+Copyright (C) 2025-2026 Gabriel Felipe Guarnieri. All rights reserved.
+
+This project is dual-licensed under the **AGPL-3.0 + Commercial License** model:
+
+- **Open-source use**: Licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE).
+- **Commercial use**: A proprietary commercial license is available for use cases incompatible with the AGPL-3.0. See [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md) for details.
+
+> **Retroactive clause**: This license applies retroactively to all past commits and versions of this repository, superseding any previously stated license.
+
+For commercial licensing inquiries, contact the author via [LinkedIn](https://www.linkedin.com/in/oguarni/).
 
 ---
 
