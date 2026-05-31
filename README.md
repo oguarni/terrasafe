@@ -1,7 +1,5 @@
 <div align="center">
-  <img src="screenshots/terravault_icon.png" alt="TerraVault Logo" width="200">
-
-  # TerraVault
+  <img src="frontend/assets/logo.png" alt="TerraVault" width="420">
 
   **Hybrid Terraform Security Scanner — Deterministic Rules + ML Anomaly Detection**
 
