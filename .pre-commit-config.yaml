@@ -35,6 +35,12 @@ repos:
     hooks:
       - id: detect-secrets
 
+  # Secret detection (gitleaks — defense-in-depth alongside detect-secrets)
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
   # Terraform file validation
   - repo: local
     hooks:
