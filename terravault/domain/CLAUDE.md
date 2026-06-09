@@ -12,7 +12,7 @@ This layer defines business entities and detection logic. It depends only on `co
 - **Naming collision**: `Vulnerability` here conflicts with the ORM model in `infrastructure/models.py`. Repositories import it as `DomainVulnerability` alias.
 
 ### `security_rules.py`
-- `SecurityRuleEngine` — 7 rule checks, point constants: `CRITICAL=30`, `HIGH=20`, `MEDIUM=10`, `LOW=5`, `INFO=2`
+- `SecurityRuleEngine` — 11 rule checks, point constants: `CRITICAL=30`, `HIGH=20`, `MEDIUM=10`, `LOW=5`, `INFO=2`
 - `analyze(tf_content, raw_content)` aggregates all checks and applies `severity_overrides` from settings — **new rules must be registered here**
 
 ## Rule Inventory
@@ -26,6 +26,10 @@ This layer defines business entities and detection logic. It depends only on `co
 | 5 | IAM policies | `check_iam_policies()` | CRITICAL | Wildcard actions + full admin (`*`/`*`) detection |
 | 6 | Missing logging | `check_missing_logging()` | HIGH | Flags if infra resources exist but no CloudTrail/CloudWatch |
 | 7 | Missing VPC flow logs | `check_missing_vpc_flow_logs()` | MEDIUM | Flags if `aws_vpc` exists but no `aws_flow_log` |
+| 8 | Public RDS | `check_public_rds()` | CRITICAL | `aws_db_instance` with `publicly_accessible = true` (truthy via `_truthy()`) |
+| 9 | Unrestricted egress | `check_unrestricted_egress()` | LOW | `aws_security_group` `egress` open to `0.0.0.0/0`/`::/0` (reuses `_open_scopes()`) |
+| 10 | IMDSv1 allowed | `check_imdsv2_required()` | HIGH | `aws_instance` without `metadata_options { http_tokens = "required" }`; absence also flagged (IMDSv1 is the default) |
+| 11 | Public EC2 instance | `check_public_instance()` | LOW | `aws_instance` with `associate_public_ip_address = true` |
 
 ### Severity Overrides
 

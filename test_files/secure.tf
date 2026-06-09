@@ -18,6 +18,13 @@ resource "aws_security_group" "web_sg" {
     protocol    = "tcp"
     cidr_blocks = ["10.0.1.0/24"]  # SSH restricted to specific subnet
   }
+
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/8"]  # Egress scoped to the private network
+  }
 }
 
 resource "aws_db_instance" "main_db" {
@@ -30,12 +37,24 @@ resource "aws_db_instance" "main_db" {
   username               = "admin"
   password               = var.db_password  # Using variable instead of hardcoded
   storage_encrypted      = true             # Encryption enabled
+  publicly_accessible    = false            # Database kept off the public internet
   backup_retention_period = 7
   skip_final_snapshot    = false
-  
+
   tags = {
     Environment = "production"
     Encrypted   = "true"
+  }
+}
+
+resource "aws_instance" "web" {
+  ami           = "ami-0123456789abcdef0"
+  instance_type = "t3.micro"
+
+  associate_public_ip_address = false  # No auto-assigned public IP
+
+  metadata_options {
+    http_tokens = "required"  # IMDSv2 enforced — blocks SSRF credential theft
   }
 }
 

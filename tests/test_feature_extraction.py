@@ -105,14 +105,15 @@ def test_secret_parametrization_separates_literals_from_variables():
 def test_features_are_independent_of_the_rule_engine():
     """A rule-clean but structurally exposed config must still register.
 
-    ``aws_instance`` with a public IP is not covered by any of the 7 rules, so
-    the rule engine returns no findings — yet the structural extractor records
-    the public exposure. This is the behaviour that lets the ML surface risks
-    outside the fixed rule catalogue. A CloudWatch log group is included so the
-    missing-logging rule stays silent and the config is genuinely rule-clean.
+    An ``aws_subnet`` that auto-assigns public IPs (``map_public_ip_on_launch``)
+    is not covered by any rule, so the rule engine returns no findings — yet the
+    structural extractor records the public exposure. This is the behaviour that
+    lets the ML surface risks outside the fixed rule catalogue. A CloudWatch log
+    group is included so the missing-logging rule stays silent and the config is
+    genuinely rule-clean.
     """
     raw = """
-    resource "aws_instance" "web" { associate_public_ip_address = true }
+    resource "aws_subnet" "public" { map_public_ip_on_launch = true }
     resource "aws_cloudwatch_log_group" "g" { name = "g" }
     """
     tf_content = hcl2.loads(raw)

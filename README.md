@@ -13,7 +13,7 @@
 
   <br>
 
-  Catch Terraform misconfigurations, hardcoded secrets, and risky infrastructure patterns before they reach production. TerraVault pairs **7 deterministic detection rules** with **Isolation Forest anomaly detection** to surface both known violations and deviations from learned secure baselines.
+  Catch Terraform misconfigurations, hardcoded secrets, and risky infrastructure patterns before they reach production. TerraVault pairs **11 deterministic detection rules** with **Isolation Forest anomaly detection** to surface both known violations and deviations from learned secure baselines.
 
 </div>
 
@@ -51,7 +51,7 @@
 ## Features
 
 ### Security Scanner
-- Pattern matching for **7 vulnerability categories**: open ports, hardcoded secrets, unencrypted storage, public S3 buckets, IAM misconfigurations, missing CloudWatch logging, and missing VPC flow logs
+- Pattern matching for **11 vulnerability categories**: open ports, hardcoded secrets, unencrypted storage, public S3 buckets, IAM misconfigurations, missing CloudWatch logging, missing VPC flow logs, publicly accessible RDS, unrestricted security-group egress, EC2 instances allowing IMDSv1, and EC2 instances with auto-assigned public IPs
 - Severity classification: `CRITICAL` · `HIGH` · `MEDIUM` · `LOW` · `INFO`
 - Actionable remediation suggestions per finding
 - Configurable severity overrides for organizational policy alignment

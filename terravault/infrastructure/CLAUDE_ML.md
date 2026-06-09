@@ -16,7 +16,7 @@
 The model scores the **structure of the infrastructure**, extracted directly
 from the parsed Terraform by `application/feature_extraction.py`
 (`StructuralFeatureExtractor`). It is **not** derived from the rule findings, so
-the ML signal can flag anomalous configurations the 7 rules do not cover. The
+the ML signal can flag anomalous configurations the fixed rule set does not cover. The
 canonical layout lives in `feature_extraction.FEATURE_NAMES` / `FEATURE_BOUNDS`.
 
 | Index | Feature | Bounds | Meaning |

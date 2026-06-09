@@ -40,6 +40,20 @@ class SecurityRuleEngine:
                     yield from item.items()
 
     @staticmethod
+    def _truthy(value) -> bool:
+        """Interpret an HCL attribute as a boolean.
+
+        ``hcl2`` parses ``true``/``false`` to Python bools, but ``.tf.json`` and
+        quoted values can arrive as the strings ``"true"``/``"false"`` — treat
+        both consistently so a string ``"true"`` is not silently falsy.
+        """
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() == "true"
+        return bool(value)
+
+    @staticmethod
     def _open_scopes(ingress: Dict) -> List[str]:
         """Return the internet-open CIDR scopes on an ingress rule.
 
@@ -386,6 +400,125 @@ class SecurityRuleEngine:
 
         return vulns
 
+    def check_public_rds(self, tf_content: Dict) -> List[Vulnerability]:
+        """Flag RDS instances reachable from the public internet.
+
+        ``publicly_accessible = true`` gives the database a public endpoint, so a
+        single weak credential or SG mistake exposes it directly — independent of
+        whether storage is encrypted.
+        """
+        vulns: List[Vulnerability] = []
+
+        if 'resource' not in tf_content:
+            return vulns
+
+        for db_name, db_config in self._iter_named_resources(tf_content, 'aws_db_instance'):
+            if self._truthy(db_config.get('publicly_accessible', False)):
+                vulns.append(Vulnerability(
+                    severity=Severity.CRITICAL,
+                    points=POINTS_CRITICAL,
+                    message="[CRITICAL] Publicly accessible RDS instance - database reachable from the internet",
+                    resource=db_name,
+                    remediation="Set publicly_accessible = false and place the instance in a private subnet",
+                ))
+
+        return vulns
+
+    def check_unrestricted_egress(self, tf_content: Dict) -> List[Vulnerability]:
+        """Flag security groups whose egress is open to the entire internet.
+
+        Unrestricted outbound traffic lets a compromised host exfiltrate data or
+        reach command-and-control infrastructure anywhere; egress should be
+        scoped to the destinations the workload actually needs.
+        """
+        vulns: List[Vulnerability] = []
+
+        if 'resource' not in tf_content:
+            return vulns
+
+        for sg_name, sg_config in self._iter_named_resources(tf_content, 'aws_security_group'):
+            egress_rules = sg_config.get('egress', [])
+            if isinstance(egress_rules, dict):
+                egress_rules = [egress_rules]
+            for egress in egress_rules:
+                if not isinstance(egress, dict):
+                    continue
+                scopes = self._open_scopes(egress)
+                if scopes:
+                    vulns.append(Vulnerability(
+                        severity=Severity.LOW,
+                        points=POINTS_LOW,
+                        message=f"[LOW] Unrestricted egress - outbound traffic open to internet ({' / '.join(scopes)})",
+                        resource=sg_name,
+                        remediation="Restrict egress to the specific destinations the workload needs",
+                    ))
+
+        return vulns
+
+    @staticmethod
+    def _metadata_http_tokens(inst_config: Dict):
+        """Return the ``http_tokens`` value from an instance's ``metadata_options``.
+
+        Normalises the HCL block/list ambiguity; returns None when no
+        ``metadata_options`` block is present.
+        """
+        metadata = inst_config.get('metadata_options')
+        if isinstance(metadata, list):
+            metadata = metadata[0] if metadata else None
+        if isinstance(metadata, dict):
+            return metadata.get('http_tokens')
+        return None
+
+    def check_imdsv2_required(self, tf_content: Dict) -> List[Vulnerability]:
+        """Flag EC2 instances that still allow IMDSv1.
+
+        IMDSv1's unauthenticated metadata endpoint turns any SSRF into instance
+        credential theft (the 2019 Capital One breach). IMDSv2 closes this by
+        requiring a session token — enforced with
+        ``metadata_options { http_tokens = "required" }``. An instance with no
+        ``metadata_options`` defaults to IMDSv1, so absence is also flagged.
+        """
+        vulns: List[Vulnerability] = []
+
+        if 'resource' not in tf_content:
+            return vulns
+
+        for inst_name, inst_config in self._iter_named_resources(tf_content, 'aws_instance'):
+            http_tokens = self._metadata_http_tokens(inst_config)
+            if not (isinstance(http_tokens, str) and http_tokens.lower() == 'required'):
+                vulns.append(Vulnerability(
+                    severity=Severity.HIGH,
+                    points=POINTS_HIGH,
+                    message="[HIGH] EC2 instance allows IMDSv1 - metadata endpoint not protected by IMDSv2",
+                    resource=inst_name,
+                    remediation='Set metadata_options { http_tokens = "required" } to enforce IMDSv2',
+                ))
+
+        return vulns
+
+    def check_public_instance(self, tf_content: Dict) -> List[Vulnerability]:
+        """Flag EC2 instances that auto-assign a public IP address.
+
+        ``associate_public_ip_address = true`` puts the host directly on the
+        internet; workloads should sit behind a NAT gateway or load balancer.
+        """
+        vulns: List[Vulnerability] = []
+
+        if 'resource' not in tf_content:
+            return vulns
+
+        for inst_name, inst_config in self._iter_named_resources(tf_content, 'aws_instance'):
+            if self._truthy(inst_config.get('associate_public_ip_address', False)):
+                vulns.append(Vulnerability(
+                    severity=Severity.LOW,
+                    points=POINTS_LOW,
+                    message="[LOW] EC2 instance auto-assigns a public IP - host directly exposed to the internet",
+                    resource=inst_name,
+                    remediation="Set associate_public_ip_address = false and route through a NAT gateway / LB",
+                ))
+
+        return vulns
+
     def analyze(self, tf_content: Dict, raw_content: str) -> List[Vulnerability]:
         """Run all security checks"""
         all_vulns = []
@@ -398,6 +531,10 @@ class SecurityRuleEngine:
         all_vulns.extend(self.check_iam_policies(tf_content))
         all_vulns.extend(self.check_missing_logging(tf_content))
         all_vulns.extend(self.check_missing_vpc_flow_logs(tf_content))
+        all_vulns.extend(self.check_public_rds(tf_content))
+        all_vulns.extend(self.check_unrestricted_egress(tf_content))
+        all_vulns.extend(self.check_imdsv2_required(tf_content))
+        all_vulns.extend(self.check_public_instance(tf_content))
 
         # Apply severity overrides from config
         overrides = get_settings().severity_overrides

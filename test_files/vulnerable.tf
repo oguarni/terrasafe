@@ -18,6 +18,13 @@ resource "aws_security_group" "web_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]  # CRITICAL: Open HTTP access from internet
   }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]  # LOW: Unrestricted egress to the internet
+  }
 }
 
 resource "aws_db_instance" "main_db" {
@@ -30,8 +37,18 @@ resource "aws_db_instance" "main_db" {
   username               = "admin"
   password               = "hardcoded123"  # CRITICAL: Hardcoded password
   storage_encrypted      = false           # HIGH: Unencrypted RDS instance
+  publicly_accessible    = true            # CRITICAL: Database reachable from the internet
   backup_retention_period = 0
   skip_final_snapshot    = true
+}
+
+resource "aws_instance" "web" {
+  ami           = "ami-0123456789abcdef0"
+  instance_type = "t3.micro"
+
+  associate_public_ip_address = true  # LOW: Auto-assigns a public IP
+
+  # NOTE: no metadata_options block → IMDSv1 allowed (HIGH: SSRF → credential theft)
 }
 
 resource "aws_ebs_volume" "data_volume" {
