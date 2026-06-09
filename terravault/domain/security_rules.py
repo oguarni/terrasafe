@@ -12,72 +12,135 @@ POINTS_MEDIUM = 10
 POINTS_LOW = 5
 POINTS_INFO = 2
 
+# Network exposure constants
+SSH_PORT = 22
+RDP_PORT = 3389
+WEB_PORTS = (80, 443)
+OPEN_IPV4 = "0.0.0.0/0"  # any IPv4 address
+OPEN_IPV6 = "::/0"       # any IPv6 address
+
 
 class SecurityRuleEngine:
     """Rule-based security detection engine following SRP"""
 
+    @staticmethod
+    def _iter_named_resources(tf_content: Dict, resource_type: str):
+        """Yield (name, config) for every resource of ``resource_type``.
+
+        Normalises the HCL list/dict ambiguity so callers never repeat the
+        ``isinstance`` dance.
+        """
+        for resource in tf_content.get('resource', []):
+            if resource_type not in resource:
+                continue
+            block = resource[resource_type]
+            items = block if isinstance(block, list) else [block]
+            for item in items:
+                if isinstance(item, dict):
+                    yield from item.items()
+
+    @staticmethod
+    def _open_scopes(ingress: Dict) -> List[str]:
+        """Return the internet-open CIDR scopes on an ingress rule.
+
+        Covers both IPv4 (``0.0.0.0/0``) and IPv6 (``::/0``) — a rule open over
+        IPv6 only is just as reachable as one open over IPv4.
+        """
+        scopes = []
+        if OPEN_IPV4 in (ingress.get('cidr_blocks') or []):
+            scopes.append(OPEN_IPV4)
+        if OPEN_IPV6 in (ingress.get('ipv6_cidr_blocks') or []):
+            scopes.append(OPEN_IPV6)
+        return scopes
+
+    @staticmethod
+    def _port_range(ingress: Dict) -> tuple:
+        """Normalise (from_port, to_port) to a sorted int tuple; (0, 0) on bad input."""
+        raw_from = ingress.get('from_port', 0)
+        raw_to = ingress.get('to_port', raw_from)
+        try:
+            low, high = int(raw_from), int(raw_to)
+        except (TypeError, ValueError):
+            return 0, 0
+        return (low, high) if low <= high else (high, low)
+
+    def _classify_open_ingress(self, ingress: Dict, sg_name: str):
+        """Return a Vulnerability for an internet-open ingress rule, or None.
+
+        Severity is decided by whether the port *range* covers a sensitive port,
+        so wide ranges (e.g. 0-65535) are still caught as CRITICAL rather than
+        slipping past an exact-match check.
+        """
+        scopes = self._open_scopes(ingress)
+        if not scopes:
+            return None
+
+        low, high = self._port_range(ingress)
+        scope = " / ".join(scopes)
+        port_label = str(low) if low == high else f"{low}-{high}"
+
+        if low <= SSH_PORT <= high:
+            return Vulnerability(
+                severity=Severity.CRITICAL, points=POINTS_CRITICAL,
+                message=f"[CRITICAL] Open security group - SSH port 22 exposed to internet ({scope})",
+                resource=sg_name,
+                remediation="Restrict SSH access to specific IP ranges",
+            )
+        if low <= RDP_PORT <= high:
+            return Vulnerability(
+                severity=Severity.CRITICAL, points=POINTS_CRITICAL,
+                message=f"[CRITICAL] Open security group - RDP port 3389 exposed to internet ({scope})",
+                resource=sg_name,
+                remediation="Restrict RDP access to specific IP ranges",
+            )
+        if any(low <= web_port <= high for web_port in WEB_PORTS):
+            return Vulnerability(
+                severity=Severity.MEDIUM, points=POINTS_MEDIUM,
+                message=f"[MEDIUM] HTTP/HTTPS port {port_label} exposed to internet ({scope})",
+                resource=sg_name,
+                remediation="Consider using a CDN or WAF for public web services",
+            )
+        return Vulnerability(
+            severity=Severity.HIGH, points=POINTS_HIGH,
+            message=f"[HIGH] Port {port_label} exposed to internet ({scope})",
+            resource=sg_name,
+            remediation="Restrict access to specific IP ranges",
+        )
+
     def check_open_security_groups(self, tf_content: Dict) -> List[Vulnerability]:
-        """Check for security groups with open access (0.0.0.0/0)"""
+        """Check for security groups open to the internet over IPv4 or IPv6."""
         vulns: List[Vulnerability] = []
 
         if 'resource' not in tf_content:
             return vulns
 
-        for resource in tf_content.get('resource', []):
-            if 'aws_security_group' in resource:
-                sg_list = resource['aws_security_group']
-                # Handle both list and dict formats
-                if isinstance(sg_list, list):
-                    sg_items = sg_list
-                else:
-                    sg_items = [sg_list]
-
-                for sg_item in sg_items:
-                    if isinstance(sg_item, dict):
-                        for sg_name, sg_config in sg_item.items():
-                            # Check ingress rules
-                            for ingress in sg_config.get('ingress', []):
-                                cidr_blocks = ingress.get('cidr_blocks', [])
-                                from_port = ingress.get('from_port', 0)
-
-                                if '0.0.0.0/0' in cidr_blocks:
-                                    if from_port == 22:
-                                        vulns.append(Vulnerability(
-                                            severity=Severity.CRITICAL,
-                                            points=POINTS_CRITICAL,
-                                            message="[CRITICAL] Open security group - SSH port 22 exposed to internet",
-                                            resource=sg_name,
-                                            remediation="Restrict SSH access to specific IP ranges"
-                                        ))
-                                    elif from_port == 3389:
-                                        vulns.append(Vulnerability(
-                                            severity=Severity.CRITICAL,
-                                            points=POINTS_CRITICAL,
-                                            message=(
-                                                "[CRITICAL] Open security group - RDP port 3389 "
-                                                "exposed to internet"
-                                            ),
-                                            resource=sg_name,
-                                            remediation="Restrict RDP access to specific IP ranges"
-                                        ))
-                                    elif from_port in (80, 443):
-                                        vulns.append(Vulnerability(
-                                            severity=Severity.MEDIUM,
-                                            points=POINTS_MEDIUM,
-                                            message=f"[MEDIUM] HTTP/HTTPS port {from_port} open to internet",
-                                            resource=sg_name,
-                                            remediation="Consider using a CDN or WAF for public web services"
-                                        ))
-                                    else:
-                                        vulns.append(Vulnerability(
-                                            severity=Severity.HIGH,
-                                            points=POINTS_HIGH,
-                                            message=f"[HIGH] Port {from_port} exposed to internet",
-                                            resource=sg_name,
-                                            remediation="Restrict access to specific IP ranges"
-                                        ))
+        for sg_name, sg_config in self._iter_named_resources(tf_content, 'aws_security_group'):
+            ingress_rules = sg_config.get('ingress', [])
+            if isinstance(ingress_rules, dict):
+                ingress_rules = [ingress_rules]
+            for ingress in ingress_rules:
+                if not isinstance(ingress, dict):
+                    continue
+                vuln = self._classify_open_ingress(ingress, sg_name)
+                if vuln is not None:
+                    vulns.append(vuln)
 
         return vulns
+
+    # Quoted values that are really references, not literal secrets.
+    _REFERENCE_PREFIXES = ('var.', 'local.', 'data.', 'module.', 'each.', 'count.')
+
+    @classmethod
+    def _is_parametrized(cls, value: str) -> bool:
+        """True if a quoted value is a Terraform reference, not a literal secret.
+
+        Excludes ``${...}`` interpolations anywhere in the value (so partial
+        interpolations like ``"prefix-${var.x}"`` are not false-positives) and
+        bare references such as ``var.x`` or ``data.y.z``.
+        """
+        if '${' in value:
+            return True
+        return value.startswith(cls._REFERENCE_PREFIXES)
 
     def check_hardcoded_secrets(self, raw_content: str) -> List[Vulnerability]:
         """Check for hardcoded passwords and secrets using regex"""
@@ -90,8 +153,8 @@ class SecurityRuleEngine:
 
         for match in matches:
             password_value = match.group(1)
-            # Skip if it's a variable reference
-            if not password_value.startswith('var.') and not password_value.startswith('${'):
+            # Skip if it's a variable reference / interpolation
+            if not self._is_parametrized(password_value):
                 vulns.append(Vulnerability(
                     severity=Severity.CRITICAL,
                     points=POINTS_CRITICAL,
@@ -111,7 +174,7 @@ class SecurityRuleEngine:
             matches = re.finditer(pattern, raw_content, re.IGNORECASE)
             for match in matches:
                 value = match.group(1)
-                if not value.startswith('var.') and not value.startswith('${'):
+                if not self._is_parametrized(value):
                     vulns.append(Vulnerability(
                         severity=Severity.CRITICAL,
                         points=POINTS_CRITICAL,

@@ -19,8 +19,8 @@ This layer defines business entities and detection logic. It depends only on `co
 
 | # | Rule | Method | Severity | Notes |
 |---|---|---|---|---|
-| 1 | Open security groups | `check_open_security_groups()` | CRITICAL/HIGH/MEDIUM | Port-specific: SSH(22)/RDP(3389) → CRITICAL, HTTP(80/443) → MEDIUM, other → HIGH |
-| 2 | Hardcoded secrets | `check_hardcoded_secrets()` | CRITICAL | Regex: password, api_key, secret_key, token; excludes `var.` and `${` refs |
+| 1 | Open security groups | `check_open_security_groups()` | CRITICAL/HIGH/MEDIUM | Internet-open over IPv4 (`0.0.0.0/0`) or IPv6 (`::/0`). Severity by port *range*: range covering SSH(22)/RDP(3389) → CRITICAL, HTTP(80/443) → MEDIUM, other → HIGH |
+| 2 | Hardcoded secrets | `check_hardcoded_secrets()` | CRITICAL | Regex: password, api_key, secret_key, token; `_is_parametrized()` excludes `${...}` interpolations (anywhere) and `var.`/`local.`/`data.`/`module.`/`each.`/`count.` refs |
 | 3 | Unencrypted storage | `check_encryption()` | HIGH | RDS (`storage_encrypted`) + EBS (`encrypted`) |
 | 4 | Public S3 | `check_public_s3()` | HIGH/MEDIUM | 4 boolean settings; >=3 disabled → HIGH, >0 → MEDIUM |
 | 5 | IAM policies | `check_iam_policies()` | CRITICAL | Wildcard actions + full admin (`*`/`*`) detection |
