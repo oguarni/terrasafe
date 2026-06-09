@@ -103,8 +103,21 @@ def test_predictor_trains_baseline_when_no_saved_model_exists(model_manager):
 @pytest.mark.parametrize(
     "features, expect_min_score",
     [
-        pytest.param(np.array([[0, 0, 0, 0, 0, 0, 10]]), None, id="benign_features_score_in_range"),
-        pytest.param(np.array([[10, 10, 10, 10, 1, 1, 5]]), 50, id="anomalous_features_high_score"),
+        # Secure structural profile: encrypted, logged, no public exposure.
+        # [resource_count, type_diversity, ingress, public_exposure, iam,
+        #  encryption_coverage, logging_count, secret_parametrization]
+        pytest.param(
+            np.array([[10, 6, 1, 0, 1, 1.0, 2, 1.0]]),
+            None,
+            id="secure_profile_scores_in_range",
+        ),
+        # Insecure structural profile: unencrypted, no logging, public exposure,
+        # hardcoded secrets — should read as an anomaly.
+        pytest.param(
+            np.array([[35, 8, 15, 8, 6, 0.05, 0, 0.1]]),
+            50,
+            id="insecure_profile_scores_high",
+        ),
     ],
 )
 def test_predict_risk_returns_bounded_score_and_confidence(predictor, features, expect_min_score):

@@ -13,7 +13,9 @@ Constructor receives `HCLParser`, `SecurityRuleEngine`, `MLPredictor` via DI (no
 ## Scan Pipeline
 
 ```
-parse(filepath) → rule analysis → feature extraction → feature validation → ML prediction → weighted combination
+parse(filepath) → rule analysis ─┐
+                                 ├→ weighted combination → final score
+parse(filepath) → structural feature extraction → validation → ML prediction ─┘
 ```
 
 **Score formula**: `final_score = int(0.6 * rule_score + 0.4 * ml_score)`
@@ -23,25 +25,32 @@ Constants exported: `RULE_WEIGHT = 0.6`, `ML_WEIGHT = 0.4`
 - **Rule score**: `min(100, sum(v.points))` — capped at 100
 - **ML score**: 0–100 from `MLPredictor.predict_risk()`
 
-## Feature Extraction (7 dimensions)
+The two branches are **independent**: the rule score comes from the findings,
+the ML score from the structural shape of the parsed infrastructure. The ML
+input is no longer a re-count of rule findings (which made the old ML circular),
+so it can react to risk the fixed rule set does not encode.
 
-Vectorized via `numpy.char.find()` on lowercased vulnerability messages:
+## Structural Feature Extraction (8 dimensions)
 
-| Index | Feature | Pattern match |
+Lives in `feature_extraction.py` (`StructuralFeatureExtractor`), driven off the
+parsed `tf_content` + `raw_content` — **not** the vulnerability list. The scanner
+calls `self.feature_extractor.extract(tf_content, raw_content)`.
+
+| Index | Feature | Derived from |
 |---|---|---|
-| 0 | `open_ports` | "open security group" or "exposed to internet" |
-| 1 | `hardcoded_secrets` | "hardcoded" or "secret" |
-| 2 | `public_access` | "s3 bucket" AND "public" |
-| 3 | `unencrypted_storage` | "unencrypted" |
-| 4 | `missing_logging` | "missing logging" |
-| 5 | `missing_flow_logs` | "missing vpc flow logs" |
-| 6 | `total_resources` | count of unique `v.resource` values |
+| 0 | `resource_count` | number of declared resources |
+| 1 | `resource_type_diversity` | distinct resource types |
+| 2 | `ingress_rule_count` | security-group `ingress` blocks |
+| 3 | `public_exposure_count` | `0.0.0.0/0`/`::/0` ingress + public-IP attributes |
+| 4 | `iam_resource_count` | resources whose type starts `aws_iam_` |
+| 5 | `encryption_coverage` | encrypted / total encryptable storage (1.0 if none) |
+| 6 | `logging_resource_count` | CloudTrail / CloudWatch / flow-log resources |
+| 7 | `secret_parametrization` | secrets from vars vs. literals (1.0 if none) |
 
-Default (no vulns): `[0, 0, 0, 0, 0, 0, 1]`
+Empty content: `[0, 0, 0, 0, 0, 1.0, 0, 1.0]` (ratios default secure).
 
-Feature validation clips to defined bounds before ML inference (prevents model poisoning):
-- Features 0–5: clipped to [0, 100]
-- Feature 6 (total_resources): clipped to [0, 10000]
+Feature validation clips to `FEATURE_BOUNDS` before ML inference (prevents model
+poisoning); the bounds live alongside `FEATURE_NAMES` in `feature_extraction.py`.
 
 ## Caching
 
@@ -79,11 +88,10 @@ Feature validation clips to defined bounds before ML inference (prevents model p
 
 Error types: `TerraformParseError`, `FileNotFoundError`, `PermissionError`, generic `Exception`
 
-## Coverage (100%)
-
 ## Anti-patterns
 
 - Never use `@lru_cache` on instance methods
 - Never return cache dict values directly without `deepcopy`
 - Never instantiate `HCLParser`, `SecurityRuleEngine`, or `MLPredictor` inside scanner methods
-- Never change the feature vector dimensionality without updating `_validate_features()` bounds, `_format_features()` names, and `CLAUDE_ML.md`
+- Never derive ML features from the rule findings — extract from parsed Terraform, or the ML signal becomes circular
+- Never change the feature vector dimensionality without updating `feature_extraction.py` (`FEATURE_NAMES`/`FEATURE_BOUNDS`/`extract()`), `ml_model.py:_generate_secure_baseline()`, `cli_formatter.py`, and `CLAUDE_ML.md`

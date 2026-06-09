@@ -11,33 +11,48 @@
 - `contamination=0.1`, `n_estimators=150`, `random_state=42`, `n_jobs=-1`
 - Scaler: `StandardScaler`
 
-## Feature Vector (7 dimensions)
+## Feature Vector (8 dimensions — structural, rule-independent)
 
-| Index | Feature | Bounds |
-|---|---|---|
-| 0 | `open_ports` | 0–100 |
-| 1 | `hardcoded_secrets` | 0–100 |
-| 2 | `public_access` | 0–100 |
-| 3 | `unencrypted_storage` | 0–100 |
-| 4 | `missing_logging` | 0–100 |
-| 5 | `missing_flow_logs` | 0–100 |
-| 6 | `total_resources` | 0–10000 |
+The model scores the **structure of the infrastructure**, extracted directly
+from the parsed Terraform by `application/feature_extraction.py`
+(`StructuralFeatureExtractor`). It is **not** derived from the rule findings, so
+the ML signal can flag anomalous configurations the 7 rules do not cover. The
+canonical layout lives in `feature_extraction.FEATURE_NAMES` / `FEATURE_BOUNDS`.
+
+| Index | Feature | Bounds | Meaning |
+|---|---|---|---|
+| 0 | `resource_count` | 0–10000 | total resources declared |
+| 1 | `resource_type_diversity` | 0–200 | distinct resource types |
+| 2 | `ingress_rule_count` | 0–1000 | inbound security-group rules |
+| 3 | `public_exposure_count` | 0–1000 | public CIDR ingress + public-IP attributes |
+| 4 | `iam_resource_count` | 0–1000 | `aws_iam_*` resources |
+| 5 | `encryption_coverage` | 0.0–1.0 | fraction of encryptable storage encrypted (1.0 if none) |
+| 6 | `logging_resource_count` | 0–1000 | CloudTrail / CloudWatch / flow-log resources |
+| 7 | `secret_parametrization` | 0.0–1.0 | fraction of secrets from variables, not literals (1.0 if none) |
 
 Feature values are clipped to bounds before inference (in `scanner.py:_validate_features()`).
 
-**Important**: When adding new features, update in sync:
-1. `scanner.py:_extract_features()` — extraction logic
-2. `scanner.py:_validate_features()` — bounds arrays (min_bounds, max_bounds)
-3. `scanner.py:_format_features()` — feature_names list
-4. `ml_model.py:_train_baseline_model()` — baseline_patterns columns
-5. This document — bounds table above
+**Important**: When changing the feature vector, update in sync:
+1. `application/feature_extraction.py` — `FEATURE_NAMES`, `FEATURE_BOUNDS`, and `StructuralFeatureExtractor.extract()`
+2. `ml_model.py:_generate_secure_baseline()` + `_FEATURE_NAMES` (local mirror — infra must not import application)
+3. `scanner.py:_format_features()` (consumes `FEATURE_NAMES`)
+4. `cli_formatter.py:_format_features()` — terminal display
+5. This document — table above
 
 ## Training Data
 
-- 18 synthetic "secure" baseline patterns x 3 augmentations + 5 edge cases = 77 samples
-- Gaussian noise sigma=0.15 applied during augmentation
-- Uses `np.random.default_rng(42)` — never use legacy `np.random.seed()`
-- Patterns now include 7 features (added `missing_logging` and `missing_flow_logs` columns, baseline values = 0)
+- `_generate_secure_baseline()` synthesises **300** secure-infrastructure feature
+  vectors with `np.random.default_rng(42)` (never legacy `np.random.seed()`).
+- Every feature **varies** across the corpus (no constant-zero columns, unlike
+  the previous hand-coded patterns), and the values share the exact semantics
+  `StructuralFeatureExtractor` produces at inference time — so the fitted
+  `StandardScaler` is correctly calibrated (no train/inference scale mismatch).
+- `encryption_coverage` and `secret_parametrization` are **centered at 1.0** (the
+  secure mode), so a fully-encrypted/parametrized file sits at the centre of the
+  manifold and insecure values fall outside it as anomalies.
+- **Limitation / future work:** the baseline is synthetic-but-principled. The
+  next step is to fit it on structural features extracted from a corpus of real,
+  known-secure Terraform modules.
 
 ## Risk Scoring
 

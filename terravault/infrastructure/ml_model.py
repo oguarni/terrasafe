@@ -357,71 +357,67 @@ class MLPredictor:
             logger.error("ML scoring failed: %s", e)
             raise ModelNotTrainedError(f"ML scoring failed: {type(e).__name__}: {e}") from e
 
-    def _train_baseline_model(self):
-        """Train and save a new baseline model with comprehensive patterns."""
-        # Use a local RNG instance to avoid polluting global random state
+    # Feature layout mirrored from application.feature_extraction.FEATURE_NAMES.
+    # Duplicated here so the infrastructure layer does not import the application
+    # layer; update both together (see CLAUDE_ML.md sync checklist).
+    _FEATURE_NAMES = (
+        "resource_count", "resource_type_diversity", "ingress_rule_count",
+        "public_exposure_count", "iam_resource_count", "encryption_coverage",
+        "logging_resource_count", "secret_parametrization",
+    )
+
+    def _generate_secure_baseline(self, n_samples: int = 300) -> np.ndarray:
+        """Synthesise a corpus of *secure* infrastructure feature vectors.
+
+        Each row is a plausible well-configured Terraform module: encryption and
+        secret hygiene near-complete, audit logging present, minimal public
+        exposure. The IsolationForest learns this manifold so that insecure
+        configurations (low encryption coverage, public exposure, missing
+        logging, hardcoded secrets) fall outside it and score as anomalies —
+        independently of the deterministic rule findings.
+
+        Unlike the previous hand-coded vectors, every feature varies across the
+        corpus (no constant-zero columns) and the values share the exact
+        semantics produced by ``StructuralFeatureExtractor`` at inference time,
+        so the fitted ``StandardScaler`` is no longer mis-calibrated.
+        """
         rng = np.random.default_rng(42)
+        rows = []
+        for _ in range(n_samples):
+            resource_count = int(rng.integers(3, 40))
+            # Small modules are often all-distinct types (ratio ~1.0); larger
+            # ones repeat types. Allow the full ratio range so diverse-but-secure
+            # configurations stay inside the learned manifold.
+            diversity = max(2, min(resource_count,
+                                   int(round(resource_count * rng.uniform(0.5, 1.0)))))
+            ingress = int(rng.poisson(1.5))
+            # Secure modules rarely expose anything publicly (e.g. a lone ALB).
+            public_exposure = int(rng.binomial(1, 0.2))
+            iam = int(rng.integers(0, max(1, resource_count // 5) + 1))
+            # Encryption coverage and secret parametrization are *centered* at
+            # 1.0 (the secure mode) with a minority of lower-coverage configs, so
+            # a fully-encrypted/fully-parametrized file sits at the centre of the
+            # manifold and insecure values fall below it.
+            encryption_coverage = 1.0 if rng.random() < 0.75 else float(rng.uniform(0.6, 1.0))
+            secret_param = 1.0 if rng.random() < 0.8 else float(rng.uniform(0.6, 1.0))
+            # Audit logging is present once there is infrastructure worth logging.
+            if resource_count >= 4:
+                logging_count = int(rng.integers(1, 4))
+            else:
+                logging_count = int(rng.integers(0, 2))
+            rows.append([
+                resource_count, diversity, ingress, public_exposure,
+                iam, encryption_coverage, logging_count, secret_param,
+            ])
+        return np.array(rows, dtype=np.float64)
 
-        # Enhanced baseline patterns representing secure configurations
-        # Features: [open_ports, secrets, public_access, unencrypted,
-        #            missing_logging, missing_flow_logs, resource_count]
-        baseline_patterns = [
-            # Fully secure configurations
-            [0, 0, 0, 0, 0, 0, 5],    # Small secure microservice
-            [0, 0, 0, 0, 0, 0, 10],   # Medium secure application
-            [0, 0, 0, 0, 0, 0, 15],   # Large secure infrastructure
-            [0, 0, 0, 0, 0, 0, 25],   # Enterprise secure setup
-            [0, 0, 0, 0, 0, 0, 3],    # Minimal secure Lambda function
+    def _train_baseline_model(self):
+        """Train and save a baseline model on synthetic secure infrastructure."""
+        training_data = self._generate_secure_baseline()
 
-            # Web applications (acceptable public exposure)
-            [1, 0, 0, 0, 0, 0, 8],    # Simple web app with HTTP
-            [2, 0, 0, 0, 0, 0, 12],   # Web app with HTTP/HTTPS
-            [2, 0, 1, 0, 0, 0, 20],   # E-commerce with CDN (public S3)
-            [1, 0, 1, 0, 0, 0, 15],   # Static site with S3 hosting
-            [2, 0, 2, 0, 0, 0, 30],   # Multi-region web platform
-
-            # Development environments (slightly relaxed)
-            [1, 0, 0, 1, 0, 0, 6],    # Dev env with one unencrypted volume
-            [2, 0, 0, 1, 0, 0, 10],   # Staging with test data
-            [1, 0, 1, 1, 0, 0, 8],    # QA environment
-            [0, 0, 0, 2, 0, 0, 12],   # Test cluster with temp storage
-
-            # Microservices architectures
-            [3, 0, 0, 0, 0, 0, 40],   # Service mesh with multiple endpoints
-            [4, 0, 1, 0, 0, 0, 50],   # Kubernetes cluster with ingress
-            [2, 0, 0, 0, 0, 0, 35],   # Docker swarm setup
-            [3, 0, 2, 0, 0, 0, 45],   # Multi-service with CDN
-        ]
-
-        baseline_features = np.array(baseline_patterns)
-
-        # Advanced augmentation with realistic variations
-        augmented_data = baseline_features.copy()
-
-        # Add noise variations for each pattern
-        for pattern in baseline_features:
-            for _ in range(3):  # Create 3 variations per pattern
-                noise = rng.normal(0, 0.15, 7)
-                augmented = pattern + noise
-                augmented = np.maximum(augmented, 0)  # Ensure non-negative
-                # Round discrete features
-                augmented = np.round(augmented)
-                augmented_data = np.vstack([augmented_data, augmented])
-
-        # Add edge cases representing acceptable boundaries
-        edge_cases = np.array([
-            [5, 0, 0, 0, 0, 0, 60],   # Large microservices
-            [0, 0, 5, 0, 0, 0, 40],   # Content delivery network
-            [3, 0, 3, 2, 0, 0, 50],   # Legacy migration
-            [0, 0, 0, 3, 0, 0, 25],   # Development cluster
-            [6, 0, 2, 0, 0, 0, 70],   # API gateway with multiple services
-        ])
-
-        augmented_data = np.vstack([augmented_data, edge_cases])
-
-        # Train scaler and model
+        # Train scaler and model on the structural feature space
         self.scaler = StandardScaler()
-        scaled_features = self.scaler.fit_transform(augmented_data)
+        scaled_features = self.scaler.fit_transform(training_data)
 
         # Configure Isolation Forest with optimized parameters
         self.model = IsolationForest(
@@ -438,17 +434,14 @@ class MLPredictor:
 
         # Prepare training metadata
         training_stats = {
-            'total_samples': len(augmented_data),
-            'secure_patterns': len(baseline_patterns),
-            'augmented_samples': len(augmented_data) - len(baseline_patterns),
+            'total_samples': len(training_data),
+            'feature_names': list(self._FEATURE_NAMES),
             'feature_ranges': {
-                'open_ports': {'min': int(augmented_data[:, 0].min()), 'max': int(augmented_data[:, 0].max())},
-                'hardcoded_secrets': {'min': int(augmented_data[:, 1].min()), 'max': int(augmented_data[:, 1].max())},
-                'public_access': {'min': int(augmented_data[:, 2].min()), 'max': int(augmented_data[:, 2].max())},
-                'unencrypted_storage': {'min': int(augmented_data[:, 3].min()), 'max': int(augmented_data[:, 3].max())},
-                'missing_logging': {'min': int(augmented_data[:, 4].min()), 'max': int(augmented_data[:, 4].max())},
-                'missing_flow_logs': {'min': int(augmented_data[:, 5].min()), 'max': int(augmented_data[:, 5].max())},
-                'total_resources': {'min': int(augmented_data[:, 6].min()), 'max': int(augmented_data[:, 6].max())},
+                name: {
+                    'min': round(float(training_data[:, i].min()), 3),
+                    'max': round(float(training_data[:, i].max()), 3),
+                }
+                for i, name in enumerate(self._FEATURE_NAMES)
             },
             'model_parameters': {
                 'contamination': 0.1,
@@ -458,5 +451,5 @@ class MLPredictor:
         }
 
         # Save model with metadata and persist training data for future incremental updates
-        self.model_manager.save_model(self.model, self.scaler, training_stats, training_data=augmented_data)
-        logger.info("Enhanced ML model trained successfully with %s samples", len(augmented_data))
+        self.model_manager.save_model(self.model, self.scaler, training_stats, training_data=training_data)
+        logger.info("Baseline ML model trained on %s synthetic secure samples", len(training_data))

@@ -55,14 +55,18 @@ def _determine_risk_status(score: int) -> tuple[str, str]:
     return "✅ LOW RISK", "\033[92m"  # Green
 
 
-def _format_features(features: Dict[str, int]) -> list[str]:
-    """Format feature analysis section."""
+def _format_features(features: Dict[str, float]) -> list[str]:
+    """Format the structural feature analysis section (ML model inputs)."""
     return [
-        "\n🔬 Feature Analysis:",
-        f"   Open Ports: {features['open_ports']}",
-        f"   Hardcoded Secrets: {features['hardcoded_secrets']}",
-        f"   Public Access: {features['public_access']}",
-        f"   Unencrypted Storage: {features['unencrypted_storage']}"
+        "\n🔬 Structural Analysis (ML inputs):",
+        f"   Resources: {int(features.get('resource_count', 0))} "
+        f"({int(features.get('resource_type_diversity', 0))} types)",
+        f"   Ingress Rules: {int(features.get('ingress_rule_count', 0))}",
+        f"   Public Exposure: {int(features.get('public_exposure_count', 0))}",
+        f"   IAM Resources: {int(features.get('iam_resource_count', 0))}",
+        f"   Encryption Coverage: {features.get('encryption_coverage', 1.0):.0%}",
+        f"   Logging Resources: {int(features.get('logging_resource_count', 0))}",
+        f"   Secret Parametrization: {features.get('secret_parametrization', 1.0):.0%}",
     ]
 
 

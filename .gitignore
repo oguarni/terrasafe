@@ -259,3 +259,6 @@ pylint-report.txt
 ratchet-current.json
 gate-metrics.json
 pytest-junit.xml
+# Local Windows test scaffolding (pytest basetemp + redirected system temp)
+.systmp/
+.pytest_tmp/

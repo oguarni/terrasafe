@@ -11,6 +11,11 @@ from ..domain.models import Vulnerability, Severity
 from ..domain.security_rules import SecurityRuleEngine
 from ..infrastructure.parser import HCLParser, TerraformParseError
 from ..infrastructure.ml_model import MLPredictor
+from .feature_extraction import (
+    FEATURE_BOUNDS,
+    FEATURE_NAMES,
+    StructuralFeatureExtractor,
+)
 
 try:
     from terravault.metrics import track_metrics
@@ -47,6 +52,7 @@ class IntelligentSecurityScanner:
         self.parser = parser
         self.rule_analyzer = rule_analyzer
         self.ml_predictor = ml_predictor
+        self.feature_extractor = StructuralFeatureExtractor()
         self._hash_cache: Dict[Tuple[str, float], str] = {}
         self._scan_cache: Dict[Tuple[str, str, float], Tuple[Dict[str, Any], float]] = {}
 
@@ -110,7 +116,10 @@ class IntelligentSecurityScanner:
 
         rule_score = min(100, sum(v.points for v in vulnerabilities))
 
-        features = self._extract_features(vulnerabilities)
+        # ML features are extracted from the parsed infrastructure itself, not
+        # from the rule findings — this keeps the ML signal independent of the
+        # rule engine so it can flag anomalous configurations the rules miss.
+        features = self.feature_extractor.extract(tf_content, raw_content)
         # Validate features to prevent model poisoning
         validated_features = self._validate_features(features)
         ml_score, confidence = self.ml_predictor.predict_risk(validated_features)
@@ -218,11 +227,10 @@ class IntelligentSecurityScanner:
         Returns:
             Validated feature array with values clipped to acceptable bounds
         """
-        # Define acceptable bounds for each feature
-        # [open_ports, hardcoded_secrets, public_access, unencrypted_storage,
-        #  missing_logging, missing_flow_logs, total_resources]
-        min_bounds = np.array([0, 0, 0, 0, 0, 0, 0], dtype=np.int32)
-        max_bounds = np.array([100, 100, 100, 100, 100, 100, 10000], dtype=np.int32)
+        # Per-feature clip bounds are defined alongside the feature layout in
+        # feature_extraction.FEATURE_BOUNDS (same order as the vector).
+        min_bounds = np.array([lo for lo, _ in FEATURE_BOUNDS], dtype=np.float64)
+        max_bounds = np.array([hi for _, hi in FEATURE_BOUNDS], dtype=np.float64)
 
         # Clip features to acceptable ranges
         validated = np.clip(features, min_bounds, max_bounds)
@@ -236,70 +244,17 @@ class IntelligentSecurityScanner:
 
         return validated
 
-    def _extract_features(self, vulnerabilities: List[Vulnerability]) -> np.ndarray:
-        """
-        Extract feature vector from vulnerabilities for ML model.
-        Optimized with vectorized operations and efficient pattern matching.
-
-        Args:
-            vulnerabilities: List of detected vulnerabilities
-
-        Returns:
-            Numpy array of features (shape: 1x7)
-        """
-        if not vulnerabilities:
-            # Return default feature vector for empty vulnerability list
-            return np.array([[0, 0, 0, 0, 0, 0, 1]], dtype=np.int32)
-
-        # Count unique resources
-        unique_resources = len(set(v.resource for v in vulnerabilities))
-
-        # Vectorized approach: convert all messages to lowercase once
-        messages = np.array([v.message.lower() for v in vulnerabilities])
-
-        # Use vectorized string operations for pattern matching
-        # This is more efficient than loop-based approach for larger datasets
-        open_ports_mask = np.char.find(messages, 'open security group') >= 0
-        open_ports_mask |= np.char.find(messages, 'exposed to internet') >= 0
-
-        hardcoded_mask = np.char.find(messages, 'hardcoded') >= 0
-        hardcoded_mask |= np.char.find(messages, 'secret') >= 0
-
-        s3_mask = np.char.find(messages, 's3 bucket') >= 0
-        public_mask = np.char.find(messages, 'public') >= 0
-        public_access_mask = s3_mask & public_mask
-
-        unencrypted_mask = np.char.find(messages, 'unencrypted') >= 0
-
-        missing_logging_mask = np.char.find(messages, 'missing logging') >= 0
-
-        missing_flow_logs_mask = np.char.find(messages, 'missing vpc flow logs') >= 0
-
-        # Count matches using numpy sum (faster than Python loops)
-        features = np.array([
-            np.sum(open_ports_mask),
-            np.sum(hardcoded_mask),
-            np.sum(public_access_mask),
-            np.sum(unencrypted_mask),
-            np.sum(missing_logging_mask),
-            np.sum(missing_flow_logs_mask),
-            unique_resources
-        ], dtype=np.int32).reshape(1, -1)
-
-        return features
-
     def _summarize_vulns(self, vulns: List[Vulnerability]) -> Dict[str, int]:
         summary = {s.name.lower(): 0 for s in Severity}
         for v in vulns:
             summary[v.severity.name.lower()] += 1
         return summary
 
-    def _format_features(self, features: np.ndarray) -> Dict[str, int]:
-        feature_names = [
-            'open_ports', 'hardcoded_secrets', 'public_access', 'unencrypted_storage',
-            'missing_logging', 'missing_flow_logs', 'total_resources'
-        ]
-        return {name: int(val) for name, val in zip(feature_names, features[0])}
+    def _format_features(self, features: np.ndarray) -> Dict[str, float]:
+        return {
+            name: round(float(val), 3)
+            for name, val in zip(FEATURE_NAMES, features[0])
+        }
 
     def _vulnerability_to_dict(self, vuln: Vulnerability) -> Dict[str, Any]:
         """Convert Vulnerability dataclass to dictionary for JSON serialization."""

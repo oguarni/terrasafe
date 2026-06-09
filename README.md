@@ -58,7 +58,8 @@
 
 ### Machine Learning Engine
 - **Isolation Forest** anomaly detection (unsupervised — no labeled data required)
-- 7-dimensional feature vector: open ports, hardcoded secrets, public access, unencrypted storage, missing logging, missing flow logs, resource count
+- **8-dimensional _structural_ feature vector** extracted directly from the parsed Terraform — _independent of the rule findings_ — so the model reacts to risky infrastructure shapes the fixed rules don't encode: resource count, type diversity, ingress-rule count, public-exposure count, IAM-resource count, encryption coverage, logging-resource count, secret parametrization
+- Trained on a synthetic-but-principled corpus of secure-infrastructure profiles where every feature varies and the secure mode is centered, so a fully-encrypted/parametrized config sits inside the learned manifold and insecure deviations score as anomalies
 - Model persistence via Joblib with versioning and drift detection
 - Confidence scoring based on anomaly distance from learned security baselines
 

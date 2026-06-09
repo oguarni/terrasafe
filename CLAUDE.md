@@ -4,7 +4,7 @@
 
 TerraVault is a hybrid Terraform security scanner implementing Clean Architecture with:
 - **Architecture**: Clean Architecture layers (domain → application → infrastructure)
-- **Security Approach**: 60% rule-based detection (7 rules) + 40% ML anomaly detection (7-dim feature vector)
+- **Security Approach**: 60% rule-based detection (7 rules) + 40% ML anomaly detection (8-dim *structural* feature vector, independent of the rule findings)
 - **Tech Stack**: FastAPI, PostgreSQL, Redis, Isolation Forest ML, Prometheus/Grafana
 - **Language**: Python 3.10+
 - **Health**: focused test suite (72 pytest cases, 74% line coverage on 1,518 SLOC) on security rules, scan pipeline, API contract, and ML predictions; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories, 0 mypy errors
@@ -125,7 +125,7 @@ Subdirectory CLAUDE.md files provide focused instructions per architectural laye
 | Entry Points | `terravault/CLAUDE.md` | API, CLI, formatters, metrics, middleware |
 | Config | `terravault/config/CLAUDE.md` | Settings (Pydantic), structured logging, correlation IDs |
 | Domain | `terravault/domain/CLAUDE.md` | 7 security rules, severity model, rule inventory, severity overrides |
-| Application | `terravault/application/CLAUDE.md` | Scan pipeline, scoring, caching, 7-dim feature extraction |
+| Application | `terravault/application/CLAUDE.md` | Scan pipeline, scoring, caching, 8-dim structural feature extraction |
 | Infrastructure | `terravault/infrastructure/CLAUDE.md` | DB, cache, parser, repositories, rate limiter |
 | ML System | `terravault/infrastructure/CLAUDE_ML.md` | IsolationForest, training, drift detection, model files |
 | Tests | `tests/CLAUDE.md` | 72 focused tests, fixtures, markers, mocking patterns, per-module coverage |

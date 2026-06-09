@@ -39,6 +39,6 @@ This layer defines business entities and detection logic. It depends only on `co
 - Add call to `analyze()` to include the rule in scoring
 - Return `[]` (not `None`) if no vulnerabilities found
 - If the new rule needs severity overrides, add its key to `rule_key_map` in `analyze()`
-- When adding a new rule, also add corresponding feature extraction in `application/scanner.py:_extract_features()`
+- ML features are **structural** (`application/feature_extraction.py`), extracted from parsed Terraform — independent of rules. A new rule does **not** require a feature change; only add a structural feature if the new risk has a structural signal the model should learn.
 
 ## Coverage (100%)
