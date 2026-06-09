@@ -1,5 +1,5 @@
 {
-  "coverage_pct": 74.95,
+  "coverage_pct": 75.77,
   "files_over_threshold": 5,
   "duplicate_blocks": 0,
   "thresholds": {
@@ -7,5 +7,5 @@
     "min_similarity_lines": 4
   },
   "updated_at": "2026-06-09",
-  "updated_commit": "33efeb82a7dacd90468ecf1921a40e2767de369f"
+  "updated_commit": "e9bae1320133f40dced5a1f518f5d74065080fc4"
 }
