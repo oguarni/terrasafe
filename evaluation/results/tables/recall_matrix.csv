@@ -1,0 +1,13 @@
+Categoria,TerraVault,Checkov,tfsec,Terrascan
+Ingresso público (SG aberto),✓ 5/5,✓ 5/5,✓ 5/5,◐ 4/5
+Egresso irrestrito,✓ 2/2,✓ 2/2,✓ 2/2,✗ 0/2
+RDS sem criptografia,✓ 2/2,✓ 2/2,✓ 2/2,✓ 2/2
+EBS sem criptografia,✓ 2/2,✓ 2/2,✓ 2/2,✗ 0/2
+RDS com acesso público,✓ 2/2,✓ 2/2,✓ 2/2,✓ 2/2
+IMDSv1 habilitado,✓ 2/2,✓ 2/2,✓ 2/2,✓ 2/2
+Política IAM com curinga,✓ 2/2,✓ 2/2,✓ 2/2,✗ 0/2
+Bucket S3 público,✓ 2/2,✓ 2/2,✓ 2/2,✗ 0/2
+VPC sem flow logs,✓ 1/1,✓ 1/1,✓ 1/1,✓ 1/1
+Instância EC2 com IP público,✓ 2/2,✓ 2/2,✗ 0/2,✗ 0/2
+Segredo hardcoded,✓ 1/1,✗ 0/1,✗ 0/1,✗ 0/1
+Total (recall micro),100% (23/23),96% (22/23),87% (20/23),48% (11/23)

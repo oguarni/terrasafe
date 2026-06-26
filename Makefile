@@ -1,5 +1,5 @@
 # Makefile for TerraVault - Terraform Security Scanner
-.PHONY: help install test run-demo clean docker lint coverage api metrics test-api security-scan security-deps security-sast security-all setup-hooks quality-gate ratchet ratchet-update ratchet-show
+.PHONY: help install test run-demo clean docker lint coverage api metrics test-api security-scan security-deps security-sast security-all setup-hooks quality-gate ratchet ratchet-update ratchet-show corpus evaluate evaluate-report
 
 # Variables
 PYTHON := python3
@@ -208,3 +208,24 @@ sbom: install
 	$(VENV)/bin/pip install cyclonedx-bom
 	$(VENV)/bin/cyclonedx-py requirements -o sbom.json requirements.txt
 	@echo "✅ SBOM generated: sbom.json"
+
+# ---------------------------------------------------------------------------
+# Experimental evaluation (TerraVault vs Checkov / tfsec / Terrascan)
+# ---------------------------------------------------------------------------
+EVAL := PYTHONPATH=. $(VENV)/bin/python
+
+# Regenerate the labelled benchmark corpus (cases/*.tf + ground_truth.yaml)
+corpus: install
+	@echo "🧪 Building labelled Terraform corpus..."
+	$(EVAL) evaluation/dataset/build_corpus.py
+
+# Full multi-tool comparison — needs Docker for the competitor images
+evaluate: corpus
+	@echo "📊 Running TerraVault vs Checkov/tfsec/Terrascan comparison..."
+	$(EVAL) -m evaluation.evaluate
+	$(EVAL) -m evaluation.report
+	@echo "✅ Report written to evaluation/results/report.md"
+
+# Re-render the report from cached metrics.json (no Docker / scanner re-run)
+evaluate-report: install
+	$(EVAL) -m evaluation.report

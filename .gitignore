@@ -13,6 +13,13 @@
 backups/
 
 # ===================================
+# Evaluation harness — raw scanner cache (regenerable via `make evaluate`)
+# ===================================
+# Keep the corpus, code, report.md, metrics.json and tables tracked; the 66
+# per-tool raw JSON dumps are a regenerable cache, not source.
+evaluation/results/raw/
+
+# ===================================
 # Python
 # ===================================
 __pycache__/

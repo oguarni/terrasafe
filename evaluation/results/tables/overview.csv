@@ -1,0 +1,5 @@
+Ferramenta,Precisão,Recall,F1,Categorias,FP (seguros),Achados brutos
+TerraVault,100.0%,100.0%,100.0%,11/11,0,23
+Checkov,100.0%,95.7%,97.8%,10/11,0,187
+tfsec,100.0%,87.0%,93.0%,9/11,0,107
+Terrascan,100.0%,47.8%,64.7%,5/11,0,63

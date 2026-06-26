@@ -1,0 +1,177 @@
+taxonomy:
+- PUBLIC_INGRESS
+- UNRESTRICTED_EGRESS
+- UNENCRYPTED_RDS
+- UNENCRYPTED_EBS
+- PUBLIC_RDS
+- IMDSV1
+- IAM_WILDCARD
+- PUBLIC_S3
+- MISSING_VPC_FLOW_LOGS
+- PUBLIC_INSTANCE
+- HARDCODED_SECRET
+notes: 'Tool-neutral labelled corpus for the TerraVault evaluation. MISSING_LOGGING
+  is intentionally outside the shared taxonomy: it is a whole-configuration heuristic
+  with no per-resource equivalent in Checkov/tfsec/Terrascan, so any tool''s findings
+  that do not map to a taxonomy category are ignored symmetrically.'
+cases:
+  pub_ingress_ssh:
+    dir: cases/pub_ingress_ssh
+    file: cases/pub_ingress_ssh/main.tf
+    description: Security group exposes SSH (22) to 0.0.0.0/0
+    terravault_primary_severity: CRITICAL
+    expected:
+    - PUBLIC_INGRESS
+  pub_ingress_rdp:
+    dir: cases/pub_ingress_rdp
+    file: cases/pub_ingress_rdp/main.tf
+    description: Security group exposes RDP (3389) to 0.0.0.0/0
+    terravault_primary_severity: CRITICAL
+    expected:
+    - PUBLIC_INGRESS
+  pub_ingress_ipv6:
+    dir: cases/pub_ingress_ipv6
+    file: cases/pub_ingress_ipv6/main.tf
+    description: Security group exposes SSH (22) to ::/0 (IPv6 only)
+    terravault_primary_severity: CRITICAL
+    expected:
+    - PUBLIC_INGRESS
+  wide_port_range:
+    dir: cases/wide_port_range
+    file: cases/wide_port_range/main.tf
+    description: Security group opens the full 0-65535 range to 0.0.0.0/0
+    terravault_primary_severity: CRITICAL
+    expected:
+    - PUBLIC_INGRESS
+  unrestricted_egress:
+    dir: cases/unrestricted_egress
+    file: cases/unrestricted_egress/main.tf
+    description: Security group allows all egress to 0.0.0.0/0; ingress is private
+    terravault_primary_severity: LOW
+    expected:
+    - UNRESTRICTED_EGRESS
+  unencrypted_rds:
+    dir: cases/unencrypted_rds
+    file: cases/unencrypted_rds/main.tf
+    description: RDS instance with storage encryption disabled
+    terravault_primary_severity: HIGH
+    expected:
+    - UNENCRYPTED_RDS
+  unencrypted_ebs:
+    dir: cases/unencrypted_ebs
+    file: cases/unencrypted_ebs/main.tf
+    description: EBS volume with encryption disabled
+    terravault_primary_severity: HIGH
+    expected:
+    - UNENCRYPTED_EBS
+  public_rds:
+    dir: cases/public_rds
+    file: cases/public_rds/main.tf
+    description: RDS instance with a public endpoint (encrypted, so only the public
+      flag fires)
+    terravault_primary_severity: CRITICAL
+    expected:
+    - PUBLIC_RDS
+  imdsv1:
+    dir: cases/imdsv1
+    file: cases/imdsv1/main.tf
+    description: EC2 instance with no metadata_options, so IMDSv1 is allowed
+    terravault_primary_severity: HIGH
+    expected:
+    - IMDSV1
+  iam_wildcard:
+    dir: cases/iam_wildcard
+    file: cases/iam_wildcard/main.tf
+    description: IAM role policy granting Action:* on Resource:*
+    terravault_primary_severity: CRITICAL
+    expected:
+    - IAM_WILDCARD
+  public_s3:
+    dir: cases/public_s3
+    file: cases/public_s3/main.tf
+    description: S3 bucket whose public access block disables all four protections
+    terravault_primary_severity: HIGH
+    expected:
+    - PUBLIC_S3
+  missing_flow_logs:
+    dir: cases/missing_flow_logs
+    file: cases/missing_flow_logs/main.tf
+    description: VPC declared with no aws_flow_log
+    terravault_primary_severity: MEDIUM
+    expected:
+    - MISSING_VPC_FLOW_LOGS
+  public_instance:
+    dir: cases/public_instance
+    file: cases/public_instance/main.tf
+    description: EC2 instance that auto-assigns a public IP (IMDSv2 enforced, so only
+      the public-IP flag fires)
+    terravault_primary_severity: LOW
+    expected:
+    - PUBLIC_INSTANCE
+  hardcoded_secret:
+    dir: cases/hardcoded_secret
+    file: cases/hardcoded_secret/main.tf
+    description: Database password written as a string literal (storage encrypted,
+      private)
+    terravault_primary_severity: CRITICAL
+    expected:
+    - HARDCODED_SECRET
+  secure_full_stack:
+    dir: cases/secure_full_stack
+    file: cases/secure_full_stack/main.tf
+    description: Fully hardened multi-resource module; no shared-taxonomy issue present
+    terravault_primary_severity: NONE
+    expected: []
+  private_ingress:
+    dir: cases/private_ingress
+    file: cases/private_ingress/main.tf
+    description: Security group with ingress restricted to a private CIDR
+    terravault_primary_severity: NONE
+    expected: []
+  encrypted_storage:
+    dir: cases/encrypted_storage
+    file: cases/encrypted_storage/main.tf
+    description: RDS and EBS both encrypted and private
+    terravault_primary_severity: NONE
+    expected: []
+  s3_fully_blocked:
+    dir: cases/s3_fully_blocked
+    file: cases/s3_fully_blocked/main.tf
+    description: S3 bucket with every public access protection enabled
+    terravault_primary_severity: NONE
+    expected: []
+  imdsv2_enforced:
+    dir: cases/imdsv2_enforced
+    file: cases/imdsv2_enforced/main.tf
+    description: EC2 instance enforcing IMDSv2 with no public IP
+    terravault_primary_severity: NONE
+    expected: []
+  parametrized_secret:
+    dir: cases/parametrized_secret
+    file: cases/parametrized_secret/main.tf
+    description: Database password sourced from a variable, not a literal
+    terravault_primary_severity: NONE
+    expected: []
+  combo_web_app:
+    dir: cases/combo_web_app
+    file: cases/combo_web_app/main.tf
+    description: 'Web app module: open ingress, unencrypted RDS, public S3, IMDSv1,
+      IAM wildcard'
+    terravault_primary_severity: CRITICAL
+    expected:
+    - PUBLIC_INGRESS
+    - UNENCRYPTED_RDS
+    - PUBLIC_S3
+    - IMDSV1
+    - IAM_WILDCARD
+  combo_data_platform:
+    dir: cases/combo_data_platform
+    file: cases/combo_data_platform/main.tf
+    description: 'Data platform module: public RDS, unencrypted EBS, public instance,
+      open egress'
+    terravault_primary_severity: CRITICAL
+    expected:
+    - PUBLIC_RDS
+    - UNENCRYPTED_EBS
+    - PUBLIC_INSTANCE
+    - UNRESTRICTED_EGRESS

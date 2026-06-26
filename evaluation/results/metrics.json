@@ -1,0 +1,1213 @@
+{
+  "run_meta": {
+    "generated_at": "2026-06-22T23:25:06",
+    "corpus": {
+      "n_cases": 22,
+      "n_positive": 16,
+      "n_negative": 6,
+      "n_labels": 23
+    },
+    "taxonomy": [
+      "PUBLIC_INGRESS",
+      "UNRESTRICTED_EGRESS",
+      "UNENCRYPTED_RDS",
+      "UNENCRYPTED_EBS",
+      "PUBLIC_RDS",
+      "IMDSV1",
+      "IAM_WILDCARD",
+      "PUBLIC_S3",
+      "MISSING_VPC_FLOW_LOGS",
+      "PUBLIC_INSTANCE",
+      "HARDCODED_SECRET"
+    ],
+    "tools": {
+      "terravault": {
+        "version": "1.0.0",
+        "native": true,
+        "approach": "rules (60%) + Isolation Forest ML (40%)"
+      },
+      "checkov": {
+        "version": "3.3.0",
+        "image": "bridgecrew/checkov@sha256:655c1f563d5c834d27d3884e46925939ea9abd234961c07f32fa997b01d927c2"
+      },
+      "tfsec": {
+        "version": "v1.28.14",
+        "image": "aquasec/tfsec@sha256:ac46d48a384ae2c0bbd0413cd2a18229e45e21a44d22c8be28b56de5b38d74c3"
+      },
+      "terrascan": {
+        "version": "v1.19.9",
+        "image": "tenable/terrascan@sha256:1fffb95fd064f53c997da5bb9b2fdb9b14abcad7391fbb7fe42b866358695b16"
+      }
+    },
+    "mapping_audit_unmapped_ids": {
+      "checkov": [
+        "CKV2_AWS_10",
+        "CKV2_AWS_12",
+        "CKV2_AWS_30",
+        "CKV2_AWS_41",
+        "CKV2_AWS_5",
+        "CKV2_AWS_60",
+        "CKV2_AWS_61",
+        "CKV2_AWS_62",
+        "CKV_AWS_118",
+        "CKV_AWS_126",
+        "CKV_AWS_129",
+        "CKV_AWS_135",
+        "CKV_AWS_144",
+        "CKV_AWS_145",
+        "CKV_AWS_157",
+        "CKV_AWS_158",
+        "CKV_AWS_161",
+        "CKV_AWS_18",
+        "CKV_AWS_189",
+        "CKV_AWS_21",
+        "CKV_AWS_226",
+        "CKV_AWS_23",
+        "CKV_AWS_252",
+        "CKV_AWS_293",
+        "CKV_AWS_338",
+        "CKV_AWS_35",
+        "CKV_AWS_353",
+        "CKV_AWS_8"
+      ],
+      "tfsec": [
+        "aws-cloudtrail-enable-at-rest-encryption",
+        "aws-cloudtrail-ensure-cloudwatch-integration",
+        "aws-cloudtrail-require-bucket-access-logging",
+        "aws-cloudwatch-log-group-customer-key",
+        "aws-ec2-add-description-to-security-group-rule",
+        "aws-ec2-enable-at-rest-encryption",
+        "aws-ec2-volume-encryption-customer-key",
+        "aws-rds-enable-deletion-protection",
+        "aws-rds-enable-iam-auth",
+        "aws-rds-enable-performance-insights",
+        "aws-rds-specify-backup-retention",
+        "aws-s3-enable-bucket-encryption",
+        "aws-s3-enable-bucket-logging",
+        "aws-s3-enable-versioning",
+        "aws-s3-encryption-customer-key"
+      ],
+      "terrascan": [
+        "AC_AWS_0033",
+        "AC_AWS_0052",
+        "AC_AWS_0053",
+        "AC_AWS_0153",
+        "AC_AWS_0214",
+        "AC_AWS_0320",
+        "AC_AWS_0322",
+        "AC_AWS_0449",
+        "AC_AWS_0454",
+        "AC_AWS_0459",
+        "AC_AWS_0480",
+        "AC_AWS_0497"
+      ]
+    }
+  },
+  "tools": {
+    "terravault": {
+      "tool": "terravault",
+      "tp": 23,
+      "fp": 0,
+      "fn": 0,
+      "micro_precision": 1.0,
+      "micro_recall": 1.0,
+      "micro_f1": 1.0,
+      "macro_f1": 1.0,
+      "categories_covered": 11,
+      "fp_on_negative": 0,
+      "total_raw_findings": 23,
+      "total_duration_s": 0.658,
+      "per_category": {
+        "PUBLIC_INGRESS": {
+          "category": "PUBLIC_INGRESS",
+          "tp": 5,
+          "fp": 0,
+          "fn": 0,
+          "support": 5,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNRESTRICTED_EGRESS": {
+          "category": "UNRESTRICTED_EGRESS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNENCRYPTED_RDS": {
+          "category": "UNENCRYPTED_RDS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNENCRYPTED_EBS": {
+          "category": "UNENCRYPTED_EBS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "PUBLIC_RDS": {
+          "category": "PUBLIC_RDS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IMDSV1": {
+          "category": "IMDSV1",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IAM_WILDCARD": {
+          "category": "IAM_WILDCARD",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "PUBLIC_S3": {
+          "category": "PUBLIC_S3",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "MISSING_VPC_FLOW_LOGS": {
+          "category": "MISSING_VPC_FLOW_LOGS",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "support": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "PUBLIC_INSTANCE": {
+          "category": "PUBLIC_INSTANCE",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "HARDCODED_SECRET": {
+          "category": "HARDCODED_SECRET",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "support": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      }
+    },
+    "checkov": {
+      "tool": "checkov",
+      "tp": 22,
+      "fp": 0,
+      "fn": 1,
+      "micro_precision": 1.0,
+      "micro_recall": 0.9565,
+      "micro_f1": 0.9778,
+      "macro_f1": 0.9091,
+      "categories_covered": 10,
+      "fp_on_negative": 0,
+      "total_raw_findings": 187,
+      "total_duration_s": 152.076,
+      "per_category": {
+        "PUBLIC_INGRESS": {
+          "category": "PUBLIC_INGRESS",
+          "tp": 5,
+          "fp": 0,
+          "fn": 0,
+          "support": 5,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNRESTRICTED_EGRESS": {
+          "category": "UNRESTRICTED_EGRESS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNENCRYPTED_RDS": {
+          "category": "UNENCRYPTED_RDS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNENCRYPTED_EBS": {
+          "category": "UNENCRYPTED_EBS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "PUBLIC_RDS": {
+          "category": "PUBLIC_RDS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IMDSV1": {
+          "category": "IMDSV1",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IAM_WILDCARD": {
+          "category": "IAM_WILDCARD",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "PUBLIC_S3": {
+          "category": "PUBLIC_S3",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "MISSING_VPC_FLOW_LOGS": {
+          "category": "MISSING_VPC_FLOW_LOGS",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "support": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "PUBLIC_INSTANCE": {
+          "category": "PUBLIC_INSTANCE",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "HARDCODED_SECRET": {
+          "category": "HARDCODED_SECRET",
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "support": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      }
+    },
+    "tfsec": {
+      "tool": "tfsec",
+      "tp": 20,
+      "fp": 0,
+      "fn": 3,
+      "micro_precision": 1.0,
+      "micro_recall": 0.8696,
+      "micro_f1": 0.9302,
+      "macro_f1": 0.8182,
+      "categories_covered": 9,
+      "fp_on_negative": 0,
+      "total_raw_findings": 107,
+      "total_duration_s": 36.487,
+      "per_category": {
+        "PUBLIC_INGRESS": {
+          "category": "PUBLIC_INGRESS",
+          "tp": 5,
+          "fp": 0,
+          "fn": 0,
+          "support": 5,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNRESTRICTED_EGRESS": {
+          "category": "UNRESTRICTED_EGRESS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNENCRYPTED_RDS": {
+          "category": "UNENCRYPTED_RDS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNENCRYPTED_EBS": {
+          "category": "UNENCRYPTED_EBS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "PUBLIC_RDS": {
+          "category": "PUBLIC_RDS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IMDSV1": {
+          "category": "IMDSV1",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IAM_WILDCARD": {
+          "category": "IAM_WILDCARD",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "PUBLIC_S3": {
+          "category": "PUBLIC_S3",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "MISSING_VPC_FLOW_LOGS": {
+          "category": "MISSING_VPC_FLOW_LOGS",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "support": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "PUBLIC_INSTANCE": {
+          "category": "PUBLIC_INSTANCE",
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "support": 2,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "HARDCODED_SECRET": {
+          "category": "HARDCODED_SECRET",
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "support": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      }
+    },
+    "terrascan": {
+      "tool": "terrascan",
+      "tp": 11,
+      "fp": 0,
+      "fn": 12,
+      "micro_precision": 1.0,
+      "micro_recall": 0.4783,
+      "micro_f1": 0.6471,
+      "macro_f1": 0.4444,
+      "categories_covered": 5,
+      "fp_on_negative": 0,
+      "total_raw_findings": 63,
+      "total_duration_s": 159.649,
+      "per_category": {
+        "PUBLIC_INGRESS": {
+          "category": "PUBLIC_INGRESS",
+          "tp": 4,
+          "fp": 0,
+          "fn": 1,
+          "support": 5,
+          "precision": 1.0,
+          "recall": 0.8,
+          "f1": 0.8889
+        },
+        "UNRESTRICTED_EGRESS": {
+          "category": "UNRESTRICTED_EGRESS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "support": 2,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "UNENCRYPTED_RDS": {
+          "category": "UNENCRYPTED_RDS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNENCRYPTED_EBS": {
+          "category": "UNENCRYPTED_EBS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "support": 2,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "PUBLIC_RDS": {
+          "category": "PUBLIC_RDS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IMDSV1": {
+          "category": "IMDSV1",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IAM_WILDCARD": {
+          "category": "IAM_WILDCARD",
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "support": 2,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "PUBLIC_S3": {
+          "category": "PUBLIC_S3",
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "support": 2,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "MISSING_VPC_FLOW_LOGS": {
+          "category": "MISSING_VPC_FLOW_LOGS",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "support": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "PUBLIC_INSTANCE": {
+          "category": "PUBLIC_INSTANCE",
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "support": 2,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "HARDCODED_SECRET": {
+          "category": "HARDCODED_SECRET",
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "support": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      }
+    }
+  },
+  "per_case": {
+    "pub_ingress_ssh": {
+      "expected": [
+        "PUBLIC_INGRESS"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_INGRESS"
+        ],
+        "checkov": [
+          "PUBLIC_INGRESS"
+        ],
+        "tfsec": [
+          "PUBLIC_INGRESS"
+        ],
+        "terrascan": [
+          "PUBLIC_INGRESS"
+        ]
+      }
+    },
+    "pub_ingress_rdp": {
+      "expected": [
+        "PUBLIC_INGRESS"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_INGRESS"
+        ],
+        "checkov": [
+          "PUBLIC_INGRESS"
+        ],
+        "tfsec": [
+          "PUBLIC_INGRESS"
+        ],
+        "terrascan": [
+          "PUBLIC_INGRESS"
+        ]
+      }
+    },
+    "pub_ingress_ipv6": {
+      "expected": [
+        "PUBLIC_INGRESS"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_INGRESS"
+        ],
+        "checkov": [
+          "PUBLIC_INGRESS"
+        ],
+        "tfsec": [
+          "PUBLIC_INGRESS"
+        ],
+        "terrascan": []
+      }
+    },
+    "wide_port_range": {
+      "expected": [
+        "PUBLIC_INGRESS"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_INGRESS"
+        ],
+        "checkov": [
+          "PUBLIC_INGRESS"
+        ],
+        "tfsec": [
+          "PUBLIC_INGRESS"
+        ],
+        "terrascan": [
+          "PUBLIC_INGRESS"
+        ]
+      }
+    },
+    "unrestricted_egress": {
+      "expected": [
+        "UNRESTRICTED_EGRESS"
+      ],
+      "detections": {
+        "terravault": [
+          "UNRESTRICTED_EGRESS"
+        ],
+        "checkov": [
+          "UNRESTRICTED_EGRESS"
+        ],
+        "tfsec": [
+          "UNRESTRICTED_EGRESS"
+        ],
+        "terrascan": []
+      }
+    },
+    "unencrypted_rds": {
+      "expected": [
+        "UNENCRYPTED_RDS"
+      ],
+      "detections": {
+        "terravault": [
+          "UNENCRYPTED_RDS"
+        ],
+        "checkov": [
+          "UNENCRYPTED_RDS"
+        ],
+        "tfsec": [
+          "UNENCRYPTED_RDS"
+        ],
+        "terrascan": [
+          "UNENCRYPTED_RDS"
+        ]
+      }
+    },
+    "unencrypted_ebs": {
+      "expected": [
+        "UNENCRYPTED_EBS"
+      ],
+      "detections": {
+        "terravault": [
+          "UNENCRYPTED_EBS"
+        ],
+        "checkov": [
+          "UNENCRYPTED_EBS"
+        ],
+        "tfsec": [
+          "UNENCRYPTED_EBS"
+        ],
+        "terrascan": []
+      }
+    },
+    "public_rds": {
+      "expected": [
+        "PUBLIC_RDS"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_RDS"
+        ],
+        "checkov": [
+          "PUBLIC_RDS"
+        ],
+        "tfsec": [
+          "PUBLIC_RDS"
+        ],
+        "terrascan": [
+          "PUBLIC_RDS"
+        ]
+      }
+    },
+    "imdsv1": {
+      "expected": [
+        "IMDSV1"
+      ],
+      "detections": {
+        "terravault": [
+          "IMDSV1"
+        ],
+        "checkov": [
+          "IMDSV1"
+        ],
+        "tfsec": [
+          "IMDSV1"
+        ],
+        "terrascan": [
+          "IMDSV1"
+        ]
+      }
+    },
+    "iam_wildcard": {
+      "expected": [
+        "IAM_WILDCARD"
+      ],
+      "detections": {
+        "terravault": [
+          "IAM_WILDCARD"
+        ],
+        "checkov": [
+          "IAM_WILDCARD"
+        ],
+        "tfsec": [
+          "IAM_WILDCARD"
+        ],
+        "terrascan": []
+      }
+    },
+    "public_s3": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [
+          "PUBLIC_S3"
+        ],
+        "terrascan": []
+      }
+    },
+    "missing_flow_logs": {
+      "expected": [
+        "MISSING_VPC_FLOW_LOGS"
+      ],
+      "detections": {
+        "terravault": [
+          "MISSING_VPC_FLOW_LOGS"
+        ],
+        "checkov": [
+          "MISSING_VPC_FLOW_LOGS"
+        ],
+        "tfsec": [
+          "MISSING_VPC_FLOW_LOGS"
+        ],
+        "terrascan": [
+          "MISSING_VPC_FLOW_LOGS"
+        ]
+      }
+    },
+    "public_instance": {
+      "expected": [
+        "PUBLIC_INSTANCE"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_INSTANCE"
+        ],
+        "checkov": [
+          "PUBLIC_INSTANCE"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      }
+    },
+    "hardcoded_secret": {
+      "expected": [
+        "HARDCODED_SECRET"
+      ],
+      "detections": {
+        "terravault": [
+          "HARDCODED_SECRET"
+        ],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      }
+    },
+    "secure_full_stack": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      }
+    },
+    "private_ingress": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      }
+    },
+    "encrypted_storage": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      }
+    },
+    "s3_fully_blocked": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      }
+    },
+    "imdsv2_enforced": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      }
+    },
+    "parametrized_secret": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      }
+    },
+    "combo_web_app": {
+      "expected": [
+        "PUBLIC_INGRESS",
+        "UNENCRYPTED_RDS",
+        "PUBLIC_S3",
+        "IMDSV1",
+        "IAM_WILDCARD"
+      ],
+      "detections": {
+        "terravault": [
+          "IAM_WILDCARD",
+          "IMDSV1",
+          "PUBLIC_INGRESS",
+          "PUBLIC_S3",
+          "UNENCRYPTED_RDS"
+        ],
+        "checkov": [
+          "IAM_WILDCARD",
+          "IMDSV1",
+          "PUBLIC_INGRESS",
+          "PUBLIC_S3",
+          "UNENCRYPTED_RDS"
+        ],
+        "tfsec": [
+          "IAM_WILDCARD",
+          "IMDSV1",
+          "PUBLIC_INGRESS",
+          "PUBLIC_S3",
+          "UNENCRYPTED_RDS"
+        ],
+        "terrascan": [
+          "IMDSV1",
+          "PUBLIC_INGRESS",
+          "UNENCRYPTED_RDS"
+        ]
+      }
+    },
+    "combo_data_platform": {
+      "expected": [
+        "PUBLIC_RDS",
+        "UNENCRYPTED_EBS",
+        "PUBLIC_INSTANCE",
+        "UNRESTRICTED_EGRESS"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_INSTANCE",
+          "PUBLIC_RDS",
+          "UNENCRYPTED_EBS",
+          "UNRESTRICTED_EGRESS"
+        ],
+        "checkov": [
+          "PUBLIC_INSTANCE",
+          "PUBLIC_RDS",
+          "UNENCRYPTED_EBS",
+          "UNRESTRICTED_EGRESS"
+        ],
+        "tfsec": [
+          "PUBLIC_RDS",
+          "UNENCRYPTED_EBS",
+          "UNRESTRICTED_EGRESS"
+        ],
+        "terrascan": [
+          "PUBLIC_RDS"
+        ]
+      }
+    }
+  },
+  "terravault_hybrid": {
+    "pub_ingress_ssh": {
+      "rule_score": 50,
+      "ml_score": 50.5,
+      "final_score": 50,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.038,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "pub_ingress_rdp": {
+      "rule_score": 50,
+      "ml_score": 50.5,
+      "final_score": 50,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.029,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "pub_ingress_ipv6": {
+      "rule_score": 50,
+      "ml_score": 50.5,
+      "final_score": 50,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.026,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "wide_port_range": {
+      "rule_score": 50,
+      "ml_score": 50.5,
+      "final_score": 50,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.031,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "unrestricted_egress": {
+      "rule_score": 25,
+      "ml_score": 48.11,
+      "final_score": 34,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.047,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "unencrypted_rds": {
+      "rule_score": 40,
+      "ml_score": 56.36,
+      "final_score": 46,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.025,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "unencrypted_ebs": {
+      "rule_score": 40,
+      "ml_score": 56.36,
+      "final_score": 46,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.026,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "public_rds": {
+      "rule_score": 50,
+      "ml_score": 52.05,
+      "final_score": 50,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.026,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "imdsv1": {
+      "rule_score": 40,
+      "ml_score": 48.64,
+      "final_score": 43,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.028,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "iam_wildcard": {
+      "rule_score": 80,
+      "ml_score": 48.72,
+      "final_score": 67,
+      "confidence": "LOW",
+      "n_vulns": 3,
+      "scan_time_s": 0.041,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "public_s3": {
+      "rule_score": 40,
+      "ml_score": 48.64,
+      "final_score": 43,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.028,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "missing_flow_logs": {
+      "rule_score": 30,
+      "ml_score": 48.64,
+      "final_score": 37,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.024,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "public_instance": {
+      "rule_score": 25,
+      "ml_score": 52.05,
+      "final_score": 35,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.025,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "hardcoded_secret": {
+      "rule_score": 50,
+      "ml_score": 58.76,
+      "final_score": 53,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.026,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "secure_full_stack": {
+      "rule_score": 0,
+      "ml_score": 43.01,
+      "final_score": 17,
+      "confidence": "MEDIUM",
+      "n_vulns": 0,
+      "scan_time_s": 0.033,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "private_ingress": {
+      "rule_score": 20,
+      "ml_score": 48.11,
+      "final_score": 31,
+      "confidence": "LOW",
+      "n_vulns": 1,
+      "scan_time_s": 0.025,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "encrypted_storage": {
+      "rule_score": 20,
+      "ml_score": 48.64,
+      "final_score": 31,
+      "confidence": "LOW",
+      "n_vulns": 1,
+      "scan_time_s": 0.043,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "s3_fully_blocked": {
+      "rule_score": 20,
+      "ml_score": 48.64,
+      "final_score": 31,
+      "confidence": "LOW",
+      "n_vulns": 1,
+      "scan_time_s": 0.027,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "imdsv2_enforced": {
+      "rule_score": 20,
+      "ml_score": 48.64,
+      "final_score": 31,
+      "confidence": "LOW",
+      "n_vulns": 1,
+      "scan_time_s": 0.025,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "parametrized_secret": {
+      "rule_score": 20,
+      "ml_score": 48.64,
+      "final_score": 31,
+      "confidence": "LOW",
+      "n_vulns": 1,
+      "scan_time_s": 0.026,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "combo_web_app": {
+      "rule_score": 100,
+      "ml_score": 55.24,
+      "final_score": 82,
+      "confidence": "LOW",
+      "n_vulns": 8,
+      "scan_time_s": 0.031,
+      "expected_n": 5,
+      "is_negative": false
+    },
+    "combo_data_platform": {
+      "rule_score": 80,
+      "ml_score": 56.22,
+      "final_score": 70,
+      "confidence": "LOW",
+      "n_vulns": 5,
+      "scan_time_s": 0.028,
+      "expected_n": 4,
+      "is_negative": false
+    }
+  },
+  "hybrid_summary": {
+    "positive_cases": 16,
+    "negative_cases": 6,
+    "mean_final_positive": 50.38,
+    "mean_final_negative": 28.67,
+    "mean_rule_positive": 50.0,
+    "mean_rule_negative": 16.67,
+    "mean_ml_positive": 51.99,
+    "mean_ml_negative": 47.61
+  }
+}

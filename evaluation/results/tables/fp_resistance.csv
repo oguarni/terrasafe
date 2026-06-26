@@ -1,0 +1,8 @@
+Caso seguro,TerraVault,Checkov,tfsec,Terrascan
+secure_full_stack,—,—,—,—
+private_ingress,—,—,—,—
+encrypted_storage,—,—,—,—
+s3_fully_blocked,—,—,—,—
+imdsv2_enforced,—,—,—,—
+parametrized_secret,—,—,—,—
+Total FP,0,0,0,0

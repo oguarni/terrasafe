@@ -1,0 +1,51 @@
+\begin{table}[ht]
+\centering
+\caption{Visão geral da detecção sobre a taxonomia compartilhada.}
+\label{tab:overview}
+\begin{tabular}{lrrrrrr}
+\toprule
+\textbf{Ferramenta} & \textbf{Precisão} & \textbf{Recall} & \textbf{F1} & \textbf{Categorias} & \textbf{FP (seguros)} & \textbf{Achados brutos} \\
+\midrule
+TerraVault & 100.0\% & 100.0\% & 100.0\% & 11/11 & 0 & 23 \\
+Checkov & 100.0\% & 95.7\% & 97.8\% & 10/11 & 0 & 187 \\
+tfsec & 100.0\% & 87.0\% & 93.0\% & 9/11 & 0 & 107 \\
+Terrascan & 100.0\% & 47.8\% & 64.7\% & 5/11 & 0 & 63 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Recall por categoria de vulnerabilidade (acertos/total).}
+\label{tab:recall}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Categoria} & \textbf{TerraVault} & \textbf{Checkov} & \textbf{tfsec} & \textbf{Terrascan} \\
+\midrule
+Ingresso público (SG aberto) & \checkmark 5/5 & \checkmark 5/5 & \checkmark 5/5 & $\circ$ 4/5 \\
+Egresso irrestrito & \checkmark 2/2 & \checkmark 2/2 & \checkmark 2/2 & $\times$ 0/2 \\
+RDS sem criptografia & \checkmark 2/2 & \checkmark 2/2 & \checkmark 2/2 & \checkmark 2/2 \\
+EBS sem criptografia & \checkmark 2/2 & \checkmark 2/2 & \checkmark 2/2 & $\times$ 0/2 \\
+RDS com acesso público & \checkmark 2/2 & \checkmark 2/2 & \checkmark 2/2 & \checkmark 2/2 \\
+IMDSv1 habilitado & \checkmark 2/2 & \checkmark 2/2 & \checkmark 2/2 & \checkmark 2/2 \\
+Política IAM com curinga & \checkmark 2/2 & \checkmark 2/2 & \checkmark 2/2 & $\times$ 0/2 \\
+Bucket S3 público & \checkmark 2/2 & \checkmark 2/2 & \checkmark 2/2 & $\times$ 0/2 \\
+VPC sem flow logs & \checkmark 1/1 & \checkmark 1/1 & \checkmark 1/1 & \checkmark 1/1 \\
+Instância EC2 com IP público & \checkmark 2/2 & \checkmark 2/2 & $\times$ 0/2 & $\times$ 0/2 \\
+Segredo hardcoded & \checkmark 1/1 & $\times$ 0/1 & $\times$ 0/1 & $\times$ 0/1 \\
+Total (recall micro) & 100\% (23/23) & 96\% (22/23) & 87\% (20/23) & 48\% (11/23) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% requires \usepackage{pgfplots} ; \pgfplotsset{compat=1.17}
+\begin{tikzpicture}
+\begin{axis}[ybar, bar width=10pt, ymin=0, ymax=105,
+    ylabel={\%}, symbolic x coords={TerraVault,Checkov,tfsec,Terrascan},
+    xtick=data, legend pos=south west, enlarge x limits=0.2,
+    nodes near coords, nodes near coords style={font=\tiny}]
+\addplot coordinates {(TerraVault,100.0) (Checkov,95.7) (tfsec,87.0) (Terrascan,47.8)};
+\addplot coordinates {(TerraVault,100.0) (Checkov,97.8) (tfsec,93.0) (Terrascan,64.7)};
+\legend{Recall, F1}
+\end{axis}
+\end{tikzpicture}
