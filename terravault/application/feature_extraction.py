@@ -6,7 +6,7 @@ makes the hybrid model genuinely hybrid: the Isolation Forest scores the
 *shape* of the infrastructure (size, network exposure, encryption coverage,
 logging posture, secret hygiene) rather than re-counting the findings the
 rules already produced. As a result the ML signal can flag anomalous
-configurations that fall outside the fixed 7-rule catalogue.
+configurations that fall outside the fixed 11-rule catalogue.
 
 Keep ``FEATURE_NAMES``, ``FEATURE_BOUNDS`` and the secure-baseline generator in
 ``infrastructure/ml_model.py`` in sync — they all describe the same vector.
