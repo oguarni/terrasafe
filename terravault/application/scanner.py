@@ -5,10 +5,11 @@ import logging
 import numpy as np
 from pathlib import Path
 import hashlib
-from typing import Callable, Dict, Any, List, Tuple
+from typing import Callable, Dict, Any, List, Optional, Tuple
 
 from ..domain.models import Vulnerability, Severity
 from ..domain.security_rules import SecurityRuleEngine
+from ..config.settings import get_settings
 from ..infrastructure.parser import HCLParser, TerraformParseError
 from ..infrastructure.ml_model import MLPredictor
 from .feature_extraction import (
@@ -27,10 +28,9 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# Scoring weights for combining rule-based and ML-based scores
-# These are exported for use in tests to avoid hardcoding magic numbers
-RULE_WEIGHT = 0.6  # 60% weight for rule-based analysis
-ML_WEIGHT = 0.4    # 40% weight for ML-based analysis
+# Hybrid score weights default to ``Settings.rule_weight`` / ``Settings.ml_weight``
+# (configurable via the ``TERRAVAULT_RULE_WEIGHT`` / ``TERRAVAULT_ML_WEIGHT``
+# environment variables) and can be overridden per scanner via the constructor.
 
 
 class IntelligentSecurityScanner:
@@ -48,11 +48,16 @@ class IntelligentSecurityScanner:
         parser: HCLParser,
         rule_analyzer: SecurityRuleEngine,
         ml_predictor: MLPredictor,
+        rule_weight: Optional[float] = None,
+        ml_weight: Optional[float] = None,
     ):
         self.parser = parser
         self.rule_analyzer = rule_analyzer
         self.ml_predictor = ml_predictor
         self.feature_extractor = StructuralFeatureExtractor()
+        settings = get_settings()
+        self.rule_weight = settings.rule_weight if rule_weight is None else rule_weight
+        self.ml_weight = settings.ml_weight if ml_weight is None else ml_weight
         self._hash_cache: Dict[Tuple[str, float], str] = {}
         self._scan_cache: Dict[Tuple[str, str, float], Tuple[Dict[str, Any], float]] = {}
 
@@ -124,7 +129,7 @@ class IntelligentSecurityScanner:
         validated_features = self._validate_features(features)
         ml_score, confidence = self.ml_predictor.predict_risk(validated_features)
 
-        final_score = int(RULE_WEIGHT * rule_score + ML_WEIGHT * ml_score)
+        final_score = int(self.rule_weight * rule_score + self.ml_weight * ml_score)
 
         scan_duration = round(time.time() - start_time, 3)
 

@@ -14,7 +14,7 @@ try:
 except ImportError:
     boto3 = None  # type: ignore
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -74,6 +74,20 @@ class Settings(BaseSettings):
     severity_overrides: Dict[str, str] = Field(
         default={},
         description="Override severity for specific rules, e.g. {'missing_logging': 'MEDIUM'}"
+    )
+
+    # Hybrid score weighting (rule_weight + ml_weight must sum to 1.0)
+    rule_weight: float = Field(
+        default=0.6,
+        ge=0.0,
+        le=1.0,
+        description="Weight of the deterministic rule engine in the hybrid risk score (default 0.6)."
+    )
+    ml_weight: float = Field(
+        default=0.4,
+        ge=0.0,
+        le=1.0,
+        description="Weight of the Isolation Forest anomaly score in the hybrid risk score (default 0.4)."
     )
 
     # Security Configuration
@@ -179,6 +193,16 @@ class Settings(BaseSettings):
                 "Expected at least 60 characters."
             )
         return v
+
+    @model_validator(mode="after")
+    def validate_score_weights(self) -> "Settings":
+        """Ensure the hybrid-score weights form a convex combination (sum to 1.0)."""
+        total = self.rule_weight + self.ml_weight
+        if abs(total - 1.0) > 1e-6:
+            raise ValueError(
+                f"rule_weight + ml_weight must sum to 1.0 (got {total:.3f})"
+            )
+        return self
 
     @property
     def max_file_size_bytes(self) -> int:
