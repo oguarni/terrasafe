@@ -88,6 +88,14 @@ gcloud config set compute/zone $ZONE
 
 # Enable the Compute Engine API
 gcloud services enable compute.googleapis.com
+
+# IAP-tunnelled SSH: this deployment restricts ingress TCP 22 to Google's IAP
+# range, so every `gcloud compute ssh` below uses --tunnel-through-iap. A plain
+# SSH will hang. Enable the API and grant yourself the tunnel role:
+gcloud services enable iap.googleapis.com
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="user:$(gcloud config get-value account)" \
+  --role=roles/iap.tunnelResourceAccessor
 ```
 
 ---
@@ -126,6 +134,21 @@ Do **not** open 3000 (Grafana), 9090 (Prometheus), 5432 (Postgres),
 6379 (Redis), or 8000 (API direct). Caddy is the only public ingress;
 everything else is reached via SSH tunnel.
 
+SSH (TCP 22) is **not** left open to the world either. Restrict it to
+Google's IAP forwarding range so all SSH goes through the audited IAP
+tunnel (see the IAP note in Prerequisites):
+
+```bash
+gcloud compute firewall-rules create terravault-allow-iap-ssh \
+  --direction=INGRESS \
+  --action=ALLOW \
+  --rules=tcp:22 \
+  --source-ranges=35.235.240.0/20
+
+# remove any broader rule so 22 is reachable ONLY through IAP
+gcloud compute firewall-rules delete default-allow-ssh --quiet
+```
+
 ---
 
 ## 3. Provision the VM
@@ -142,7 +165,7 @@ gcloud compute instances create terravault-prod \
   --tags=http-server,https-server
 
 # Wait ~30s for SSH to come up, then connect
-gcloud compute ssh terravault-prod --zone=$ZONE
+gcloud compute ssh terravault-prod --zone=$ZONE --tunnel-through-iap
 ```
 
 `gcloud compute ssh` generates and registers an SSH key for you on
@@ -297,7 +320,7 @@ curl -i https://$DOMAIN/metrics    # expect 404
 flags after a `--`:
 
 ```bash
-gcloud compute ssh terravault-prod --zone=$ZONE -- \
+gcloud compute ssh terravault-prod --zone=$ZONE --tunnel-through-iap -- \
   -L 3000:127.0.0.1:3000 -L 9090:127.0.0.1:9090
 
 # then on your laptop:
@@ -312,7 +335,7 @@ xdg-open http://127.0.0.1:9090   # Prometheus
 ### Update to a new commit
 
 ```bash
-gcloud compute ssh terravault-prod --zone=$ZONE
+gcloud compute ssh terravault-prod --zone=$ZONE --tunnel-through-iap
 cd terravault
 bash scripts/deploy_vm.sh   # ff-only pull, rebuild, health-gate, smoke test
 ```
