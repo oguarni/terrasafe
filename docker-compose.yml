@@ -46,7 +46,7 @@ services:
     environment:
       - POSTGRES_DB=terravault
       - POSTGRES_USER=terravault_user
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-CHANGE_ME_IN_PRODUCTION}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set (see .env)}
       - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
@@ -96,7 +96,7 @@ services:
       - TERRAVAULT_REDIS_MAX_CONNECTIONS=50
 
       # Database Configuration
-      - TERRAVAULT_DATABASE_URL=postgresql+asyncpg://terravault_user:${POSTGRES_PASSWORD:-CHANGE_ME_IN_PRODUCTION}@postgres:5432/terravault
+      - TERRAVAULT_DATABASE_URL=postgresql+asyncpg://terravault_user:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set (see .env)}@postgres:5432/terravault
 
       # Security Configuration
       - TERRAVAULT_MAX_FILE_SIZE_MB=10
@@ -229,7 +229,7 @@ services:
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set (see .env)}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=http://localhost:3000
       - GF_INSTALL_PLUGINS=
