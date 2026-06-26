@@ -1,0 +1,17 @@
+# Build-context excludes for `gcloud builds submit` (keeps models/*.pkl bundled,
+# unlike .gitignore). Used to run the test suite on Linux via Cloud Build.
+.git/
+.venv/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.benchmarks/
+.systmp/
+.pytest_tmp/
+htmlcov/
+.coverage
+coverage.xml
+frontend/node_modules/
+frontend/dist/
+*.log
