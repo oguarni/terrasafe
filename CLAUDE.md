@@ -171,10 +171,13 @@ the report on the PR.
 | `files_over_300_sloc` | must not increase | `.py` files in `terravault/` over 300 lines |
 | `duplicate_blocks` | must not increase | pylint `R0801` at `--min-similarity-lines=4` |
 
-The baseline lives in `.ratchet.json` (tracked in git). When a PR improves a
-metric, `.github/workflows/ratchet-update.yml` recomputes the baseline on the
-post-merge master commit and pushes a `chore(ratchet): bump baseline` commit.
-Developers never edit `.ratchet.json` by hand.
+The baseline lives in `.ratchet.json` (tracked in git). After a merge to
+master, the `ratchet-bump` job in `.github/workflows/devsecops.yml` recomputes
+the baseline — reusing the `test` job's `coverage.xml` rather than running
+pytest again — and pushes a `chore(ratchet): bump baseline` commit **only when
+one of the three metrics actually moves**. Runs where coverage, file count, and
+duplicate blocks are unchanged leave `.ratchet.json` untouched, so the bot no
+longer commits on every push. Developers never edit `.ratchet.json` by hand.
 
 Local usage:
 

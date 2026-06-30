@@ -235,6 +235,16 @@ def cmd_check() -> int:
 
 def cmd_update() -> int:
     current = measure()
+    baseline = load_baseline()
+    # Only rewrite when a real metric moved. The baseline file also carries
+    # volatile provenance fields (updated_at / updated_commit); rewriting on
+    # every run would churn those and make the ratchet bot commit on every
+    # push even when coverage/files/dupes are identical. Skip the write when
+    # the three ratcheted metrics match the existing baseline.
+    if baseline is not None and baseline.to_payload() == current.to_payload():
+        print(f"ratchet: metrics unchanged — {BASELINE_PATH.name} left intact")
+        print(json.dumps(current.to_payload(), indent=2))
+        return 0
     write_baseline(current)
     print(f"ratchet: baseline written to {BASELINE_PATH.relative_to(REPO_ROOT)}")
     print(json.dumps(current.to_payload(), indent=2))

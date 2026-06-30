@@ -3,6 +3,10 @@ name: DevSecOps Pipeline
 on:
   push:
     branches: [ main, develop, master ]
+    # A .ratchet.json-only commit comes from the ratchet-bump job below;
+    # ignore it so the bot's baseline commit cannot re-trigger the pipeline.
+    paths-ignore:
+      - '.ratchet.json'
   pull_request:
     branches: [ main, master ]
 
@@ -570,6 +574,69 @@ jobs:
               issue_number: context.issue.number,
               body: `${header}\n\n${after}`,
             });
+
+  # Recompute the ratchet baseline on master, reusing the coverage.xml the
+  # `test` job already produced (no second pytest run). Commits .ratchet.json
+  # only when a real metric moved — see scripts/ratchet.py cmd_update().
+  ratchet-bump:
+    name: Recompute ratchet baseline on master
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
+    concurrency:
+      group: ratchet-bump-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+          token: ${{ secrets.AUTO_FIX_PAT || secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Download coverage from the test job
+        uses: actions/download-artifact@v8
+        with:
+          name: test-reports
+          path: .
+
+      - name: Recompute ratchet baseline
+        run: python scripts/ratchet.py --update
+
+      - name: Commit baseline bump if changed
+        env:
+          GITHUB_TOKEN: ${{ secrets.AUTO_FIX_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name  "ratchet-bot[bot]"
+          git config user.email "ratchet-bot[bot]@users.noreply.github.com"
+          if git diff --quiet -- .ratchet.json; then
+            echo "Baseline unchanged — nothing to commit."
+            exit 0
+          fi
+          git add .ratchet.json
+          coverage=$(python -c "import json; d=json.load(open('.ratchet.json')); print(d['coverage_pct'])")
+          files=$(python -c "import json; d=json.load(open('.ratchet.json')); print(d['files_over_threshold'])")
+          dupes=$(python -c "import json; d=json.load(open('.ratchet.json')); print(d['duplicate_blocks'])")
+          git commit -m "chore(ratchet): bump baseline (cov=${coverage}% files=${files} dupes=${dupes})"
+          git push origin HEAD:${GITHUB_REF#refs/heads/}
 
   # Optional: Deploy to staging (only on master push)
   deploy-staging:
