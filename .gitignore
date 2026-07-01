@@ -146,10 +146,8 @@ shot_*.html
 *_output.txt
 
 # ===================================
-# Documentation Artifacts
+# Documentation Artifacts — docs/ is tracked (brand logo assets + deploy guides)
 # ===================================
-docs/*
-!docs/DEPLOY_*.md
 
 # ===================================
 # Build & Distribution

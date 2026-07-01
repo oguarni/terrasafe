@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="TerraVault security scanner">
+  <title>TerraVault — infrastructure security scanner</title>
+  <defs>
+    <linearGradient id="mono-beacon-hex" gradientUnits="userSpaceOnUse" x1="30" y1="42" x2="226" y2="214">
+      <stop offset="0" stop-color="#14233B"/><stop offset="1" stop-color="#14233B"/>
+    </linearGradient>
+    <linearGradient id="mono-beacon-shield" gradientUnits="userSpaceOnUse" x1="70" y1="74" x2="186" y2="197">
+      <stop offset="0" stop-color="#14233B"/><stop offset="1" stop-color="#14233B"/>
+    </linearGradient>
+    <linearGradient id="mono-beacon-beam" gradientUnits="userSpaceOnUse" x1="8" y1="128" x2="248" y2="128">
+      <stop offset="0" stop-color="#14233B"/><stop offset="1" stop-color="#14233B"/>
+    </linearGradient>
+    <radialGradient id="mono-beacon-sweep" gradientUnits="userSpaceOnUse" cx="128" cy="128" r="44">
+      <stop offset="0" stop-color="#14233B" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#14233B" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="mono-beacon-core" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#14233B"/>
+      <stop offset="0.45" stop-color="#14233B"/>
+      <stop offset="1" stop-color="#14233B" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="mono-beacon-glow" x="-20%" y="-500%" width="140%" height="1100%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+  </defs>
+    <path d="M 137.53 25.5 L 212.01 68.5 Q 221.53 74 221.53 85 L 221.53 171 Q 221.53 182 212.01 187.5 L 137.53 230.5 Q 128 236 118.47 230.5 L 43.99 187.5 Q 34.47 182 34.47 171 L 34.47 85 Q 34.47 74 43.99 68.5 L 118.47 25.5 Q 128 20 137.53 25.5 Z" fill="none" stroke="#14233B" stroke-width="12" stroke-linejoin="round"/>
+    <circle cx="128" cy="128" r="46" fill="none" stroke="#14233B" stroke-width="3.0" stroke-opacity="0.9"/>
+    <circle cx="128" cy="128" r="33" fill="none" stroke="#14233B" stroke-width="3.4" stroke-opacity="1.0"/>
+    <circle cx="128" cy="128" r="20" fill="none" stroke="#14233B" stroke-width="3.4" stroke-opacity="1.0"/>
+    <line x1="6" y1="128" x2="250" y2="128" stroke="#14233B" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="128" cy="128" r="8.5" fill="#14233B"/>
+</svg>

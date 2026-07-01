@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 596" width="940" height="596" role="img" aria-label="TerraVault color palette">
+  <title>TerraVault — color system derived from #14233B</title>
+  <rect width="940" height="596" fill="#FFFFFF"/>
+  <rect x="0.5" y="0.5" width="939" height="595" fill="none" stroke="#E3EAF3"/>
+  <text x="40" y="52" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" fill="#14233B">TerraVault — Color System</text>
+  <text x="40" y="78" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#4E77B0">Built from the primary #14233B, with a terminal-green scanner signal.</text>
+
+  <!-- Row 1: Core navy scale -->
+  <text x="40" y="114" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="1.5" fill="#294872">CORE · NAVY SCALE</text>
+  <rect x="40" y="126" width="130" height="112" rx="12" fill="#0B1220"/>
+  <text x="56" y="160" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF">Ink</text>
+  <text x="56" y="181" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#FFFFFF" fill-opacity="0.72">backgrounds</text>
+  <text x="56" y="221" font-family="Consolas, monospace" font-size="14" fill="#FFFFFF" letter-spacing="0.5">#0B1220</text>
+  <rect x="186" y="126" width="130" height="112" rx="12" fill="#14233B"/>
+  <text x="202" y="160" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF">Primary</text>
+  <text x="202" y="181" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#FFFFFF" fill-opacity="0.72">brand · frame</text>
+  <text x="202" y="221" font-family="Consolas, monospace" font-size="14" fill="#FFFFFF" letter-spacing="0.5">#14233B</text>
+  <rect x="332" y="126" width="130" height="112" rx="12" fill="#294872"/>
+  <text x="348" y="160" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF">Azure</text>
+  <text x="348" y="181" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#FFFFFF" fill-opacity="0.72">secondary</text>
+  <text x="348" y="221" font-family="Consolas, monospace" font-size="14" fill="#FFFFFF" letter-spacing="0.5">#294872</text>
+  <rect x="478" y="126" width="130" height="112" rx="12" fill="#4E77B0"/>
+  <text x="494" y="160" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF">Steel</text>
+  <text x="494" y="181" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#FFFFFF" fill-opacity="0.72">axis · links</text>
+  <text x="494" y="221" font-family="Consolas, monospace" font-size="14" fill="#FFFFFF" letter-spacing="0.5">#4E77B0</text>
+  <rect x="624" y="126" width="130" height="112" rx="12" fill="#AEC5E2"/>
+  <text x="640" y="160" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#0B1220">Mist</text>
+  <text x="640" y="181" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#0B1220" fill-opacity="0.65">muted text</text>
+  <text x="640" y="221" font-family="Consolas, monospace" font-size="14" fill="#0B1220" letter-spacing="0.5">#AEC5E2</text>
+  <rect x="770" y="126" width="130" height="112" rx="12" fill="#F1F5FB" stroke="#E3EAF3"/>
+  <text x="786" y="160" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#0B1220">Paper</text>
+  <text x="786" y="181" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#0B1220" fill-opacity="0.65">surfaces</text>
+  <text x="786" y="221" font-family="Consolas, monospace" font-size="14" fill="#0B1220" letter-spacing="0.5">#F1F5FB</text>
+
+  <!-- Row 2: Signal green -->
+  <text x="40" y="276" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="1.5" fill="#00A85B">SIGNAL · TERMINAL GREEN</text>
+  <rect x="40" y="288" width="130" height="112" rx="12" fill="#00A85B"/>
+  <text x="56" y="322" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF">Deep</text>
+  <text x="56" y="343" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#FFFFFF" fill-opacity="0.72">green · shade</text>
+  <text x="56" y="383" font-family="Consolas, monospace" font-size="14" fill="#FFFFFF" letter-spacing="0.5">#00A85B</text>
+  <rect x="186" y="288" width="130" height="112" rx="12" fill="#00E676"/>
+  <text x="202" y="322" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#0B1220">Signal</text>
+  <text x="202" y="343" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#0B1220" fill-opacity="0.65">scanner core</text>
+  <text x="202" y="383" font-family="Consolas, monospace" font-size="14" fill="#0B1220" letter-spacing="0.5">#00E676</text>
+  <rect x="332" y="288" width="130" height="112" rx="12" fill="#66F0AD"/>
+  <text x="348" y="322" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#0B1220">Glow</text>
+  <text x="348" y="343" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#0B1220" fill-opacity="0.65">highlight</text>
+  <text x="348" y="383" font-family="Consolas, monospace" font-size="14" fill="#0B1220" letter-spacing="0.5">#66F0AD</text>
+
+  <!-- Row 3: Severity states -->
+  <text x="40" y="438" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="1.5" fill="#294872">SEVERITY · SCAN STATES</text>
+  <rect x="40" y="450" width="130" height="112" rx="12" fill="#FF5470"/>
+  <text x="56" y="484" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF">Critical</text>
+  <text x="56" y="505" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#FFFFFF" fill-opacity="0.72">severity</text>
+  <text x="56" y="545" font-family="Consolas, monospace" font-size="14" fill="#FFFFFF" letter-spacing="0.5">#FF5470</text>
+  <rect x="186" y="450" width="130" height="112" rx="12" fill="#FF8A3D"/>
+  <text x="202" y="484" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#0B1220">High</text>
+  <text x="202" y="505" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#0B1220" fill-opacity="0.65">severity</text>
+  <text x="202" y="545" font-family="Consolas, monospace" font-size="14" fill="#0B1220" letter-spacing="0.5">#FF8A3D</text>
+  <rect x="332" y="450" width="130" height="112" rx="12" fill="#FFC24B"/>
+  <text x="348" y="484" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#0B1220">Medium</text>
+  <text x="348" y="505" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#0B1220" fill-opacity="0.65">severity</text>
+  <text x="348" y="545" font-family="Consolas, monospace" font-size="14" fill="#0B1220" letter-spacing="0.5">#FFC24B</text>
+  <rect x="478" y="450" width="130" height="112" rx="12" fill="#00E676"/>
+  <text x="494" y="484" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#0B1220">Pass</text>
+  <text x="494" y="505" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#0B1220" fill-opacity="0.65">clean · info</text>
+  <text x="494" y="545" font-family="Consolas, monospace" font-size="14" fill="#0B1220" letter-spacing="0.5">#00E676</text>
+</svg>
