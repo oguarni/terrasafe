@@ -1,5 +1,8 @@
 <div align="center">
-  <img src="frontend/assets/banner.png" alt="TerraVault — Hybrid Terraform Security Scanner" width="720">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo/logo-horizontal-dark.png">
+    <img src="docs/logo/logo-horizontal.png" alt="TerraVault — Hybrid Terraform Security Scanner" width="720">
+  </picture>
 
   **Hybrid Terraform Security Scanner — Deterministic Rules + ML Anomaly Detection**
 
