@@ -15,6 +15,13 @@ permissions:
   pull-requests: write
   security-events: write
 
+# On a PR, supersede in-flight runs when new commits are pushed. On master
+# pushes keep cancel-in-progress off so ratchet-bump / deploy-staging are not
+# interrupted mid-run.
+concurrency:
+  group: devsecops-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # Security scanning
   security-scan:
