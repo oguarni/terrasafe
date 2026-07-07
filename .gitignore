@@ -255,6 +255,10 @@ alembic/__pycache__/
 # ===================================
 terravault-architecture.svg
 
+# ML corpus training (scripts/corpus_train.py) - downloaded modules + local GCP run config
+corpus/
+.gcp-train.json
+
 # ===================================
 # Ratchet / Quality Gate Artifacts
 # ===================================
