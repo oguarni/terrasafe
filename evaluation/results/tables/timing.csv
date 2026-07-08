@@ -1,5 +1,5 @@
 Ferramenta,Execução,Tempo total (s),Por caso (s)
-TerraVault,nativo (in-process),0.66,0.030
-Checkov,container Docker,152.08,6.913
-tfsec,container Docker,36.49,1.659
-Terrascan,container Docker,159.65,7.257
+TerraVault,nativo (in-process),1.27,0.058
+Checkov,container Docker,230.49,10.477
+tfsec,container Docker,58.71,2.669
+Terrascan,container Docker,217.72,9.896

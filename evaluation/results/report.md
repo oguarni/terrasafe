@@ -1,6 +1,6 @@
 # Avaliação Experimental do TerraVault
 
-*Gerado automaticamente por `evaluation/` em 2026-06-22T23:25:06. Reexecutável com `make evaluate`.*
+*Gerado automaticamente por `evaluation/` em 2026-07-07T23:24:54. Reexecutável com `make evaluate`.*
 
 ## 1. Metodologia
 
@@ -74,10 +74,10 @@ Nos casos negativos, nenhuma categoria da taxonomia deveria ser reportada:
 
 | Ferramenta | Execução | Tempo total (s) | Por caso (s) |
 | --- | --- | --- | --- |
-| TerraVault | nativo (in-process) | 0.66 | 0.030 |
-| Checkov | container Docker | 152.08 | 6.913 |
-| tfsec | container Docker | 36.49 | 1.659 |
-| Terrascan | container Docker | 159.65 | 7.257 |
+| TerraVault | nativo (in-process) | 1.27 | 0.058 |
+| Checkov | container Docker | 230.49 | 10.477 |
+| tfsec | container Docker | 58.71 | 2.669 |
+| Terrascan | container Docker | 217.72 | 9.896 |
 
 > O tempo dos concorrentes inclui a inicialização do container Docker (custo aproximadamente constante por execução); o TerraVault roda nativo, em processo. A comparação de tempo é, portanto, indicativa e não um *benchmark* de motor isolado.
 
@@ -88,10 +88,10 @@ O TerraVault combina o score de regras (60%) com o score de anomalia do Isolatio
 | Componente | Casos vulneráveis | Casos seguros |
 | --- | --- | --- |
 | Score de regras (média) | 50.0 | 16.7 |
-| Score ML (média) | 52.0 | 47.6 |
-| Score final (média) | 50.4 | 28.7 |
+| Score ML (média) | 48.7 | 45.5 |
+| Score final (média) | 49.1 | 27.7 |
 
-A separação média de **21.7 pontos** entre o score final dos casos vulneráveis e seguros confirma que o pipeline híbrido ordena corretamente o risco. O detalhamento por caso está em `tables/hybrid_scores.csv`.
+A separação média de **21.4 pontos** entre o score final dos casos vulneráveis e seguros confirma que o pipeline híbrido ordena corretamente o risco. O detalhamento por caso está em `tables/hybrid_scores.csv`.
 
 
 ## 3. Discussão e ameaças à validade
