@@ -50,9 +50,13 @@ Feature values are clipped to bounds before inference (in `scanner.py:_validate_
 - `encryption_coverage` and `secret_parametrization` are **centered at 1.0** (the
   secure mode), so a fully-encrypted/parametrized file sits at the centre of the
   manifold and insecure values fall outside it as anomalies.
-- **Limitation / future work:** the baseline is synthetic-but-principled. The
-  next step is to fit it on structural features extracted from a corpus of real,
-  known-secure Terraform modules.
+- **Real-corpus training (delivered):** `scripts/corpus_train.py` refits the
+  model on structural features extracted from real Terraform — registry-wide
+  AWS modules (~10.6k modules) plus the distinct `.tf` blobs of BigQuery's
+  public GitHub dataset (~30k files), deduplicated by content hash and stacked
+  onto the synthetic baseline via `update_model_with_feedback()`. See
+  `docs/GCP_TRAINING.md` for the asynchronous GCE runbook; the largest trained
+  version (v20260708_015533) fits on 35,594 samples.
 
 ## Risk Scoring
 

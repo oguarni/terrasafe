@@ -14,12 +14,18 @@
 # Usage (from the repo root, plain PowerShell - NOT as admin):
 #   .\scripts\gcp_train_launch.ps1
 #   .\scripts\gcp_train_launch.ps1 -MachineType e2-highcpu-8 -Modules 600
+#   .\scripts\gcp_train_launch.ps1 -MachineType e2-highcpu-16 -Modules 12000 -MaxHours 12 `
+#       -RegistryWide -GithubCorpus gs://terravault-ml-artifacts/github_corpus
 
 [CmdletBinding()]
 param(
     [string]$MachineType = "e2-highcpu-4",
     [int]$Modules = 400,
-    [int]$MaxHours = 6
+    [int]$MaxHours = 6,
+    [switch]$RegistryWide,
+    [string]$GithubCorpus = "",
+    [int]$Workers = 0,
+    [int]$DiskGb = 60
 )
 
 $ErrorActionPreference = "Continue"
@@ -44,7 +50,18 @@ $runId = Get-Date -Format "yyyyMMdd-HHmmss"
 $vmName = "terravault-train-$runId"
 $gcsRun = "gs://$bucket/runs/$runId"
 
+$collectFlags = "--workers $Workers"
+$sourceLabel = "synthetic secure baseline + Terraform Registry corpus"
+if ($RegistryWide) {
+    $collectFlags = "$collectFlags --registry-wide"
+    $sourceLabel = "synthetic secure baseline + registry-wide Terraform Registry corpus"
+}
+if (-not [string]::IsNullOrWhiteSpace($GithubCorpus)) {
+    $sourceLabel = "$sourceLabel + GitHub public dataset corpus"
+}
+
 Write-Host "==> Run id: $runId  (VM: $vmName, machine: $MachineType, modules: $Modules)" -ForegroundColor Cyan
+Write-Host "    registry-wide: $([bool]$RegistryWide), github corpus: $(if ($GithubCorpus) { $GithubCorpus } else { 'none' })"
 
 # --- 1. Package the working tree (tracked + untracked-but-not-ignored files).
 # Built from 'git ls-files', so .env, corpus/, models/ and other ignored
@@ -54,7 +71,9 @@ Push-Location $repoRoot
 try {
     $fileList = Join-Path $env:TEMP "terravault-src-files-$runId.txt"
     $srcTgz = Join-Path $env:TEMP "terravault-src-$runId.tgz"
-    git ls-files -co --exclude-standard | Set-Content -Encoding Ascii $fileList
+    # quotepath=off: git would otherwise octal-escape non-ASCII names, which tar
+    # then fails to stat. UTF8 (not Ascii) for the same reason.
+    git -c core.quotepath=off ls-files -co --exclude-standard | Set-Content -Encoding UTF8 $fileList
     Assert-LastExit "git ls-files"
     tar -czf $srcTgz -T $fileList
     Assert-LastExit "tar"
@@ -76,6 +95,7 @@ shutdown -P "+__MAXMIN__"
 trap poweroff EXIT
 export PATH="$PATH:/snap/bin"
 DEST="__DEST__"
+GITHUB_CORPUS="__GITHUB_CORPUS__"
 LOG=/var/log/train.log
 touch "$LOG"
 exec > >(tee -a "$LOG") 2>&1
@@ -122,19 +142,32 @@ python3 -m venv .venv
 .venv/bin/pip install --quiet -r requirements.txt
 
 status "COLLECT downloading __MODULES__ registry modules"
-.venv/bin/python scripts/corpus_train.py collect --max-modules __MODULES__
+.venv/bin/python scripts/corpus_train.py collect --max-modules __MODULES__ __COLLECT_FLAGS__
+
+if [ -n "$GITHUB_CORPUS" ]; then
+    status "GITHUB fetching blob shards"
+    mkdir -p corpus/github_shards
+    gcloud storage cp "$GITHUB_CORPUS/*" corpus/github_shards/ --quiet
+    .venv/bin/python scripts/corpus_train.py github-fetch
+fi
 
 status "EXTRACT structural features"
-.venv/bin/python scripts/corpus_train.py extract
+.venv/bin/python scripts/corpus_train.py extract --workers __WORKERS__
 
 status "TRAIN isolation forest"
-.venv/bin/python scripts/corpus_train.py train
+.venv/bin/python scripts/corpus_train.py train --source-label "__SOURCE_LABEL__"
 
 status "UPLOAD artifacts"
 gcloud storage cp -r models "$DEST/models" --quiet
-gcloud storage cp corpus/features.npy corpus/features_meta.json corpus/manifest.json "$DEST/corpus/" --quiet
+gcloud storage cp corpus/features.npy corpus/features_meta.json "$DEST/corpus/" --quiet
+if [ -f corpus/manifest.json ]; then gcloud storage cp corpus/manifest.json "$DEST/corpus/" --quiet; fi
+if [ -f corpus/github_manifest.json ]; then gcloud storage cp corpus/github_manifest.json "$DEST/corpus/" --quiet; fi
+
+status "SNAPSHOT archiving corpus"
+tar -czf corpus_snapshot.tgz corpus/modules
+gcloud storage cp corpus_snapshot.tgz "$DEST/corpus/corpus_snapshot.tgz" --quiet
 '@
-    $startupScript = $startupTemplate.Replace("__DEST__", $gcsRun).Replace("__MAXMIN__", "$maxMinutes").Replace("__MODULES__", "$Modules")
+    $startupScript = $startupTemplate.Replace("__DEST__", $gcsRun).Replace("__MAXMIN__", "$maxMinutes").Replace("__MODULES__", "$Modules").Replace("__COLLECT_FLAGS__", $collectFlags).Replace("__GITHUB_CORPUS__", $GithubCorpus).Replace("__WORKERS__", "$Workers").Replace("__SOURCE_LABEL__", $sourceLabel)
     $startupPath = Join-Path $env:TEMP "terravault-startup-$runId.sh"
     [System.IO.File]::WriteAllText($startupPath, $startupScript.Replace("`r`n", "`n"), (New-Object System.Text.UTF8Encoding($false)))
 
@@ -146,7 +179,7 @@ gcloud storage cp corpus/features.npy corpus/features_meta.json corpus/manifest.
         --machine-type $MachineType `
         --image-family ubuntu-2404-lts-amd64 `
         --image-project ubuntu-os-cloud `
-        --boot-disk-size 40GB `
+        --boot-disk-size "$($DiskGb)GB" `
         --boot-disk-type pd-balanced `
         --scopes storage-rw `
         --metadata enable-guest-attributes=TRUE `
@@ -162,6 +195,8 @@ gcloud storage cp corpus/features.npy corpus/features_meta.json corpus/manifest.
         bucket  = $bucket
         machine = $MachineType
         modules = $Modules
+        registryWide = [bool]$RegistryWide
+        githubCorpus = $GithubCorpus
         started = (Get-Date -Format "o")
     }
     $runJson = Join-Path $env:TEMP "terravault-run-$runId.json"
