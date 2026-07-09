@@ -1,17 +1,157 @@
-# Build-context excludes for `gcloud builds submit` (keeps models/*.pkl bundled,
-# unlike .gitignore). Used to run the test suite on Linux via Cloud Build.
+# Cloud Build upload context for `gcloud builds submit`.
+# Do not include `.gitignore`: this project intentionally keeps current
+# `models/` artifacts uploadable for GCP workflows.
+
+# gcloud / git metadata
+.gcloudignore
 .git/
+.gitignore
+.gitattributes
+.github/
+
+# Local automation and editor state
+.claude/
+.claudeignore
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Python environments, bytecode, packaging output
 .venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+__pycache__/
 **/__pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.so
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+*.whl
+pip-wheel-metadata/
+
+# Python test, coverage, type-check, and benchmark artifacts
 .pytest_cache/
 .mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.hypothesis/
+.tox/
+.nox/
 .benchmarks/
 .systmp/
 .pytest_tmp/
 htmlcov/
 .coverage
+.coverage.*
 coverage.xml
+pytest-junit.xml
+nosetests.xml
+gate-report*.md
+gate-metrics*.json
+pipeline-report*.md
+pipeline-metrics*.json
+terravault-scan-report.md
+terravault-scan-metrics.json
+
+# Frontend generated output
 frontend/node_modules/
 frontend/dist/
+
+# Runtime, scan, and artifact staging output
+backups/
+evaluation/results/raw/
+models/versions/
+scan_results/
+scan_results.txt
+scan_results.json
+scan_results_*.json
+scan_history.json
+*.sarif
+shot_*.html
+*_output.txt
+_artifacts/
+_verify/
+corpus/
+
+# Local environment, credentials, and secrets
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+.env.bak.*
+.gcp/
+.gcp-train.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.der
+*.csr
+*.crt
+id_rsa
+id_ed25519
+*-key.json
+*-keyfile.json
+service-account*.json
+serviceAccount*.json
+gcp-*.json
+google-credentials*.json
+credentials.json
+
+# Security and quality scanner output
+bandit.json
+bandit-report.json
+safety-report.txt
+safety-report.json
+trivy-report.json
+trivy-results.sarif
+sbom.json
+sbom.xml
+gitleaks-report.json
+gitleaks-report.sarif
+gitleaks-results.sarif
+.secrets.baseline
+pylint-output.json
+pylint-report.txt
+ratchet-current.json
+
+# Local logs, databases, temp files, and backups
+logs/
 *.log
+*.log.*
+*.db
+*.sqlite
+*.sqlite3
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
+.cache/
+*.swp
+*.swo
+*.swn
+*.orig
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini

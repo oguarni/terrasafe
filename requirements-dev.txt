@@ -20,4 +20,5 @@ types-redis==4.6.0.20240106
 types-aiofiles>=24.1.0
 
 # Security scanning
+bandit==1.9.4
 cyclonedx-bom==4.2.0
