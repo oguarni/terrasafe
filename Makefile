@@ -1,5 +1,5 @@
 # Makefile for TerraVault - Terraform Security Scanner
-.PHONY: help install test run-demo clean docker lint coverage api metrics test-api security-scan security-deps security-sast security-all setup-hooks quality-gate ratchet ratchet-update ratchet-show corpus evaluate evaluate-report
+.PHONY: help install test run-demo clean docker lint coverage api metrics test-api security-scan security-deps security-sast security-all setup-hooks quality-gate ratchet ratchet-update ratchet-show corpus evaluate evaluate-report evaluate-foreign
 
 # Variables
 PYTHON := python3
@@ -229,3 +229,18 @@ evaluate: corpus
 # Re-render the report from cached metrics.json (no Docker / scanner re-run)
 evaluate-report: install
 	$(EVAL) -m evaluation.report
+
+# Third-party (KICS) corpus evaluation — external-validity check (harness ext A.2).
+# Set KICS_ROOT=<kics checkout>/assets/queries/terraform/aws. The full 4-tool run
+# needs Docker; append FOREIGN_ARGS=--terravault-only for a Docker-free local run,
+# or use scripts/gcp_eval_foreign.sh for the heavy competitor comparison on GCP.
+# Corpus is regenerable (gitignored); the scored evidence lands in a tracked dir.
+FOREIGN_DIR := evaluation/dataset/foreign
+FOREIGN_RESULTS := evaluation/results/foreign
+evaluate-foreign: install
+	@test -n "$(KICS_ROOT)" || { echo "set KICS_ROOT=<kics checkout>/assets/queries/terraform/aws"; exit 1; }
+	$(EVAL) -m evaluation.dataset.build_foreign_corpus --kics-root "$(KICS_ROOT)" --out-dir $(FOREIGN_DIR)
+	$(EVAL) -m evaluation.evaluate --ground-truth $(FOREIGN_DIR)/ground_truth_foreign.yaml \
+		--dataset-root $(FOREIGN_DIR) --results-dir $(FOREIGN_RESULTS) --score-mode target_slice $(FOREIGN_ARGS)
+	$(EVAL) -m evaluation.report_foreign --results-dir $(FOREIGN_RESULTS)
+	@echo "✅ Foreign report: $(FOREIGN_RESULTS)/report_foreign.md"

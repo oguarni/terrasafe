@@ -45,7 +45,9 @@ _TERRAVAULT_RULES = [
     ("Publicly accessible RDS", "PUBLIC_RDS"),
     ("IMDSv1", "IMDSV1"),
     ("IAM policy", "IAM_WILDCARD"),
-    ("S3 bucket with public", "PUBLIC_S3"),
+    ("S3 bucket with public", "PUBLIC_S3"),          # [HIGH]  >=3 protections off
+    ("S3 bucket with partial public", "PUBLIC_S3"),  # [MEDIUM] 1-2 protections off
+
     ("Missing VPC flow logs", "MISSING_VPC_FLOW_LOGS"),
     ("auto-assigns a public IP", "PUBLIC_INSTANCE"),
     ("Hardcoded", "HARDCODED_SECRET"),

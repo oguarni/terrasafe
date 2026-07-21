@@ -1,0 +1,75 @@
+{
+  "source": "KICS (Checkmarx) terraform/aws query fixtures",
+  "provenance": "Labels authored by KICS maintainers; imported unchanged. KICS is not one of the compared tools, so the fixtures are foreign to TerraVault, Checkov, tfsec and Terrascan alike.",
+  "taxonomy": [
+    "PUBLIC_INGRESS",
+    "UNRESTRICTED_EGRESS",
+    "UNENCRYPTED_RDS",
+    "UNENCRYPTED_EBS",
+    "PUBLIC_RDS",
+    "IMDSV1",
+    "IAM_WILDCARD",
+    "PUBLIC_S3",
+    "MISSING_VPC_FLOW_LOGS",
+    "PUBLIC_INSTANCE",
+    "HARDCODED_SECRET"
+  ],
+  "categories_present": [
+    "IAM_WILDCARD",
+    "IMDSV1",
+    "PUBLIC_INGRESS",
+    "PUBLIC_INSTANCE",
+    "PUBLIC_RDS",
+    "PUBLIC_S3",
+    "UNENCRYPTED_EBS",
+    "UNENCRYPTED_RDS"
+  ],
+  "excluded_queries": {
+    "vpc_flowlogs_disabled": "Concept mismatch: KICS requires the aws_flow_log to *reference this VPC* (reference-integrity) and its positives all declare an aws_flow_log; TerraVault's rule checks flow-log *presence*, so a presence check cannot reproduce KICS's labels for any tool.",
+    "hardcoded_aws_access_key": "Detection-surface mismatch: KICS flags secrets in `user_data`; TerraVault regexes password=/api_key=/secret_key=/token=. Fixtures are largely external modules and none use the attributes TerraVault scans.",
+    "hardcoded_aws_access_key_in_lambda": "Detection-surface mismatch: KICS flags keys in aws_lambda_function environment blocks, outside TerraVault's password/token regex surface.",
+    "rds_database_cluster_not_encrypted": "Redundant with rds_storage_not_encrypted (also aws_rds_cluster); omitted to avoid double-counting the same sibling-resource gap.",
+    "s3_bucket_allows_public_acl_via_acl_attribute": "Different S3 sub-concept (ACL grant) than TerraVault's public_access_block scope; excluded to keep PUBLIC_S3 aligned.",
+    "s3_bucket_public_acl_overridden_by_public_access_block": "Tests interaction semantics between ACL and PAB, not a plain public-exposure label; ambiguous ground truth."
+  },
+  "stats": {
+    "imported": 57,
+    "positives": 32,
+    "negatives": 25,
+    "in_tv_scope": 38,
+    "out_of_tv_scope": 19,
+    "dropped_no_resource": [
+      "unrestricted_security_group_ingress__negative4",
+      "unrestricted_security_group_ingress__positive4",
+      "rds_db_instance_publicly_accessible__negative2",
+      "rds_db_instance_publicly_accessible__positive2",
+      "instance_uses_metadata_service_IMDSv1__negative4",
+      "instance_uses_metadata_service_IMDSv1__negative5",
+      "instance_uses_metadata_service_IMDSv1__negative6",
+      "instance_uses_metadata_service_IMDSv1__positive10",
+      "instance_uses_metadata_service_IMDSv1__positive6",
+      "instance_uses_metadata_service_IMDSv1__positive7",
+      "instance_uses_metadata_service_IMDSv1__positive8",
+      "instance_uses_metadata_service_IMDSv1__positive9",
+      "ec2_instance_has_public_ip__negative2",
+      "ec2_instance_has_public_ip__positive2",
+      "ec2_instance_has_public_ip__positive3",
+      "s3_bucket_allows_public_acl__negative2",
+      "s3_bucket_allows_public_acl__positive2",
+      "s3_bucket_allows_public_acl__positive3",
+      "s3_bucket_without_ignore_public_acl__negative2",
+      "s3_bucket_without_ignore_public_acl__positive2",
+      "s3_bucket_without_ignore_public_acl__positive3"
+    ],
+    "per_category": {
+      "PUBLIC_INGRESS": 6,
+      "UNENCRYPTED_EBS": 3,
+      "PUBLIC_RDS": 2,
+      "IMDSV1": 8,
+      "PUBLIC_INSTANCE": 3,
+      "PUBLIC_S3": 24,
+      "UNENCRYPTED_RDS": 4,
+      "IAM_WILDCARD": 7
+    }
+  }
+}

@@ -18,6 +18,8 @@ backups/
 # Keep the corpus, code, report.md, metrics.json and tables tracked; the 66
 # per-tool raw JSON dumps are a regenerable cache, not source.
 evaluation/results/raw/
+# Same rule for the third-party (KICS) run's competitor dumps.
+evaluation/results/foreign/raw/
 
 # ===================================
 # Python
@@ -271,3 +273,9 @@ pytest-junit.xml
 # Local Windows test scaffolding (pytest basetemp + redirected system temp)
 .systmp/
 .pytest_tmp/
+
+# Generated third-party (KICS) corpus (rebuilt by build_foreign_corpus.py from a
+# pinned KICS checkout). The mapping (kics_mapping.py) and builder are tracked;
+# the imported fixtures are not. The scored evidence (metrics.json, report,
+# tables) is committed under evaluation/results/foreign/ instead.
+evaluation/dataset/foreign/

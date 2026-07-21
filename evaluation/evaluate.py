@@ -98,16 +98,49 @@ def _competitor_versions() -> Dict[str, str]:
 # ---------------------------------------------------------------------------
 # Orchestration
 # ---------------------------------------------------------------------------
+def _slice_to_target(cats: Set[str], target, score_mode: str) -> Set[str]:
+    """In target-slice mode, keep only the fixture's labelled category.
+
+    The foreign corpus does not carry complete multi-label ground truth (a KICS
+    positive for concept C is not guaranteed to be free of an incidental
+    concept D), so each fixture is scored *only* for the concept it is labelled
+    with; detections of other concepts are neither rewarded nor penalised. In
+    the default ``full`` mode (the home corpus, where every positive isolates a
+    single category with the rest hardened) nothing is masked.
+    """
+    if score_mode == "target_slice" and target:
+        return cats & {target}
+    return cats
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="TerraVault evaluation harness")
     ap.add_argument("--use-cache", action="store_true",
                     help="re-score from cached raw scanner output (no Docker re-run)")
+    ap.add_argument("--ground-truth", type=Path, default=DATASET / "ground_truth.yaml",
+                    help="labelled corpus manifest (default: the home corpus)")
+    ap.add_argument("--dataset-root", type=Path, default=DATASET,
+                    help="root that case dir/file paths are resolved against")
+    ap.add_argument("--results-dir", type=Path, default=RESULTS,
+                    help="where metrics.json / raw output are written")
+    ap.add_argument("--score-mode", choices=["full", "target_slice"], default="full",
+                    help="'target_slice' scores each fixture only for its labelled "
+                         "category (third-party corpus); 'full' is the home corpus")
+    ap.add_argument("--terravault-only", action="store_true",
+                    help="run TerraVault in-process only; skip the Docker "
+                         "competitors (no credits / no Docker needed)")
     args = ap.parse_args()
 
-    RESULTS.mkdir(parents=True, exist_ok=True)
-    gt = yaml.safe_load((DATASET / "ground_truth.yaml").read_text(encoding="utf-8"))
+    dataset_root: Path = args.dataset_root.resolve()
+    results_dir: Path = args.results_dir.resolve()
+    results_dir.mkdir(parents=True, exist_ok=True)
+    gt = yaml.safe_load(args.ground_truth.read_text(encoding="utf-8"))
     tax: List[str] = gt["taxonomy"]
     cases = gt["cases"]
+    score_mode: str = args.score_mode
+
+    competitors = {} if args.terravault_only else runners.COMPETITOR_RUNNERS
+    tools_present = ["terravault", *competitors]
 
     ground_truth: Dict[str, Set[str]] = {cid: set(s["expected"]) for cid, s in cases.items()}
     negative_cases: Set[str] = {cid for cid, s in cases.items() if not s["expected"]}
@@ -116,17 +149,19 @@ def main() -> int:
 
     per_case: Dict[str, dict] = {}
     hybrid: Dict[str, dict] = {}
-    detections: Dict[str, Dict[str, Set[str]]] = {t: {} for t in ["terravault", *runners.COMPETITOR_RUNNERS]}
-    raw_counts: Dict[str, int] = {t: 0 for t in runners.COMPETITOR_RUNNERS}
-    durations: Dict[str, float] = {t: 0.0 for t in runners.COMPETITOR_RUNNERS}
+    detections: Dict[str, Dict[str, Set[str]]] = {t: {} for t in tools_present}
+    raw_counts: Dict[str, int] = {t: 0 for t in competitors}
+    durations: Dict[str, float] = {t: 0.0 for t in competitors}
     tv_scan_time = 0.0
-    observed_ids: Dict[str, Set[str]] = {t: set() for t in runners.COMPETITOR_RUNNERS}
+    observed_ids: Dict[str, Set[str]] = {t: set() for t in competitors}
 
     for cid, spec in cases.items():
-        case_dir = (DATASET / spec["dir"]).resolve()
-        case_file = (DATASET / spec["file"]).resolve()
+        case_dir = (dataset_root / spec["dir"]).resolve()
+        case_file = (dataset_root / spec["file"]).resolve()
+        target = spec.get("target")  # None on the home corpus -> no masking
 
         tv_cats, breakdown = run_terravault(scanner, case_file)
+        tv_cats = _slice_to_target(tv_cats, target, score_mode)
         detections["terravault"][cid] = tv_cats
         breakdown["expected_n"] = len(spec["expected"])
         breakdown["is_negative"] = cid in negative_cases
@@ -134,16 +169,19 @@ def main() -> int:
         tv_scan_time += float(breakdown.get("scan_time_s", 0.0) or 0.0)
 
         case_entry = {"expected": spec["expected"], "detections": {"terravault": sorted(tv_cats)}}
+        if target:
+            case_entry["target"] = target
+            case_entry["in_tv_scope"] = spec.get("in_tv_scope")
 
-        for tool, runner in runners.COMPETITOR_RUNNERS.items():
-            res = runner(case_dir, cid, use_cache=args.use_cache)
+        for tool, runner in competitors.items():
+            res = runner(case_dir, cid, use_cache=args.use_cache, results_dir=results_dir)
             if res.error:
                 print(f"!! {tool}/{cid}: {res.error}")
                 detections[tool][cid] = set()
                 case_entry["detections"][tool] = []
                 continue
-            observed_ids[tool].update(res.rule_ids)
-            cats = taxonomy.map_rule_ids(tool, res.rule_ids)
+            observed_ids[tool].update(res.rule_ids)  # raw ids for the audit
+            cats = _slice_to_target(taxonomy.map_rule_ids(tool, res.rule_ids), target, score_mode)
             detections[tool][cid] = cats
             raw_counts[tool] += len(res.findings)
             durations[tool] += res.duration_s
@@ -159,7 +197,7 @@ def main() -> int:
 
     # ---- metrics ----
     tool_metrics = {}
-    for tool in ["terravault", *runners.COMPETITOR_RUNNERS]:
+    for tool in tools_present:
         tm = compute_tool_metrics(
             tool, tax, ground_truth, detections[tool], negative_cases,
             total_raw_findings=raw_counts.get(tool, sum(len(v) for v in detections[tool].values())),
@@ -185,27 +223,34 @@ def main() -> int:
         "mean_ml_negative": _mean([h["ml_score"] for h in neg]),
     }
 
-    versions = _competitor_versions()
-    digests = runners.docker_image_versions()
     settings = get_settings()
+    tools_meta = {"terravault": {"version": settings.model_version, "native": True,
+                                 "approach": "rules (60%) + Isolation Forest ML (40%)"}}
+    if competitors:
+        versions = _competitor_versions()
+        digests = runners.docker_image_versions()
+        for name in competitors:
+            tools_meta[name] = {"version": versions.get(name), "image": digests.get(name)}
+
+    # scope breakdown is meaningful only for the third-party corpus
+    n_in_scope = sum(1 for s in cases.values() if s.get("in_tv_scope") is True)
+    n_out_scope = sum(1 for s in cases.values() if s.get("in_tv_scope") is False)
 
     out = {
         "run_meta": {
             "generated_at": _dt.datetime.now().replace(microsecond=0).isoformat(),
+            "score_mode": score_mode,
+            "corpus_source": gt.get("notes", ""),
             "corpus": {
                 "n_cases": len(cases),
                 "n_positive": len(cases) - len(negative_cases),
                 "n_negative": len(negative_cases),
                 "n_labels": sum(len(s["expected"]) for s in cases.values()),
+                "n_in_tv_scope": n_in_scope,
+                "n_out_of_tv_scope": n_out_scope,
             },
             "taxonomy": tax,
-            "tools": {
-                "terravault": {"version": settings.model_version, "native": True,
-                               "approach": "rules (60%) + Isolation Forest ML (40%)"},
-                "checkov": {"version": versions.get("checkov"), "image": digests.get("checkov")},
-                "tfsec": {"version": versions.get("tfsec"), "image": digests.get("tfsec")},
-                "terrascan": {"version": versions.get("terrascan"), "image": digests.get("terrascan")},
-            },
+            "tools": tools_meta,
             "mapping_audit_unmapped_ids": audit,
         },
         "tools": tool_metrics,
@@ -214,21 +259,22 @@ def main() -> int:
         "hybrid_summary": hybrid_summary,
     }
 
-    (RESULTS / "metrics.json").write_text(json.dumps(out, indent=2), encoding="utf-8")
-    print(f"Wrote {RESULTS / 'metrics.json'}")
+    (results_dir / "metrics.json").write_text(json.dumps(out, indent=2), encoding="utf-8")
+    print(f"Wrote {results_dir / 'metrics.json'}  (score_mode={score_mode})")
 
     # human-readable summary to stdout
     print("\n=== headline (shared-taxonomy detection) ===")
     print(f"{'tool':12s} {'P':>6s} {'R':>6s} {'F1':>6s} {'cats':>5s} {'FP-neg':>7s} {'raw':>5s} {'time(s)':>8s}")
-    for tool in ["terravault", "checkov", "tfsec", "terrascan"]:
+    for tool in tools_present:
         m = tool_metrics[tool]
         print(f"{tool:12s} {m['micro_precision']:6.3f} {m['micro_recall']:6.3f} "
               f"{m['micro_f1']:6.3f} {m['categories_covered']:5d} {m['fp_on_negative']:7d} "
               f"{m['total_raw_findings']:5d} {m['total_duration_s']:8.2f}")
 
-    print("\n=== mapping audit (unmapped competitor ids = ignored) ===")
-    for tool, ids in audit.items():
-        print(f"  {tool}: {len(ids)} unmapped -> {ids}")
+    if audit:
+        print("\n=== mapping audit (unmapped competitor ids = ignored) ===")
+        for tool, ids in audit.items():
+            print(f"  {tool}: {len(ids)} unmapped -> {ids}")
     return 0
 
 

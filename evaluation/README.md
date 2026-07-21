@@ -82,11 +82,42 @@ choices below are deliberate and are restated in `results/report.md`.
    (roughly constant per run); TerraVault runs natively in-process. The timing
    table is indicative, not an isolated-engine benchmark.
 
+## Third-party corpus (external validity)
+
+The home corpus is written by the same author as the rules and the labels, so a
+perfect score is compatible with "teaching to the test". The **KICS third-party
+corpus** attacks that construct-validity threat with fixtures and labels we did
+not author.
+
+- **Source:** the per-query `test/positive*.tf` / `negative*.tf` fixtures of
+  [KICS](https://github.com/Checkmarx/kics) (Checkmarx). KICS is *not* one of the
+  four compared tools, so its fixtures are foreign to TerraVault, Checkov, tfsec
+  and Terrascan alike (no tool is evaluated on its own suite).
+- **Mapping:** `kics_mapping.py` projects each KICS query onto the shared
+  taxonomy and records `tv_scope` (the resource types TerraVault's rule
+  inspects) plus an audited `EXCLUDED` list of near-miss queries with reasons.
+- **Builder:** `dataset/build_foreign_corpus.py` imports the fixtures, drops
+  module-only files (unparseable by any static tool), and emits
+  `ground_truth_foreign.yaml` with a `target` per case.
+- **Scoring:** run `evaluate.py` with `--score-mode target_slice` — each fixture
+  is judged only for the concept KICS labels it with (the corpus lacks complete
+  multi-label ground truth). `report_foreign.py` splits recall into fixtures
+  *within* TerraVault's resource scope (a fair head-to-head) versus *sibling*
+  resources it never covers (a coverage-breadth gap, not a detection failure).
+
+```bash
+# Local, TerraVault only (no Docker):
+make evaluate-foreign KICS_ROOT=<kics>/assets/queries/terraform/aws FOREIGN_ARGS=--terravault-only
+# Full 4-tool comparison (heavy — Docker): run on GCP
+scripts/gcp_eval_foreign.sh
+```
+
 ## Threats to validity
 
-- The corpus is **synthetic-but-controlled**: curated to isolate categories with
-  clean labels, which is a correctness validation rather than a field study.
-  Extending to real-world public modules is future work.
+- The home corpus is **synthetic-but-controlled**: curated to isolate categories
+  with clean labels, which is a correctness validation rather than a field study.
+  The KICS third-party corpus above is the external-validity complement; a
+  full real-world-module field study remains future work.
 - Results are tied to the **pinned tool versions** recorded in
   `results/metrics.json` (`run_meta.tools`). Rule ids and coverage change across
   releases; re-run `make evaluate` to refresh.

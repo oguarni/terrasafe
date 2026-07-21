@@ -1,0 +1,5 @@
+Ferramenta,Precisão,Recall,F1,Categorias,FP (seguros)
+TerraVault,70.4%,59.4%,64.4%,6/11,8
+Checkov,69.4%,78.1%,73.5%,6/11,11
+tfsec,74.1%,62.5%,67.8%,6/11,7
+Terrascan,100.0%,18.8%,31.6%,2/11,0

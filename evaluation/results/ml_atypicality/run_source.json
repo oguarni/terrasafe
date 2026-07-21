@@ -1,0 +1,7 @@
+{
+  "gcs_run": "ml-atypical-20260721-011109",
+  "corpus_tf_files_mined": 49674,
+  "sources": "Terraform Registry (registry-wide, 1500 modules) + public GitHub .tf blobs (BigQuery export)",
+  "machine": "e2-standard-8",
+  "wall_clock_s_approx": 450
+}

@@ -1,0 +1,5 @@
+Ferramenta,Recall no escopo do TerraVault,Recall fora do escopo
+TerraVault,19/23 (83%),0/9 (0%)
+Checkov,22/23 (96%),3/9 (33%)
+tfsec,18/23 (78%),2/9 (22%)
+Terrascan,6/23 (26%),0/9 (0%)

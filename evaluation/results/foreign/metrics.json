@@ -1,0 +1,2089 @@
+{
+  "run_meta": {
+    "generated_at": "2026-07-16T03:59:03",
+    "score_mode": "target_slice",
+    "corpus_source": "Third-party corpus from KICS query fixtures (harness extension A.2). Scored in target-slice mode: each fixture is judged only for the concept KICS labels it with, because the corpus does not carry complete multi-label ground truth. `in_tv_scope` marks fixtures whose resource type TerraVault's rule inspects; out-of-scope misses are coverage gaps by design.",
+    "corpus": {
+      "n_cases": 57,
+      "n_positive": 32,
+      "n_negative": 25,
+      "n_labels": 32,
+      "n_in_tv_scope": 38,
+      "n_out_of_tv_scope": 19
+    },
+    "taxonomy": [
+      "PUBLIC_INGRESS",
+      "UNRESTRICTED_EGRESS",
+      "UNENCRYPTED_RDS",
+      "UNENCRYPTED_EBS",
+      "PUBLIC_RDS",
+      "IMDSV1",
+      "IAM_WILDCARD",
+      "PUBLIC_S3",
+      "MISSING_VPC_FLOW_LOGS",
+      "PUBLIC_INSTANCE",
+      "HARDCODED_SECRET"
+    ],
+    "tools": {
+      "terravault": {
+        "version": "1.0.0",
+        "native": true,
+        "approach": "rules (60%) + Isolation Forest ML (40%)"
+      },
+      "checkov": {
+        "version": "3.3.8",
+        "image": "bridgecrew/checkov@sha256:c64ffb6d6fc8087c896341a2c697770a04a1cf558db04fa7b8129d8ca6bce336"
+      },
+      "tfsec": {
+        "version": "v1.28.14",
+        "image": "aquasec/tfsec@sha256:ac46d48a384ae2c0bbd0413cd2a18229e45e21a44d22c8be28b56de5b38d74c3"
+      },
+      "terrascan": {
+        "version": "v1.19.9",
+        "image": "tenable/terrascan@sha256:1fffb95fd064f53c997da5bb9b2fdb9b14abcad7391fbb7fe42b866358695b16"
+      }
+    },
+    "mapping_audit_unmapped_ids": {
+      "checkov": [
+        "CKV2_AWS_41",
+        "CKV2_AWS_5",
+        "CKV2_AWS_60",
+        "CKV2_AWS_61",
+        "CKV2_AWS_62",
+        "CKV2_AWS_8",
+        "CKV_AWS_107",
+        "CKV_AWS_118",
+        "CKV_AWS_126",
+        "CKV_AWS_129",
+        "CKV_AWS_135",
+        "CKV_AWS_139",
+        "CKV_AWS_144",
+        "CKV_AWS_145",
+        "CKV_AWS_157",
+        "CKV_AWS_161",
+        "CKV_AWS_162",
+        "CKV_AWS_18",
+        "CKV_AWS_189",
+        "CKV_AWS_21",
+        "CKV_AWS_226",
+        "CKV_AWS_23",
+        "CKV_AWS_273",
+        "CKV_AWS_293",
+        "CKV_AWS_313",
+        "CKV_AWS_324",
+        "CKV_AWS_325",
+        "CKV_AWS_326",
+        "CKV_AWS_327",
+        "CKV_AWS_40",
+        "CKV_AWS_8",
+        "CKV_AWS_96",
+        "CKV_TF_1"
+      ],
+      "tfsec": [
+        "aws-ec2-add-description-to-security-group",
+        "aws-ec2-add-description-to-security-group-rule",
+        "aws-ec2-enable-at-rest-encryption",
+        "aws-ec2-enable-launch-config-at-rest-encryption",
+        "aws-ec2-enforce-launch-config-http-token-imds",
+        "aws-ec2-volume-encryption-customer-key",
+        "aws-rds-enable-deletion-protection",
+        "aws-rds-enable-iam-auth",
+        "aws-rds-enable-performance-insights",
+        "aws-rds-encrypt-cluster-storage-data",
+        "aws-rds-specify-backup-retention",
+        "aws-s3-enable-bucket-encryption",
+        "aws-s3-enable-bucket-logging",
+        "aws-s3-enable-versioning",
+        "aws-s3-encryption-customer-key"
+      ],
+      "terrascan": [
+        "AC_AWS_0052",
+        "AC_AWS_0053",
+        "AC_AWS_0133",
+        "AC_AWS_0153",
+        "AC_AWS_0186",
+        "AC_AWS_0214",
+        "AC_AWS_0253",
+        "AC_AWS_0295",
+        "AC_AWS_0454",
+        "AC_AWS_0459",
+        "AC_AWS_0480",
+        "AC_AWS_0487",
+        "AC_AWS_0495"
+      ]
+    }
+  },
+  "tools": {
+    "terravault": {
+      "tool": "terravault",
+      "tp": 19,
+      "fp": 8,
+      "fn": 13,
+      "micro_precision": 0.7037,
+      "micro_recall": 0.5938,
+      "micro_f1": 0.6441,
+      "macro_f1": 0.4536,
+      "categories_covered": 6,
+      "fp_on_negative": 8,
+      "total_raw_findings": 27,
+      "total_duration_s": 1.662,
+      "per_category": {
+        "PUBLIC_INGRESS": {
+          "category": "PUBLIC_INGRESS",
+          "tp": 1,
+          "fp": 0,
+          "fn": 2,
+          "support": 3,
+          "precision": 1.0,
+          "recall": 0.3333,
+          "f1": 0.5
+        },
+        "UNRESTRICTED_EGRESS": {
+          "category": "UNRESTRICTED_EGRESS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "support": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "UNENCRYPTED_RDS": {
+          "category": "UNENCRYPTED_RDS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "support": 2,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "UNENCRYPTED_EBS": {
+          "category": "UNENCRYPTED_EBS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "PUBLIC_RDS": {
+          "category": "PUBLIC_RDS",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "support": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IMDSV1": {
+          "category": "IMDSV1",
+          "tp": 5,
+          "fp": 1,
+          "fn": 0,
+          "support": 5,
+          "precision": 0.8333,
+          "recall": 1.0,
+          "f1": 0.9091
+        },
+        "IAM_WILDCARD": {
+          "category": "IAM_WILDCARD",
+          "tp": 0,
+          "fp": 0,
+          "fn": 3,
+          "support": 3,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "PUBLIC_S3": {
+          "category": "PUBLIC_S3",
+          "tp": 9,
+          "fp": 7,
+          "fn": 6,
+          "support": 15,
+          "precision": 0.5625,
+          "recall": 0.6,
+          "f1": 0.5806
+        },
+        "MISSING_VPC_FLOW_LOGS": {
+          "category": "MISSING_VPC_FLOW_LOGS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "support": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "PUBLIC_INSTANCE": {
+          "category": "PUBLIC_INSTANCE",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "support": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "HARDCODED_SECRET": {
+          "category": "HARDCODED_SECRET",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "support": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      }
+    },
+    "checkov": {
+      "tool": "checkov",
+      "tp": 25,
+      "fp": 11,
+      "fn": 7,
+      "micro_precision": 0.6944,
+      "micro_recall": 0.7812,
+      "micro_f1": 0.7353,
+      "macro_f1": 0.4957,
+      "categories_covered": 6,
+      "fp_on_negative": 11,
+      "total_raw_findings": 343,
+      "total_duration_s": 348.817,
+      "per_category": {
+        "PUBLIC_INGRESS": {
+          "category": "PUBLIC_INGRESS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 3,
+          "support": 3,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "UNRESTRICTED_EGRESS": {
+          "category": "UNRESTRICTED_EGRESS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "support": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "UNENCRYPTED_RDS": {
+          "category": "UNENCRYPTED_RDS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "support": 2,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "UNENCRYPTED_EBS": {
+          "category": "UNENCRYPTED_EBS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "PUBLIC_RDS": {
+          "category": "PUBLIC_RDS",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "support": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IMDSV1": {
+          "category": "IMDSV1",
+          "tp": 5,
+          "fp": 0,
+          "fn": 0,
+          "support": 5,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IAM_WILDCARD": {
+          "category": "IAM_WILDCARD",
+          "tp": 3,
+          "fp": 2,
+          "fn": 0,
+          "support": 3,
+          "precision": 0.6,
+          "recall": 1.0,
+          "f1": 0.75
+        },
+        "PUBLIC_S3": {
+          "category": "PUBLIC_S3",
+          "tp": 13,
+          "fp": 9,
+          "fn": 2,
+          "support": 15,
+          "precision": 0.5909,
+          "recall": 0.8667,
+          "f1": 0.7027
+        },
+        "MISSING_VPC_FLOW_LOGS": {
+          "category": "MISSING_VPC_FLOW_LOGS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "support": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "PUBLIC_INSTANCE": {
+          "category": "PUBLIC_INSTANCE",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "support": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "HARDCODED_SECRET": {
+          "category": "HARDCODED_SECRET",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "support": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      }
+    },
+    "tfsec": {
+      "tool": "tfsec",
+      "tp": 20,
+      "fp": 7,
+      "fn": 12,
+      "micro_precision": 0.7407,
+      "micro_recall": 0.625,
+      "micro_f1": 0.678,
+      "macro_f1": 0.4156,
+      "categories_covered": 6,
+      "fp_on_negative": 7,
+      "total_raw_findings": 209,
+      "total_duration_s": 90.298,
+      "per_category": {
+        "PUBLIC_INGRESS": {
+          "category": "PUBLIC_INGRESS",
+          "tp": 2,
+          "fp": 2,
+          "fn": 1,
+          "support": 3,
+          "precision": 0.5,
+          "recall": 0.6667,
+          "f1": 0.5714
+        },
+        "UNRESTRICTED_EGRESS": {
+          "category": "UNRESTRICTED_EGRESS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "support": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "UNENCRYPTED_RDS": {
+          "category": "UNENCRYPTED_RDS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "support": 2,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "UNENCRYPTED_EBS": {
+          "category": "UNENCRYPTED_EBS",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "support": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "PUBLIC_RDS": {
+          "category": "PUBLIC_RDS",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "support": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IMDSV1": {
+          "category": "IMDSV1",
+          "tp": 5,
+          "fp": 0,
+          "fn": 0,
+          "support": 5,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IAM_WILDCARD": {
+          "category": "IAM_WILDCARD",
+          "tp": 1,
+          "fp": 2,
+          "fn": 2,
+          "support": 3,
+          "precision": 0.3333,
+          "recall": 0.3333,
+          "f1": 0.3333
+        },
+        "PUBLIC_S3": {
+          "category": "PUBLIC_S3",
+          "tp": 9,
+          "fp": 3,
+          "fn": 6,
+          "support": 15,
+          "precision": 0.75,
+          "recall": 0.6,
+          "f1": 0.6667
+        },
+        "MISSING_VPC_FLOW_LOGS": {
+          "category": "MISSING_VPC_FLOW_LOGS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "support": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "PUBLIC_INSTANCE": {
+          "category": "PUBLIC_INSTANCE",
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "support": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "HARDCODED_SECRET": {
+          "category": "HARDCODED_SECRET",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "support": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      }
+    },
+    "terrascan": {
+      "tool": "terrascan",
+      "tp": 6,
+      "fp": 0,
+      "fn": 26,
+      "micro_precision": 1.0,
+      "micro_recall": 0.1875,
+      "micro_f1": 0.3158,
+      "macro_f1": 0.1818,
+      "categories_covered": 2,
+      "fp_on_negative": 0,
+      "total_raw_findings": 72,
+      "total_duration_s": 393.511,
+      "per_category": {
+        "PUBLIC_INGRESS": {
+          "category": "PUBLIC_INGRESS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 3,
+          "support": 3,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "UNRESTRICTED_EGRESS": {
+          "category": "UNRESTRICTED_EGRESS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "support": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "UNENCRYPTED_RDS": {
+          "category": "UNENCRYPTED_RDS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "support": 2,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "UNENCRYPTED_EBS": {
+          "category": "UNENCRYPTED_EBS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "support": 2,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "PUBLIC_RDS": {
+          "category": "PUBLIC_RDS",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "support": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IMDSV1": {
+          "category": "IMDSV1",
+          "tp": 5,
+          "fp": 0,
+          "fn": 0,
+          "support": 5,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "IAM_WILDCARD": {
+          "category": "IAM_WILDCARD",
+          "tp": 0,
+          "fp": 0,
+          "fn": 3,
+          "support": 3,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "PUBLIC_S3": {
+          "category": "PUBLIC_S3",
+          "tp": 0,
+          "fp": 0,
+          "fn": 15,
+          "support": 15,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "MISSING_VPC_FLOW_LOGS": {
+          "category": "MISSING_VPC_FLOW_LOGS",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "support": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "PUBLIC_INSTANCE": {
+          "category": "PUBLIC_INSTANCE",
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "support": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "HARDCODED_SECRET": {
+          "category": "HARDCODED_SECRET",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "support": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      }
+    }
+  },
+  "per_case": {
+    "unrestricted_security_group_ingress__negative1": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [
+          "PUBLIC_INGRESS"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_INGRESS",
+      "in_tv_scope": true
+    },
+    "unrestricted_security_group_ingress__negative2": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_INGRESS",
+      "in_tv_scope": false
+    },
+    "unrestricted_security_group_ingress__negative3": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [
+          "PUBLIC_INGRESS"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_INGRESS",
+      "in_tv_scope": false
+    },
+    "unrestricted_security_group_ingress__positive1": {
+      "expected": [
+        "PUBLIC_INGRESS"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_INGRESS"
+        ],
+        "checkov": [],
+        "tfsec": [
+          "PUBLIC_INGRESS"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_INGRESS",
+      "in_tv_scope": true
+    },
+    "unrestricted_security_group_ingress__positive2": {
+      "expected": [
+        "PUBLIC_INGRESS"
+      ],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_INGRESS",
+      "in_tv_scope": false
+    },
+    "unrestricted_security_group_ingress__positive3": {
+      "expected": [
+        "PUBLIC_INGRESS"
+      ],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [
+          "PUBLIC_INGRESS"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_INGRESS",
+      "in_tv_scope": false
+    },
+    "ebs_volume_encryption_disabled__negative": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "UNENCRYPTED_EBS",
+      "in_tv_scope": true
+    },
+    "ebs_volume_encryption_disabled__positive1": {
+      "expected": [
+        "UNENCRYPTED_EBS"
+      ],
+      "detections": {
+        "terravault": [
+          "UNENCRYPTED_EBS"
+        ],
+        "checkov": [
+          "UNENCRYPTED_EBS"
+        ],
+        "tfsec": [
+          "UNENCRYPTED_EBS"
+        ],
+        "terrascan": []
+      },
+      "target": "UNENCRYPTED_EBS",
+      "in_tv_scope": true
+    },
+    "ebs_volume_encryption_disabled__positive2": {
+      "expected": [
+        "UNENCRYPTED_EBS"
+      ],
+      "detections": {
+        "terravault": [
+          "UNENCRYPTED_EBS"
+        ],
+        "checkov": [
+          "UNENCRYPTED_EBS"
+        ],
+        "tfsec": [
+          "UNENCRYPTED_EBS"
+        ],
+        "terrascan": []
+      },
+      "target": "UNENCRYPTED_EBS",
+      "in_tv_scope": true
+    },
+    "rds_db_instance_publicly_accessible__negative1": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_RDS",
+      "in_tv_scope": true
+    },
+    "rds_db_instance_publicly_accessible__positive1": {
+      "expected": [
+        "PUBLIC_RDS"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_RDS"
+        ],
+        "checkov": [
+          "PUBLIC_RDS"
+        ],
+        "tfsec": [
+          "PUBLIC_RDS"
+        ],
+        "terrascan": [
+          "PUBLIC_RDS"
+        ]
+      },
+      "target": "PUBLIC_RDS",
+      "in_tv_scope": true
+    },
+    "instance_uses_metadata_service_IMDSv1__negative1": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "IMDSV1",
+      "in_tv_scope": true
+    },
+    "instance_uses_metadata_service_IMDSv1__negative2": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "IMDSV1",
+      "in_tv_scope": true
+    },
+    "instance_uses_metadata_service_IMDSv1__negative3": {
+      "expected": [],
+      "detections": {
+        "terravault": [
+          "IMDSV1"
+        ],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "IMDSV1",
+      "in_tv_scope": true
+    },
+    "instance_uses_metadata_service_IMDSv1__positive1": {
+      "expected": [
+        "IMDSV1"
+      ],
+      "detections": {
+        "terravault": [
+          "IMDSV1"
+        ],
+        "checkov": [
+          "IMDSV1"
+        ],
+        "tfsec": [
+          "IMDSV1"
+        ],
+        "terrascan": [
+          "IMDSV1"
+        ]
+      },
+      "target": "IMDSV1",
+      "in_tv_scope": true
+    },
+    "instance_uses_metadata_service_IMDSv1__positive2": {
+      "expected": [
+        "IMDSV1"
+      ],
+      "detections": {
+        "terravault": [
+          "IMDSV1"
+        ],
+        "checkov": [
+          "IMDSV1"
+        ],
+        "tfsec": [
+          "IMDSV1"
+        ],
+        "terrascan": [
+          "IMDSV1"
+        ]
+      },
+      "target": "IMDSV1",
+      "in_tv_scope": true
+    },
+    "instance_uses_metadata_service_IMDSv1__positive3": {
+      "expected": [
+        "IMDSV1"
+      ],
+      "detections": {
+        "terravault": [
+          "IMDSV1"
+        ],
+        "checkov": [
+          "IMDSV1"
+        ],
+        "tfsec": [
+          "IMDSV1"
+        ],
+        "terrascan": [
+          "IMDSV1"
+        ]
+      },
+      "target": "IMDSV1",
+      "in_tv_scope": true
+    },
+    "instance_uses_metadata_service_IMDSv1__positive4": {
+      "expected": [
+        "IMDSV1"
+      ],
+      "detections": {
+        "terravault": [
+          "IMDSV1"
+        ],
+        "checkov": [
+          "IMDSV1"
+        ],
+        "tfsec": [
+          "IMDSV1"
+        ],
+        "terrascan": [
+          "IMDSV1"
+        ]
+      },
+      "target": "IMDSV1",
+      "in_tv_scope": true
+    },
+    "instance_uses_metadata_service_IMDSv1__positive5": {
+      "expected": [
+        "IMDSV1"
+      ],
+      "detections": {
+        "terravault": [
+          "IMDSV1"
+        ],
+        "checkov": [
+          "IMDSV1"
+        ],
+        "tfsec": [
+          "IMDSV1"
+        ],
+        "terrascan": [
+          "IMDSV1"
+        ]
+      },
+      "target": "IMDSV1",
+      "in_tv_scope": true
+    },
+    "ec2_instance_has_public_ip__negative1": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_INSTANCE",
+      "in_tv_scope": true
+    },
+    "ec2_instance_has_public_ip__negative3": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_INSTANCE",
+      "in_tv_scope": false
+    },
+    "ec2_instance_has_public_ip__positive1": {
+      "expected": [
+        "PUBLIC_INSTANCE"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_INSTANCE"
+        ],
+        "checkov": [
+          "PUBLIC_INSTANCE"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_INSTANCE",
+      "in_tv_scope": true
+    },
+    "s3_bucket_allows_public_acl__negative1": {
+      "expected": [],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [
+          "PUBLIC_S3"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_allows_public_acl__positive1": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [
+          "PUBLIC_S3"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_without_ignore_public_acl__negative1": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [
+          "PUBLIC_S3"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_without_ignore_public_acl__positive1": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [
+          "PUBLIC_S3"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_without_ignore_public_acl__positive4": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [
+          "PUBLIC_S3"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_without_restriction_of_public_bucket__negative1": {
+      "expected": [],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_without_restriction_of_public_bucket__negative2": {
+      "expected": [],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_without_restriction_of_public_bucket__positive1": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_without_restriction_of_public_bucket__positive2": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_with_public_policy__negative1": {
+      "expected": [],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_with_public_policy__negative2": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [
+          "PUBLIC_S3"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": false
+    },
+    "s3_bucket_with_public_policy__negative3": {
+      "expected": [],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_with_public_policy__negative4": {
+      "expected": [],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_with_public_policy__negative5": {
+      "expected": [],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_with_public_policy__positive1": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_with_public_policy__positive10": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": false
+    },
+    "s3_bucket_with_public_policy__positive2": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_with_public_policy__positive3": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [
+          "PUBLIC_S3"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_with_public_policy__positive4": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [
+          "PUBLIC_S3"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_with_public_policy__positive5": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [
+          "PUBLIC_S3"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_with_public_policy__positive6": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [
+          "PUBLIC_S3"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_with_public_policy__positive7": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [
+          "PUBLIC_S3"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_with_public_policy__positive8": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [
+          "PUBLIC_S3"
+        ],
+        "checkov": [
+          "PUBLIC_S3"
+        ],
+        "tfsec": [
+          "PUBLIC_S3"
+        ],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": true
+    },
+    "s3_bucket_with_public_policy__positive9": {
+      "expected": [
+        "PUBLIC_S3"
+      ],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "PUBLIC_S3",
+      "in_tv_scope": false
+    },
+    "rds_storage_not_encrypted__negative1": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "UNENCRYPTED_RDS",
+      "in_tv_scope": false
+    },
+    "rds_storage_not_encrypted__negative2": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "UNENCRYPTED_RDS",
+      "in_tv_scope": false
+    },
+    "rds_storage_not_encrypted__positive1": {
+      "expected": [
+        "UNENCRYPTED_RDS"
+      ],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "UNENCRYPTED_RDS",
+      "in_tv_scope": false
+    },
+    "rds_storage_not_encrypted__positive2": {
+      "expected": [
+        "UNENCRYPTED_RDS"
+      ],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "UNENCRYPTED_RDS",
+      "in_tv_scope": false
+    },
+    "iam_policy_grants_full_permissions__negative1": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "IAM_WILDCARD",
+      "in_tv_scope": false
+    },
+    "iam_policy_grants_full_permissions__negative2": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [],
+        "tfsec": [
+          "IAM_WILDCARD"
+        ],
+        "terrascan": []
+      },
+      "target": "IAM_WILDCARD",
+      "in_tv_scope": false
+    },
+    "iam_policy_grants_full_permissions__negative3": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [
+          "IAM_WILDCARD"
+        ],
+        "tfsec": [
+          "IAM_WILDCARD"
+        ],
+        "terrascan": []
+      },
+      "target": "IAM_WILDCARD",
+      "in_tv_scope": false
+    },
+    "iam_policy_grants_full_permissions__negative4": {
+      "expected": [],
+      "detections": {
+        "terravault": [],
+        "checkov": [
+          "IAM_WILDCARD"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "IAM_WILDCARD",
+      "in_tv_scope": false
+    },
+    "iam_policy_grants_full_permissions__positive1": {
+      "expected": [
+        "IAM_WILDCARD"
+      ],
+      "detections": {
+        "terravault": [],
+        "checkov": [
+          "IAM_WILDCARD"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "IAM_WILDCARD",
+      "in_tv_scope": false
+    },
+    "iam_policy_grants_full_permissions__positive2": {
+      "expected": [
+        "IAM_WILDCARD"
+      ],
+      "detections": {
+        "terravault": [],
+        "checkov": [
+          "IAM_WILDCARD"
+        ],
+        "tfsec": [
+          "IAM_WILDCARD"
+        ],
+        "terrascan": []
+      },
+      "target": "IAM_WILDCARD",
+      "in_tv_scope": false
+    },
+    "iam_policy_grants_full_permissions__positive3": {
+      "expected": [
+        "IAM_WILDCARD"
+      ],
+      "detections": {
+        "terravault": [],
+        "checkov": [
+          "IAM_WILDCARD"
+        ],
+        "tfsec": [],
+        "terrascan": []
+      },
+      "target": "IAM_WILDCARD",
+      "in_tv_scope": false
+    }
+  },
+  "terravault_hybrid": {
+    "unrestricted_security_group_ingress__negative1": {
+      "rule_score": 20,
+      "ml_score": 55.13,
+      "final_score": 34,
+      "confidence": "LOW",
+      "n_vulns": 1,
+      "scan_time_s": 0.042,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "unrestricted_security_group_ingress__negative2": {
+      "rule_score": 20,
+      "ml_score": 41.34,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.029,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "unrestricted_security_group_ingress__negative3": {
+      "rule_score": 20,
+      "ml_score": 41.34,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.031,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "unrestricted_security_group_ingress__positive1": {
+      "rule_score": 100,
+      "ml_score": 63.66,
+      "final_score": 85,
+      "confidence": "MEDIUM",
+      "n_vulns": 5,
+      "scan_time_s": 0.032,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "unrestricted_security_group_ingress__positive2": {
+      "rule_score": 20,
+      "ml_score": 41.39,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.03,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "unrestricted_security_group_ingress__positive3": {
+      "rule_score": 20,
+      "ml_score": 41.39,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.031,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "ebs_volume_encryption_disabled__negative": {
+      "rule_score": 20,
+      "ml_score": 41.28,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.029,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "ebs_volume_encryption_disabled__positive1": {
+      "rule_score": 40,
+      "ml_score": 53.11,
+      "final_score": 45,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.027,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "ebs_volume_encryption_disabled__positive2": {
+      "rule_score": 40,
+      "ml_score": 53.11,
+      "final_score": 45,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.027,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "rds_db_instance_publicly_accessible__negative1": {
+      "rule_score": 70,
+      "ml_score": 68.97,
+      "final_score": 69,
+      "confidence": "MEDIUM",
+      "n_vulns": 3,
+      "scan_time_s": 0.028,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "rds_db_instance_publicly_accessible__positive1": {
+      "rule_score": 100,
+      "ml_score": 70.6,
+      "final_score": 88,
+      "confidence": "MEDIUM",
+      "n_vulns": 4,
+      "scan_time_s": 0.028,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "instance_uses_metadata_service_IMDSv1__negative1": {
+      "rule_score": 20,
+      "ml_score": 41.63,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.029,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "instance_uses_metadata_service_IMDSv1__negative2": {
+      "rule_score": 20,
+      "ml_score": 41.63,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.029,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "instance_uses_metadata_service_IMDSv1__negative3": {
+      "rule_score": 40,
+      "ml_score": 41.63,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.029,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "instance_uses_metadata_service_IMDSv1__positive1": {
+      "rule_score": 40,
+      "ml_score": 41.63,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.029,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "instance_uses_metadata_service_IMDSv1__positive2": {
+      "rule_score": 40,
+      "ml_score": 41.63,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.029,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "instance_uses_metadata_service_IMDSv1__positive3": {
+      "rule_score": 40,
+      "ml_score": 41.63,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.029,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "instance_uses_metadata_service_IMDSv1__positive4": {
+      "rule_score": 40,
+      "ml_score": 41.63,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.028,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "instance_uses_metadata_service_IMDSv1__positive5": {
+      "rule_score": 40,
+      "ml_score": 41.63,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.03,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "ec2_instance_has_public_ip__negative1": {
+      "rule_score": 40,
+      "ml_score": 41.28,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.03,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "ec2_instance_has_public_ip__negative3": {
+      "rule_score": 20,
+      "ml_score": 41.34,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.03,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "ec2_instance_has_public_ip__positive1": {
+      "rule_score": 65,
+      "ml_score": 45.38,
+      "final_score": 57,
+      "confidence": "LOW",
+      "n_vulns": 4,
+      "scan_time_s": 0.03,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_allows_public_acl__negative1": {
+      "rule_score": 30,
+      "ml_score": 41.34,
+      "final_score": 34,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.029,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "s3_bucket_allows_public_acl__positive1": {
+      "rule_score": 40,
+      "ml_score": 41.41,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 3,
+      "scan_time_s": 0.029,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_without_ignore_public_acl__negative1": {
+      "rule_score": 20,
+      "ml_score": 41.34,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.029,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "s3_bucket_without_ignore_public_acl__positive1": {
+      "rule_score": 30,
+      "ml_score": 41.34,
+      "final_score": 34,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.028,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_without_ignore_public_acl__positive4": {
+      "rule_score": 20,
+      "ml_score": 41.34,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.028,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_without_restriction_of_public_bucket__negative1": {
+      "rule_score": 40,
+      "ml_score": 41.34,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.029,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "s3_bucket_without_restriction_of_public_bucket__negative2": {
+      "rule_score": 40,
+      "ml_score": 41.28,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.028,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "s3_bucket_without_restriction_of_public_bucket__positive1": {
+      "rule_score": 40,
+      "ml_score": 41.34,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.029,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_without_restriction_of_public_bucket__positive2": {
+      "rule_score": 40,
+      "ml_score": 41.34,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.029,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_with_public_policy__negative1": {
+      "rule_score": 40,
+      "ml_score": 41.34,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.029,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "s3_bucket_with_public_policy__negative2": {
+      "rule_score": 20,
+      "ml_score": 41.28,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.028,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "s3_bucket_with_public_policy__negative3": {
+      "rule_score": 40,
+      "ml_score": 41.34,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.03,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "s3_bucket_with_public_policy__negative4": {
+      "rule_score": 40,
+      "ml_score": 41.34,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.028,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "s3_bucket_with_public_policy__negative5": {
+      "rule_score": 40,
+      "ml_score": 41.28,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.027,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "s3_bucket_with_public_policy__positive1": {
+      "rule_score": 40,
+      "ml_score": 41.34,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.029,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_with_public_policy__positive10": {
+      "rule_score": 20,
+      "ml_score": 41.28,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.027,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_with_public_policy__positive2": {
+      "rule_score": 40,
+      "ml_score": 41.34,
+      "final_score": 40,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.028,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_with_public_policy__positive3": {
+      "rule_score": 20,
+      "ml_score": 41.63,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.027,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_with_public_policy__positive4": {
+      "rule_score": 20,
+      "ml_score": 41.63,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.028,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_with_public_policy__positive5": {
+      "rule_score": 30,
+      "ml_score": 41.63,
+      "final_score": 34,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.028,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_with_public_policy__positive6": {
+      "rule_score": 20,
+      "ml_score": 41.34,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.027,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_with_public_policy__positive7": {
+      "rule_score": 30,
+      "ml_score": 41.34,
+      "final_score": 34,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.028,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_with_public_policy__positive8": {
+      "rule_score": 30,
+      "ml_score": 41.63,
+      "final_score": 34,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.028,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "s3_bucket_with_public_policy__positive9": {
+      "rule_score": 20,
+      "ml_score": 41.28,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.028,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "rds_storage_not_encrypted__negative1": {
+      "rule_score": 50,
+      "ml_score": 56.67,
+      "final_score": 52,
+      "confidence": "LOW",
+      "n_vulns": 2,
+      "scan_time_s": 0.029,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "rds_storage_not_encrypted__negative2": {
+      "rule_score": 50,
+      "ml_score": 68.97,
+      "final_score": 57,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.029,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "rds_storage_not_encrypted__positive1": {
+      "rule_score": 50,
+      "ml_score": 68.97,
+      "final_score": 57,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.028,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "rds_storage_not_encrypted__positive2": {
+      "rule_score": 50,
+      "ml_score": 68.97,
+      "final_score": 57,
+      "confidence": "MEDIUM",
+      "n_vulns": 2,
+      "scan_time_s": 0.028,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "iam_policy_grants_full_permissions__negative1": {
+      "rule_score": 20,
+      "ml_score": 43.93,
+      "final_score": 29,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.029,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "iam_policy_grants_full_permissions__negative2": {
+      "rule_score": 20,
+      "ml_score": 42.97,
+      "final_score": 29,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.028,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "iam_policy_grants_full_permissions__negative3": {
+      "rule_score": 20,
+      "ml_score": 42.97,
+      "final_score": 29,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.027,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "iam_policy_grants_full_permissions__negative4": {
+      "rule_score": 20,
+      "ml_score": 41.52,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.038,
+      "expected_n": 0,
+      "is_negative": true
+    },
+    "iam_policy_grants_full_permissions__positive1": {
+      "rule_score": 20,
+      "ml_score": 43.93,
+      "final_score": 29,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.03,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "iam_policy_grants_full_permissions__positive2": {
+      "rule_score": 20,
+      "ml_score": 42.97,
+      "final_score": 29,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.027,
+      "expected_n": 1,
+      "is_negative": false
+    },
+    "iam_policy_grants_full_permissions__positive3": {
+      "rule_score": 20,
+      "ml_score": 41.52,
+      "final_score": 28,
+      "confidence": "MEDIUM",
+      "n_vulns": 1,
+      "scan_time_s": 0.035,
+      "expected_n": 1,
+      "is_negative": false
+    }
+  },
+  "hybrid_summary": {
+    "positive_cases": 32,
+    "negative_cases": 25,
+    "mean_final_positive": 40.0,
+    "mean_final_negative": 36.2,
+    "mean_rule_positive": 37.03,
+    "mean_rule_negative": 31.2,
+    "mean_ml_positive": 45.76,
+    "mean_ml_negative": 44.98
+  }
+}
