@@ -64,8 +64,9 @@ class RunResult:
 # ---------------------------------------------------------------------------
 # Docker plumbing
 # ---------------------------------------------------------------------------
-def _raw_path(tool: str, case_id: str) -> Path:
-    return RAW_DIR / tool / f"{case_id}.json"
+def _raw_path(tool: str, case_id: str, results_dir: Optional[Path] = None) -> Path:
+    base = (results_dir / "raw") if results_dir else RAW_DIR
+    return base / tool / f"{case_id}.json"
 
 
 def _docker_cmd(image: str, mount: Path, dst: str, tool_args: List[str]) -> List[str]:
@@ -91,10 +92,10 @@ def _run_docker(image: str, mount: Path, dst: str, tool_args: List[str]) -> tupl
 
 def _load_or_run(
     tool: str, case_id: str, mount: Path, dst: str, tool_args: List[str],
-    image: str, use_cache: bool,
+    image: str, use_cache: bool, results_dir: Optional[Path] = None,
 ) -> tuple[dict, float, bool]:
     """Return (parsed_json, duration, from_cache) for one tool/case."""
-    raw_path = _raw_path(tool, case_id)
+    raw_path = _raw_path(tool, case_id, results_dir)
     if use_cache and raw_path.exists():
         try:
             return json.loads(raw_path.read_text(encoding="utf-8")), 0.0, True
@@ -155,37 +156,40 @@ def _parse_terrascan(data) -> List[Finding]:
 # ---------------------------------------------------------------------------
 # Public runners
 # ---------------------------------------------------------------------------
-def run_checkov(case_dir: Path, case_id: str, use_cache: bool = False) -> RunResult:
+def run_checkov(case_dir: Path, case_id: str, use_cache: bool = False,
+                results_dir: Optional[Path] = None) -> RunResult:
     try:
         data, dur, cached = _load_or_run(
             "checkov", case_id, case_dir, "/tf",
             ["-d", "/tf", "--framework", "terraform,secrets",
              "-o", "json", "--compact", "--quiet"],
-            CHECKOV_IMAGE, use_cache,
+            CHECKOV_IMAGE, use_cache, results_dir,
         )
         return RunResult("checkov", case_id, _parse_checkov(data), dur, cached)
     except (RuntimeError, subprocess.TimeoutExpired) as exc:
         return RunResult("checkov", case_id, error=str(exc))
 
 
-def run_tfsec(case_dir: Path, case_id: str, use_cache: bool = False) -> RunResult:
+def run_tfsec(case_dir: Path, case_id: str, use_cache: bool = False,
+              results_dir: Optional[Path] = None) -> RunResult:
     try:
         data, dur, cached = _load_or_run(
             "tfsec", case_id, case_dir, "/src",
             ["/src", "-f", "json", "--no-color"],
-            TFSEC_IMAGE, use_cache,
+            TFSEC_IMAGE, use_cache, results_dir,
         )
         return RunResult("tfsec", case_id, _parse_tfsec(data), dur, cached)
     except (RuntimeError, subprocess.TimeoutExpired) as exc:
         return RunResult("tfsec", case_id, error=str(exc))
 
 
-def run_terrascan(case_dir: Path, case_id: str, use_cache: bool = False) -> RunResult:
+def run_terrascan(case_dir: Path, case_id: str, use_cache: bool = False,
+                  results_dir: Optional[Path] = None) -> RunResult:
     try:
         data, dur, cached = _load_or_run(
             "terrascan", case_id, case_dir, "/iac",
             ["scan", "-i", "terraform", "-t", "aws", "-d", "/iac", "-o", "json"],
-            TERRASCAN_IMAGE, use_cache,
+            TERRASCAN_IMAGE, use_cache, results_dir,
         )
         return RunResult("terrascan", case_id, _parse_terrascan(data), dur, cached)
     except (RuntimeError, subprocess.TimeoutExpired) as exc:
