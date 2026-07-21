@@ -1,0 +1,334 @@
+{
+  "population": {
+    "kept": 18041,
+    "seen": 49673,
+    "deduped": 4624,
+    "oversize": 34,
+    "no_resource": 25118,
+    "scan_errors": 1856,
+    "scan_error_types": {
+      "TerraformParseError": 1852,
+      "AttributeError": 2,
+      "ScanTimeout": 2
+    },
+    "rule_clean": 437,
+    "rule_flagged": 17604,
+    "train_vector_overlap": 18013,
+    "rule_clean_held_out": 2
+  },
+  "feature_names": [
+    "resource_count",
+    "resource_type_diversity",
+    "ingress_rule_count",
+    "public_exposure_count",
+    "iam_resource_count",
+    "encryption_coverage",
+    "logging_resource_count",
+    "secret_parametrization"
+  ],
+  "rule_clean_analysis": {
+    "n": 437,
+    "overall_flag_rate": 0.3753,
+    "flagged": 164,
+    "atypical_decile": {
+      "flagged": 47,
+      "n": 47,
+      "flag_rate": 1.0
+    },
+    "typical_half": {
+      "flagged": 4,
+      "n": 201,
+      "flag_rate": 0.0199
+    },
+    "selectivity_lift": 50.25,
+    "ranking_auc": 0.9151,
+    "spearman_rho": 0.7478,
+    "spearman_p": 2.081e-79,
+    "flag_share_in_atypical_tail": 0.2866,
+    "flag_bands": [
+      {
+        "band": "<p50 (typical)",
+        "flagged": 4,
+        "n": 201,
+        "flag_rate": 0.0199
+      },
+      {
+        "band": "p50-p90",
+        "flagged": 113,
+        "n": 189,
+        "flag_rate": 0.5979
+      },
+      {
+        "band": "p90-p99",
+        "flagged": 42,
+        "n": 42,
+        "flag_rate": 1.0
+      },
+      {
+        "band": ">=p99 (extreme)",
+        "flagged": 5,
+        "n": 5,
+        "flag_rate": 1.0
+      }
+    ],
+    "top_atypical": [
+      {
+        "path": "/opt/tv/corpus/modules/marbot-io__marbot-monitoring-basic/main.tf",
+        "mahalanobis": 29.43,
+        "if_anomaly": 0.1837,
+        "flagged": true,
+        "features": {
+          "resource_count": 142.0,
+          "resource_type_diversity": 14.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 0.0,
+          "iam_resource_count": 4.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 2.0,
+          "secret_parametrization": 1.0
+        }
+      },
+      {
+        "path": "/opt/tv/corpus/modules/github/efcdc5c2f284ec61d72a61e49aacb170d127be9d.tf",
+        "mahalanobis": 17.162,
+        "if_anomaly": 0.0571,
+        "flagged": true,
+        "features": {
+          "resource_count": 6.0,
+          "resource_type_diversity": 1.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 0.0,
+          "iam_resource_count": 0.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 6.0,
+          "secret_parametrization": 1.0
+        }
+      },
+      {
+        "path": "/opt/tv/corpus/modules/aws-ia__control_tower_account_factory/modules/aft-account-request-framework/lambda.tf",
+        "mahalanobis": 17.03,
+        "if_anomaly": 0.0986,
+        "flagged": true,
+        "features": {
+          "resource_count": 18.0,
+          "resource_type_diversity": 5.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 0.0,
+          "iam_resource_count": 0.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 6.0,
+          "secret_parametrization": 1.0
+        }
+      },
+      {
+        "path": "/opt/tv/corpus/modules/tilotech__tilores-core/cloudwatch.tf",
+        "mahalanobis": 16.706,
+        "if_anomaly": 0.0753,
+        "flagged": true,
+        "features": {
+          "resource_count": 10.0,
+          "resource_type_diversity": 5.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 0.0,
+          "iam_resource_count": 0.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 6.0,
+          "secret_parametrization": 1.0
+        }
+      },
+      {
+        "path": "/opt/tv/corpus/modules/aws-ia__control_tower_account_factory/modules/aft-customizations/lambda.tf",
+        "mahalanobis": 14.286,
+        "if_anomaly": 0.0639,
+        "flagged": true,
+        "features": {
+          "resource_count": 9.0,
+          "resource_type_diversity": 2.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 0.0,
+          "iam_resource_count": 0.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 5.0,
+          "secret_parametrization": 1.0
+        }
+      },
+      {
+        "path": "/opt/tv/corpus/modules/aws-ia__control_tower_account_factory/modules/aft-customizations/codebuild.tf",
+        "mahalanobis": 14.245,
+        "if_anomaly": 0.0607,
+        "flagged": true,
+        "features": {
+          "resource_count": 8.0,
+          "resource_type_diversity": 2.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 0.0,
+          "iam_resource_count": 0.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 5.0,
+          "secret_parametrization": 1.0
+        }
+      },
+      {
+        "path": "/opt/tv/corpus/modules/secoda__secoda/integrations-batch/cloudwatch.tf",
+        "mahalanobis": 11.441,
+        "if_anomaly": 0.0495,
+        "flagged": true,
+        "features": {
+          "resource_count": 4.0,
+          "resource_type_diversity": 1.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 0.0,
+          "iam_resource_count": 0.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 4.0,
+          "secret_parametrization": 1.0
+        }
+      },
+      {
+        "path": "/opt/tv/corpus/modules/aws-ia__control_tower_account_factory/modules/aft-account-provisioning-framework/lambda.tf",
+        "mahalanobis": 11.425,
+        "if_anomaly": 0.0599,
+        "flagged": true,
+        "features": {
+          "resource_count": 8.0,
+          "resource_type_diversity": 2.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 0.0,
+          "iam_resource_count": 0.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 4.0,
+          "secret_parametrization": 1.0
+        }
+      },
+      {
+        "path": "/opt/tv/corpus/modules/cloudposse__cloudwatch-flow-logs/main.tf",
+        "mahalanobis": 11.287,
+        "if_anomaly": 0.0497,
+        "flagged": true,
+        "features": {
+          "resource_count": 4.0,
+          "resource_type_diversity": 2.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 0.0,
+          "iam_resource_count": 0.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 4.0,
+          "secret_parametrization": 1.0
+        }
+      },
+      {
+        "path": "/opt/tv/corpus/modules/github/5c2fdc0f894c2bf4ff83cbb39f5ba7cde0bad5da.tf",
+        "mahalanobis": 11.173,
+        "if_anomaly": 0.0612,
+        "flagged": true,
+        "features": {
+          "resource_count": 5.0,
+          "resource_type_diversity": 3.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 0.0,
+          "iam_resource_count": 0.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 4.0,
+          "secret_parametrization": 1.0
+        }
+      },
+      {
+        "path": "/opt/tv/corpus/modules/github/445974d92acc79eb55c6c905129580e3e4eaa905.tf",
+        "mahalanobis": 11.052,
+        "if_anomaly": 0.0805,
+        "flagged": true,
+        "features": {
+          "resource_count": 6.0,
+          "resource_type_diversity": 4.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 0.0,
+          "iam_resource_count": 2.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 4.0,
+          "secret_parametrization": 1.0
+        }
+      },
+      {
+        "path": "/opt/tv/corpus/modules/github/9a9601504065898a69f4134a6c1c308bb2848d64.tf",
+        "mahalanobis": 11.011,
+        "if_anomaly": 0.0851,
+        "flagged": true,
+        "features": {
+          "resource_count": 10.0,
+          "resource_type_diversity": 5.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 0.0,
+          "iam_resource_count": 2.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 4.0,
+          "secret_parametrization": 1.0
+        }
+      },
+      {
+        "path": "/opt/tv/corpus/modules/it-objects__terra3/modules/app_component/main.tf",
+        "mahalanobis": 10.924,
+        "if_anomaly": 0.2346,
+        "flagged": true,
+        "features": {
+          "resource_count": 46.0,
+          "resource_type_diversity": 19.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 0.0,
+          "iam_resource_count": 21.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 1.0,
+          "secret_parametrization": 1.0
+        }
+      },
+      {
+        "path": "/opt/tv/corpus/modules/clouddrove__vpc/main.tf",
+        "mahalanobis": 8.987,
+        "if_anomaly": 0.184,
+        "flagged": true,
+        "features": {
+          "resource_count": 30.0,
+          "resource_type_diversity": 28.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 0.0,
+          "iam_resource_count": 3.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 2.0,
+          "secret_parametrization": 1.0
+        }
+      },
+      {
+        "path": "/opt/tv/corpus/modules/github/938be3162570f310bbaa9a9a9d597eecb8b9e305.tf",
+        "mahalanobis": 8.654,
+        "if_anomaly": 0.2257,
+        "flagged": true,
+        "features": {
+          "resource_count": 46.0,
+          "resource_type_diversity": 20.0,
+          "ingress_rule_count": 0.0,
+          "public_exposure_count": 2.0,
+          "iam_resource_count": 2.0,
+          "encryption_coverage": 1.0,
+          "logging_resource_count": 2.0,
+          "secret_parametrization": 1.0
+        }
+      }
+    ]
+  },
+  "rule_flagged_analysis": {
+    "n": 17604,
+    "flagged": 1571,
+    "flag_rate": 0.0892
+  },
+  "run_meta": {
+    "corpus_dir": "corpus",
+    "model_dir": "models",
+    "model_version": "v20260708_015533",
+    "training_vectors": 35594,
+    "atypical_quantile": 0.9,
+    "typical_quantile": 0.5,
+    "workers": 8,
+    "max_files": 50000,
+    "max_file_kb": 256,
+    "scan_timeout_s": 20
+  }
+}

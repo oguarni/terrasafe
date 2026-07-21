@@ -54,6 +54,40 @@ def top_atypical_table(a: dict) -> tuple[List[str], List[List[str]]]:
     return headers, rows
 
 
+def _top_note(a: dict) -> str:
+    """Describe what actually drives atypicality in *this* run's top-N.
+
+    Written from the data rather than asserted: an encryption-coverage story is
+    only told when the top-N really contains such configs, otherwise the note
+    reports the structural drivers that are present — and flags the honest
+    limitation that "structurally unusual" is not itself evidence of a vulnerability.
+    """
+    tops = a["top_atypical"]
+    low_enc = [t for t in tops if t["features"]["encryption_coverage"] < 1.0]
+    if low_enc:
+        return (f"> Ler a coluna `enc.cov`: {len(low_enc)} das {len(tops)} configs "
+                "mais atípicas têm cobertura de criptografia < 1.0 **sendo "
+                "*rule-clean***, o caso típico de um recurso *irmão* fora do escopo "
+                "das regras (ex.: `aws_rds_cluster`, cuja criptografia a regra — que "
+                "mira `aws_db_instance` — não inspeciona). Aqui o sinal estrutural da "
+                "ML capta exatamente a lacuna de cobertura que o corpus de terceiros "
+                "(A.2) quantificou.")
+    max_res = max(t["features"]["resource_count"] for t in tops)
+    max_div = max(t["features"]["resource_type_diversity"] for t in tops)
+    repet = [t for t in tops if t["features"]["resource_type_diversity"] <= 2
+             and t["features"]["resource_count"] >= 4]
+    return ("> **Leitura honesta desta amostra.** Nenhuma das configs mais atípicas "
+            "tem `enc.cov` < 1.0 nem exposição pública: a atipicidade aqui é "
+            "puramente de **forma do grafo de recursos** — módulos muito grandes ou "
+            f"diversos (até {max_res:.0f} recursos, {max_div:.0f} tipos distintos) e "
+            f"configs repetitivas ({len(repet)} das {len(tops)} declaram muitos "
+            "recursos de 1–2 tipos). Isso reforça a ortogonalidade (o IF não está "
+            "reproduzindo um achado de regra por outro caminho), mas impõe o limite "
+            "honesto: **\"estruturalmente incomum\" não é evidência de "
+            "vulnerabilidade**. O sinal serve para *priorizar revisão humana*, não "
+            "para afirmar risco — e é assim que deve entrar num gate.")
+
+
 def _verdict(a: dict, overall_flag_rate: float) -> str:
     """Data-driven honest verdict from discrimination + selectivity + calibration."""
     auc = a.get("ranking_auc")
@@ -169,11 +203,7 @@ def build_markdown(d: dict) -> str:
     A("## 5. As configurações atípicas-mas-válidas que o IF destaca\n")
     A("Top configs *rule-clean* por atipicidade (o que a ML vê e as regras não):\n")
     A(_md_table(*top_atypical_table(a)) + "\n")
-    A("> Ler a coluna `enc.cov`: uma cobertura de criptografia baixa numa config "
-      "*rule-clean* costuma ser um recurso *irmão* fora do escopo das regras (ex.: "
-      "`aws_rds_cluster`, cuja criptografia a regra — que mira `aws_db_instance` — "
-      "não inspeciona). O sinal estrutural da ML capta exatamente a lacuna de "
-      "cobertura que o corpus de terceiros (A.2) quantificou.\n")
+    A(_top_note(a) + "\n")
 
     A("## 6. Veredito\n")
     A(_verdict(a, a["overall_flag_rate"]) + "\n")
