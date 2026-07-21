@@ -3,5 +3,10 @@
   "corpus_tf_files_mined": 49674,
   "sources": "Terraform Registry (registry-wide, 1500 modules) + public GitHub .tf blobs (BigQuery export)",
   "machine": "e2-standard-8",
-  "wall_clock_s_approx": 450
+  "wall_clock_s_approx": 450,
+  "independent_reproduction": {
+    "gcs_run": "ml-atypical-20260721-012015",
+    "machine": "e2-highcpu-16 (16 workers vs 8)",
+    "result": "all headline metrics identical to the banked run (kept 18041, rule-clean 437, lift 50.25, AUC 0.9151, rho 0.7478, typical-half 0.0199, rule-flagged 0.0892)"
+  }
 }
