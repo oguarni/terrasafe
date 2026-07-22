@@ -1,0 +1,11 @@
+{
+  "target": "sqlite_3_13_0",
+  "kind": "known-bug",
+  "source_url": "https://www.sqlite.org/2016/sqlite-amalgamation-3130000.zip",
+  "known_bug_reference": "2016-2017 OSS-Fuzz campaign against the 3.13-3.16 series: out-of-bounds reads and assertion failures in the query planner, FTS and window/CTE handling, fixed across the 3.17-3.20 releases.",
+  "status": "built",
+  "build_rc": 0,
+  "build_seconds": 73,
+  "binary": "/opt/fuzz-run/bin/sqlite_3_13_0",
+  "seeds_dir": "/opt/fuzz-run/seeds/sqlite_3_13_0"
+}
