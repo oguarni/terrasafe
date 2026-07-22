@@ -1,0 +1,141 @@
+{
+  "run_id": "fuzz-baseline-20260721-213507",
+  "arm": "plain-fuzzing-baseline (no LLM)",
+  "derivation": {
+    "reason": "fork mode exits before -print_final_stats; executed_units was absent from baseline.json, not zero",
+    "source": "per-target logs/<target>.fuzz.log, parent '#N: cov:' lines",
+    "parser": "fuzzing/triage_crashes.py::_parse_executed_units",
+    "caveat": "source logs match the global 'logs/' ignore rule and are not committed; this file is the durable copy",
+    "scope": "summary covers kind=known-bug only; kind=gate-validation reported under gate_validation"
+  },
+  "summary": {
+    "targets_total": 9,
+    "targets_measured": 9,
+    "targets_unmeasured": 0,
+    "total_executed_units": 182406077,
+    "total_fuzz_wall_seconds": 13639.0,
+    "total_fuzz_cpu_seconds": 12486.85,
+    "mean_execs_per_cpu_second": 14607.9
+  },
+  "gate_validation": {
+    "targets_total": 2,
+    "targets_measured": 2,
+    "targets_unmeasured": 0,
+    "total_executed_units": 656537488,
+    "total_fuzz_wall_seconds": 3001.0,
+    "total_fuzz_cpu_seconds": 2226.63,
+    "mean_execs_per_cpu_second": 294857.0
+  },
+  "targets": [
+    {
+      "target": "cares_1_11_0",
+      "kind": "known-bug",
+      "status": "derived_from_fork_parent_lines",
+      "executed_units": 3412841,
+      "fuzz_wall_seconds": 1500.0,
+      "fuzz_cpu_seconds": 845.05,
+      "execs_per_second": 2275.2,
+      "execs_per_cpu_second": 4038.6
+    },
+    {
+      "target": "cjson_1_7_10",
+      "kind": "known-bug",
+      "status": "derived_from_fork_parent_lines",
+      "executed_units": 36798394,
+      "fuzz_wall_seconds": 1508.0,
+      "fuzz_cpu_seconds": 1478.58,
+      "execs_per_second": 24402.1,
+      "execs_per_cpu_second": 24887.7
+    },
+    {
+      "target": "expat_2_1_0",
+      "kind": "known-bug",
+      "status": "derived_from_fork_parent_lines",
+      "executed_units": 55236934,
+      "fuzz_wall_seconds": 1507.0,
+      "fuzz_cpu_seconds": 1486.36,
+      "execs_per_second": 36653.6,
+      "execs_per_cpu_second": 37162.6
+    },
+    {
+      "target": "gate_heap_overflow",
+      "kind": "gate-validation",
+      "status": "derived_from_fork_parent_lines",
+      "executed_units": 634697756,
+      "fuzz_wall_seconds": 1501.0,
+      "fuzz_cpu_seconds": 1471.0,
+      "execs_per_second": 422849.9,
+      "execs_per_cpu_second": 431473.7
+    },
+    {
+      "target": "gate_use_after_free",
+      "kind": "gate-validation",
+      "status": "derived_from_fork_parent_lines",
+      "executed_units": 21839732,
+      "fuzz_wall_seconds": 1500.0,
+      "fuzz_cpu_seconds": 755.63,
+      "execs_per_second": 14559.8,
+      "execs_per_cpu_second": 28902.7
+    },
+    {
+      "target": "libarchive_3_2_1",
+      "kind": "known-bug",
+      "status": "derived_from_fork_parent_lines",
+      "executed_units": 1710040,
+      "fuzz_wall_seconds": 1501.0,
+      "fuzz_cpu_seconds": 1103.07,
+      "execs_per_second": 1139.3,
+      "execs_per_cpu_second": 1550.3
+    },
+    {
+      "target": "libxml2_2_9_2",
+      "kind": "known-bug",
+      "status": "derived_from_fork_parent_lines",
+      "executed_units": 7485767,
+      "fuzz_wall_seconds": 1506.0,
+      "fuzz_cpu_seconds": 1477.93,
+      "execs_per_second": 4970.6,
+      "execs_per_cpu_second": 5065.0
+    },
+    {
+      "target": "libyaml_0_1_7",
+      "kind": "known-bug",
+      "status": "derived_from_fork_parent_lines",
+      "executed_units": 33444219,
+      "fuzz_wall_seconds": 1553.0,
+      "fuzz_cpu_seconds": 1527.22,
+      "execs_per_second": 21535.2,
+      "execs_per_cpu_second": 21898.8
+    },
+    {
+      "target": "re2_2017_06_01",
+      "kind": "known-bug",
+      "status": "derived_from_fork_parent_lines",
+      "executed_units": 2511176,
+      "fuzz_wall_seconds": 1512.0,
+      "fuzz_cpu_seconds": 1514.83,
+      "execs_per_second": 1660.8,
+      "execs_per_cpu_second": 1657.7
+    },
+    {
+      "target": "sqlite_3_13_0",
+      "kind": "known-bug",
+      "status": "derived_from_fork_parent_lines",
+      "executed_units": 5118236,
+      "fuzz_wall_seconds": 1502.0,
+      "fuzz_cpu_seconds": 1503.24,
+      "execs_per_second": 3407.6,
+      "execs_per_cpu_second": 3404.8
+    },
+    {
+      "target": "tinyxml2_6_0_0",
+      "kind": "known-bug",
+      "status": "derived_from_fork_parent_lines",
+      "executed_units": 36688470,
+      "fuzz_wall_seconds": 1550.0,
+      "fuzz_cpu_seconds": 1550.57,
+      "execs_per_second": 23670.0,
+      "execs_per_cpu_second": 23661.3
+    }
+  ]
+}
