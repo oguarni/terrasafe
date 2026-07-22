@@ -31,6 +31,8 @@ files under the current working directory).
 Examples:
     python scripts/corpus_train.py collect --max-modules 400
     python scripts/corpus_train.py collect --registry-wide --max-modules 12000 --workers 16
+    python scripts/corpus_train.py collect --registry-wide --skip-top-modules 1500 \
+        --max-modules 4500 --corpus-dir corpus_second   # rank window disjoint from a top-1500 mine
     python scripts/corpus_train.py github-fetch --shards-dir corpus/github_shards
     python scripts/corpus_train.py extract --workers 0
     python scripts/corpus_train.py train --source-label "baseline + registry-wide + GitHub"
@@ -236,11 +238,16 @@ def cmd_collect(args: argparse.Namespace) -> int:
         for namespace in namespaces:
             for module in _list_namespace_modules(namespace):
                 listed[(module["namespace"], module["name"])] = module
+    # Ranking by downloads is stable, so a rank *window* is the cheap way to mine a
+    # corpus disjoint from an earlier one: --skip-top-modules 1500 collects the tail
+    # that a previous "top 1500" mine never touched (file-level disjointness is then
+    # proved by content hash downstream).
     ranked = sorted(listed.values(), key=lambda m: m.get("downloads", 0), reverse=True)
-    ranked = ranked[: args.max_modules]
+    skip = max(0, args.skip_top_modules)
+    ranked = ranked[skip: skip + args.max_modules]
     workers = args.workers if args.workers > 0 else min(16, (os.cpu_count() or 4) * 4)
-    print(f"Found {len(listed)} modules; downloading top {len(ranked)} by downloads "
-          f"({workers} workers)")
+    print(f"Found {len(listed)} modules; downloading rank window "
+          f"[{skip + 1}, {skip + len(ranked)}] by downloads ({workers} workers)")
 
     manifest: List[Dict[str, Any]] = []
     failed = 0
@@ -258,7 +265,10 @@ def cmd_collect(args: argparse.Namespace) -> int:
 
     total_files = sum(entry["tf_files"] for entry in manifest)
     (corpus_dir / "manifest.json").write_text(
-        json.dumps({"modules": manifest, "failed": failed, "tf_files": total_files}, indent=2),
+        json.dumps({"modules": manifest, "failed": failed, "tf_files": total_files,
+                    "rank_window": {"skip_top": skip, "requested": args.max_modules,
+                                    "listed": len(listed), "selected": len(ranked)}},
+                   indent=2),
         encoding="utf-8",
     )
     print(f"Collected {len(manifest)} modules ({total_files} .tf files, {failed} skipped) "
@@ -557,6 +567,9 @@ def main() -> int:
                         help="collect from every AWS-provider module in the registry")
     parser.add_argument("--max-modules", type=int, default=400,
                         help="maximum number of modules to download (default: 400)")
+    parser.add_argument("--skip-top-modules", type=int, default=0,
+                        help="skip the N most-downloaded modules before collecting, "
+                             "mining a rank window disjoint from an earlier mine")
     parser.add_argument("--workers", type=int, default=0,
                         help="parallel workers for collect/extract (0 = auto)")
     parser.add_argument("--shards-dir", default="corpus/github_shards",
