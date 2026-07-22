@@ -279,3 +279,44 @@ pytest-junit.xml
 # the imported fixtures are not. The scored evidence (metrics.json, report,
 # tables) is committed under evaluation/results/foreign/ instead.
 evaluation/dataset/foreign/
+
+# ===================================
+# Track B Stage 0 — fuzzing baseline (run fuzz-baseline-20260721-213507)
+# ===================================
+# The raw crash corpus is ~72 MB of near-duplicate libFuzzer artifacts: 18,983
+# files that the triage gate collapses to 24 stack signatures and 6 confirmed
+# bugs. The scored evidence (baseline.json, baseline_report.md, the run log) and
+# the MINIMISED reproducers are the load-bearing parts and stay tracked — a
+# 2-byte deterministic reproducer is the reproducibility gate's whole point.
+# Everything else is re-derivable by re-running scripts/gcp_fuzz_baseline.sh.
+evaluation/results/fuzz_baseline/artifacts/**
+!evaluation/results/fuzz_baseline/artifacts/
+!evaluation/results/fuzz_baseline/artifacts/*/
+!evaluation/results/fuzz_baseline/artifacts/**/min-*
+evaluation/results/fuzz_baseline/corpus/
+evaluation/results/fuzz_baseline/live/
+
+# ===================================
+# A.3 threshold calibration (canonical run ml-calib-20260721-215119)
+# ===================================
+# per_config_scores.csv.gz + training_reference_scores.csv.gz ARE tracked on
+# purpose: they make every future threshold re-derivable offline with zero paid
+# compute, which is the entire hedge against the GCP credits expiring 2026-07-22.
+# The heartbeat mirror, the multi-MB run log, the intermediate stage-1 dump and
+# the corpus manifests are not — they are provenance, not evidence.
+evaluation/results/ml_calibration/live/
+evaluation/results/ml_calibration/home/
+evaluation/results/ml_calibration/manifests/
+evaluation/results/ml_calibration/tv-calib.log
+evaluation/results/ml_calibration/collect_*.txt
+# The superseded first pass is kept on disk as an independent replicate, but only
+# its metrics and report are worth versioning (see ml_calibration/RUNS.md).
+evaluation/results/ml_calibration_run1_superseded/**
+!evaluation/results/ml_calibration_run1_superseded/
+!evaluation/results/ml_calibration_run1_superseded/ml_calibration_metrics.json
+!evaluation/results/ml_calibration_run1_superseded/report_ml_calibration.md
+
+# The fuzzing run log is the ONLY place executed_units / execs-per-second can be
+# recovered from (libFuzzer fork mode exits before -print_final_stats). Force-tracked
+# against the global *.log rule above — see fuzz_baseline/BASELINE_CORRECTIONS.md.
+!evaluation/results/fuzz_baseline/tv-fuzz.log
