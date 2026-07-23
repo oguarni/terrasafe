@@ -41,6 +41,19 @@ class Settings(BaseSettings):
         description="Allowed Host headers in production (used by TrustedHostMiddleware)"
     )
 
+    # Single-service (Cloud Run) mode: let the API also serve the static SPA in
+    # ./frontend at "/", absorbing the static-file role that Caddy plays in the VM
+    # stack. Left false on the VM, where Caddy serves the frontend. The SPA defaults
+    # its backend URL to window.location.origin, so same-origin serving needs no CORS.
+    serve_frontend: bool = Field(
+        default=False,
+        description="Serve the bundled static frontend from the API container (Cloud Run single-service mode)"
+    )
+    frontend_dir: str = Field(
+        default="frontend",
+        description="Directory (relative to the working dir) holding the static frontend to serve"
+    )
+
     # Database Configuration
     database_url: Optional[str] = Field(
         default=None,

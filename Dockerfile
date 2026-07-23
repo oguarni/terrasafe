@@ -15,7 +15,16 @@ COPY terravault/ ./terravault/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
 COPY entrypoint.sh ./
-RUN mkdir -p models && chmod +x entrypoint.sh
+
+# Bake the trained inference model + scaler and the static frontend into the image.
+# On the VM/compose path these are shadowed by bind mounts (./models, Caddy's
+# ./frontend); on Cloud Run, which has no volume mounts, the baked copies are the
+# only source. .dockerignore keeps the bulky retrain-only artifacts (models/versions,
+# training_data.npy) and frontend build junk out of the context, so only the small
+# *.pkl + metadata and the static assets are copied.
+COPY models/ ./models/
+COPY frontend/ ./frontend/
+RUN chmod +x entrypoint.sh
 
 # Security: run as non-root user
 RUN useradd -r -s /bin/false appuser && chown -R appuser:appuser /app

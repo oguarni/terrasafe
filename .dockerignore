@@ -26,7 +26,11 @@ README.md
 *.md
 screenshots/
 docs/
-models/
+
+# ML models: bake only the small inference artifacts into the image (Cloud Run has
+# no volume mounts). Keep the bulky retrain-only files out of the build context.
+models/versions/
+models/training_data.npy
 
 # Claude AI
 .claude/

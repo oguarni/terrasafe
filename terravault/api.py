@@ -4,6 +4,7 @@ import os
 import tempfile
 import asyncio
 import hashlib
+from pathlib import Path
 from typing import Dict, Any
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
@@ -129,11 +130,16 @@ try:
     from slowapi.util import get_remote_address
     from slowapi.errors import RateLimitExceeded
 
-    # Use Redis for distributed rate limiting in production
+    # Use Redis for distributed rate limiting when one is configured. storage_uri=None
+    # makes slowapi use in-memory storage, which is what we want on a stateless
+    # platform like Cloud Run that has no Redis: set TERRAVAULT_REDIS_URL="" to opt in.
+    # Development already uses in-memory; the default redis://localhost:6379 keeps the
+    # VM/compose behavior unchanged.
+    _use_redis = (not settings.is_development()) and bool(settings.redis_url)
     try:
         limiter = Limiter(  # pylint: disable=invalid-name
             key_func=get_remote_address,
-            storage_uri=settings.redis_url if not settings.is_development() else None,
+            storage_uri=settings.redis_url if _use_redis else None,
             default_limits=[f"{settings.rate_limit_requests}/{settings.rate_limit_window_seconds}seconds"]
         )
         RATE_LIMITING_AVAILABLE = True
@@ -505,6 +511,25 @@ async def api_documentation() -> Dict[str, Any]:
     }
 
 
+# Static frontend (single-service Cloud Run mode). Mounted LAST so every API route
+# above wins; StaticFiles then serves index.html plus the js/css/assets and *.html
+# pages. Because the SPA defaults its backend URL to window.location.origin, serving
+# it here means no CORS and no client configuration. Disabled on the VM, where Caddy
+# owns the static files.
+if settings.serve_frontend:
+    from fastapi.staticfiles import StaticFiles  # imported lazily: only this mode needs it
+
+    _frontend_path = Path(settings.frontend_dir)
+    if _frontend_path.is_dir():
+        app.mount("/", StaticFiles(directory=str(_frontend_path), html=True), name="frontend")
+        logger.info("Serving static frontend from %s", _frontend_path.resolve())
+    else:
+        logger.warning(
+            "serve_frontend is enabled but frontend_dir '%s' does not exist; "
+            "skipping static mount", _frontend_path
+        )
+
+
 def main():
     """
     Run API server with uvicorn
@@ -514,14 +539,20 @@ def main():
     - Reverse proxy (nginx/traefik)
     - HTTPS/TLS termination
     """
-    logger.info("Starting TerraVault API server on %s:%s", settings.api_host, settings.api_port)
+    # Serverless platforms (Cloud Run, Fly, Heroku, ...) inject the listen port via
+    # $PORT. Honor it when present; otherwise fall back to the configured api_port
+    # (8000). This keeps VM/compose behavior identical (PORT unset) while letting the
+    # very same image bind correctly on Cloud Run (PORT=8080) with no wrapper script.
+    port = int(os.environ["PORT"]) if os.environ.get("PORT") else settings.api_port
+
+    logger.info("Starting TerraVault API server on %s:%s", settings.api_host, port)
     logger.info("Environment: %s", settings.environment)
     logger.info("Debug mode: %s", settings.debug)
 
     uvicorn.run(
         app,
         host=settings.api_host,
-        port=settings.api_port,
+        port=port,
         log_level=settings.log_level.lower(),
         access_log=True
     )
