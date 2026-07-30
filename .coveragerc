@@ -1,5 +1,9 @@
 [run]
 source = terravault
+# Branch coverage was off, so coverage.xml reported branch-rate 0.0 — an absence
+# of measurement, not a result. The quality gate's coverage figure only covered
+# lines until this was enabled.
+branch = True
 omit =
     */tests/*
     */test_*.py
