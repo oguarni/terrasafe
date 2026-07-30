@@ -21,6 +21,18 @@ repos:
       - id: flake8
         args: ["--max-line-length=120", "--ignore=E226,E402,E501,W503,W504"]
 
+  # Static type checking — mirrors the mypy step in the CI quality gate, which
+  # previously ran nowhere locally, so type regressions only surfaced on the PR.
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.1
+    hooks:
+      - id: mypy
+        args: ["--config-file", "mypy.ini", "--ignore-missing-imports"]
+        files: ^terravault/
+        additional_dependencies:
+          - pydantic>=2.0
+          - types-requests
+
   # Security scanning
   - repo: https://github.com/PyCQA/bandit
     rev: 1.8.3

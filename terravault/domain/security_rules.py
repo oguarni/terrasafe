@@ -1,6 +1,6 @@
 """Security rules engine - Domain logic for vulnerability detection"""
 import re
-from typing import List, Dict
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 from .models import Vulnerability, Severity
 from ..config.settings import get_settings
 
@@ -24,7 +24,9 @@ class SecurityRuleEngine:
     """Rule-based security detection engine following SRP"""
 
     @staticmethod
-    def _iter_named_resources(tf_content: Dict, resource_type: str):
+    def _iter_named_resources(
+        tf_content: Dict, resource_type: str
+    ) -> Iterator[Tuple[str, Dict]]:
         """Yield (name, config) for every resource of ``resource_type``.
 
         Normalises the HCL list/dict ambiguity so callers never repeat the
@@ -40,7 +42,7 @@ class SecurityRuleEngine:
                     yield from item.items()
 
     @staticmethod
-    def _truthy(value) -> bool:
+    def _truthy(value: Any) -> bool:
         """Interpret an HCL attribute as a boolean.
 
         ``hcl2`` parses ``true``/``false`` to Python bools, but ``.tf.json`` and
@@ -78,7 +80,7 @@ class SecurityRuleEngine:
             return 0, 0
         return (low, high) if low <= high else (high, low)
 
-    def _classify_open_ingress(self, ingress: Dict, sg_name: str):
+    def _classify_open_ingress(self, ingress: Dict, sg_name: str) -> Optional[Vulnerability]:
         """Return a Vulnerability for an internet-open ingress rule, or None.
 
         Severity is decided by whether the port *range* covers a sensitive port,
@@ -456,7 +458,7 @@ class SecurityRuleEngine:
         return vulns
 
     @staticmethod
-    def _metadata_http_tokens(inst_config: Dict):
+    def _metadata_http_tokens(inst_config: Dict) -> Optional[str]:
         """Return the ``http_tokens`` value from an instance's ``metadata_options``.
 
         Normalises the HCL block/list ambiguity; returns None when no
