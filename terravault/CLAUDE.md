@@ -34,7 +34,7 @@ Top-level application entry points and cross-cutting concerns. These files wire 
 - `CORSMiddleware` — origins from `settings.api_cors_origins`
 - Correlation ID middleware — reads/generates `X-Correlation-ID` header
 
-#### Coverage (100%)
+#### Coverage: 77%
 
 ### `cli.py` — Command-Line Interface
 
@@ -47,7 +47,7 @@ Top-level application entry points and cross-cutting concerns. These files wire 
 - `--threshold N` (default 70), `--no-history` flag
 - History: writes `scan_results_{stem}.json` + appends to `scan_history.json` (max 100 entries)
 
-#### Coverage (100%)
+#### Coverage: 69%
 
 ### `cli_formatter.py` — `format_results_for_display()`
 
@@ -65,12 +65,21 @@ Top-level application entry points and cross-cutting concerns. These files wire 
 - `track_metrics` decorator: wraps sync/async functions, records scan results, errors
 - `_record_scan_result()` — records score, duration, confidence, vulnerabilities, cache hits
 - Metric families: `terravault_scans_total`, `terravault_scan_duration_seconds`, `terravault_vulnerabilities_detected_total`, etc.
-- Coverage: 100%
+- Coverage: 73%
 
 ### `main.py` — `uvicorn.run()` entry point
 
 - Just imports `app` from `api.py` and runs uvicorn
-- Coverage: 100%
+- Coverage: 0% — nothing imports it under test; it exists to be a process
+  entry point, so the uncovered lines are the `uvicorn.run()` call itself
+
+## Coverage note
+
+The per-file figures above are **line** rates read from `coverage.xml`, a
+snapshot rather than a gate — only the repo-wide figure in `.ratchet.json` is
+enforced. Several previously read "100%" while the measured value was far lower.
+Re-read them from `coverage.xml` instead of trusting them, and correct drift in
+the same commit.
 
 ## Anti-patterns
 

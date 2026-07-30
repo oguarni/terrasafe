@@ -7,7 +7,7 @@ TerraVault is a hybrid Terraform security scanner implementing Clean Architectur
 - **Security Approach**: 60% rule-based detection (11 rules) + 40% ML anomaly detection (8-dim *structural* feature vector, independent of the rule findings)
 - **Tech Stack**: FastAPI, PostgreSQL, Redis, Isolation Forest ML, Prometheus/Grafana
 - **Language**: Python 3.10+
-- **Health**: focused test suite (72 pytest cases, 74% line coverage on 1,518 SLOC) on security rules, scan pipeline, API contract, and ML predictions; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories, 0 mypy errors
+- **Health**: focused test suite (182 pytest cases, 82.91% line / 73.28% branch coverage) on security rules, scan pipeline, API contract, repositories, rate limiting, and ML predictions; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories, 0 mypy errors
 
 ## Quick Start
 
@@ -107,7 +107,8 @@ black terravault/ tests/
 - **Max line length**: 120 characters (flake8 + pylint)
 - **E402 exceptions**: `api.py` and `cli.py` call `load_dotenv()` before imports (intentional)
 - **Bandit config**: `.bandit` file skips B101 (`assert_used`) project-wide
-- **Pre-commit hooks**: Configured in `.pre-commit-config.yaml` (black, isort, flake8, bandit, detect-secrets)
+- **Pre-commit hooks**: Configured in `.pre-commit-config.yaml` (black, isort, flake8, mypy, bandit, detect-secrets, gitleaks)
+- **Type checking**: `mypy.ini` keeps `disallow_untyped_defs = False` globally and switches it on per module. A layer listed there is fully annotated and must stay that way; never relax a section that already passes.
 
 ## Security Notes
 
@@ -128,7 +129,7 @@ Subdirectory CLAUDE.md files provide focused instructions per architectural laye
 | Application | `terravault/application/CLAUDE.md` | Scan pipeline, scoring, caching, 8-dim structural feature extraction |
 | Infrastructure | `terravault/infrastructure/CLAUDE.md` | DB, cache, parser, repositories, rate limiter |
 | ML System | `terravault/infrastructure/CLAUDE_ML.md` | IsolationForest, training, drift detection, model files |
-| Tests | `tests/CLAUDE.md` | 72 focused tests, fixtures, markers, mocking patterns, per-module coverage |
+| Tests | `tests/CLAUDE.md` | What to test and what to delete, fixtures, markers, mocking patterns |
 
 ## Known Issues
 
@@ -167,7 +168,7 @@ the report on the PR.
 
 | Metric | Direction | Source |
 |---|---|---|
-| `coverage_pct` | must not decrease | `coverage.xml` line-rate |
+| `coverage_pct` | must not decrease | `coverage.xml` line-rate (branch coverage is also measured since 2026-07-26, but the ratchet still gates on line-rate) |
 | `files_over_300_sloc` | must not increase | `.py` files in `terravault/` over 300 lines |
 | `duplicate_blocks` | must not increase | pylint `R0801` at `--min-similarity-lines=4` |
 
