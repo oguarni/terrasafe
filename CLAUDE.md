@@ -225,6 +225,45 @@ Project-specific slash commands for common workflows:
 | `/rules-inventory` | Audit security rules engine coverage and gaps |
 | `/ml-status` | Check ML model health, drift, and configuration |
 
+### Spec Kit (spec-driven development)
+
+TerraVault is the pilot repository for [github/spec-kit](https://github.com/github/spec-kit)
+(CLI `specify`, pinned to v0.16.1). Spec Kit installs the same ten `speckit-*`
+skills for both agents — Claude Code reads `.claude/skills/`, Codex CLI reads
+`.agents/skills/` — over one shared `.specify/` tree, so a feature specified in
+one agent is resumable in the other.
+
+Use it for **multi-step features that need a written contract before code**
+(a new security rule family, a framework mapping, an API surface change).
+Do not use it for bug fixes, refactors, or single-file edits — the existing
+slash commands above and a plain prompt are cheaper and better suited.
+
+| Command | Use it |
+|---|---|
+| `/speckit-constitution` | Once, to seed `.specify/memory/constitution.md`. It must **reference** this guide and the Quality Gate, not restate them |
+| `/speckit-specify` | Start every feature — writes `specs/<nnn>-<slug>/spec.md` |
+| `/speckit-clarify` | Only when the spec has open questions; run before `plan` |
+| `/speckit-plan` | Technical design against Clean Architecture layers |
+| `/speckit-tasks` | Dependency-ordered `tasks.md` |
+| `/speckit-analyze` | Consistency check across spec/plan/tasks before implementing |
+| `/speckit-implement` | Execute the task list |
+
+Avoid `/speckit-checklist` and `/speckit-converge` (both generate long reports
+that crowd out context for little gain on a repo this size), and
+`/speckit-taskstoissues` (this repo does not track work as GitHub issues).
+
+Spec Kit does not replace any gate. `/speckit-implement` output is still subject
+to `make quality-gate` and the ratchet — treat a green gate, not a completed
+`tasks.md`, as done.
+
+```bash
+# Refresh skills after a Spec Kit release (never use `init --force`:
+# it rewrites files Spec Kit considers managed)
+specify integration upgrade claude
+specify integration upgrade codex
+specify integration status        # read-only health check
+```
+
 ## Contributing
 
 1. Create feature branch from `master`

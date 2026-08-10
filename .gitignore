@@ -229,6 +229,15 @@ temp/
 CLAUDE.MD.bak
 
 # ===================================
+# Spec Kit — generated agent skills
+# ===================================
+# `.specify/` (constitution, templates, scripts) and `specs/` stay tracked:
+# they are the shared, reviewable artifacts. The per-agent skill folders are
+# regenerated verbatim by `specify integration upgrade`, so they follow the
+# same machine-local rule already applied to `.claude/` above.
+.agents/
+
+# ===================================
 # Local Scripts
 # ===================================
 take_screenshots.sh
