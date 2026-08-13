@@ -1,6 +1,8 @@
 """API integration tests — exercise the real FastAPI pipeline via TestClient."""
 import pytest
 
+from terravault.api import UPLOAD_CHUNK_SIZE_BYTES
+
 
 # ---------------------------------------------------------------------------
 # Health / metrics
@@ -98,6 +100,43 @@ def test_scan_rejects_invalid_uploads(
 
     assert response.status_code == expected_status
     assert expected_detail_fragment.lower() in response.json()["detail"].lower()
+
+
+def test_scan_stops_reading_an_oversized_upload_instead_of_buffering_it_all(
+    api_client, api_headers, mock_api_settings, monkeypatch
+):
+    """Regression: `await file.read()` pulled the entire body into memory and
+    only then compared its length to the cap, so the limit reported damage that
+    had already been done. The handler must read in bounded chunks and stop one
+    chunk past the cap."""
+    from starlette.datastructures import UploadFile
+
+    mock_api_settings.max_file_size_bytes = 1024
+    mock_api_settings.max_file_size_mb = 0.001
+
+    bytes_read = []
+    original_read = UploadFile.read
+
+    async def counting_read(self, size=-1):
+        chunk = await original_read(self, size)
+        bytes_read.append(len(chunk))
+        return chunk
+
+    monkeypatch.setattr(UploadFile, "read", counting_read)
+
+    oversized = b"x" * (5 * 1024 * 1024)
+    response = api_client.post(
+        "/scan",
+        files={"file": ("huge.tf", oversized, "text/plain")},
+        headers=api_headers,
+    )
+
+    assert response.status_code == 413
+    assert "File too large" in response.json()["detail"]
+
+    # Bounded: the cap plus at most one read granularity, never the whole body.
+    assert sum(bytes_read) <= mock_api_settings.max_file_size_bytes + UPLOAD_CHUNK_SIZE_BYTES
+    assert sum(bytes_read) < len(oversized)
 
 
 def test_scan_rejects_file_exceeding_configured_size_limit(
