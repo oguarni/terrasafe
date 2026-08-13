@@ -47,6 +47,10 @@ logger = get_logger(__name__)
 # API Key Authentication with bcrypt
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
+# Upload read granularity. Bounds how much of an oversized body is buffered
+# before the size check trips (one chunk of overshoot, not the whole file).
+UPLOAD_CHUNK_SIZE_BYTES = 64 * 1024
+
 
 def hash_api_key(api_key: str) -> str:
     """
@@ -348,10 +352,19 @@ async def scan_terraform(
             detail="File must be a Terraform file (.tf or .tf.json)"
         )
 
-    # Validate file size using settings
-    content = await file.read()
+    # Read in bounded chunks and stop at the first byte past the cap. Reading the
+    # whole upload first and checking its length afterwards meant a single
+    # request could pin arbitrary memory (the limit was enforced only once the
+    # damage was done).
+    content = b""
+    while len(content) <= settings.max_file_size_bytes:
+        chunk = await file.read(UPLOAD_CHUNK_SIZE_BYTES)
+        if not chunk:
+            break
+        content += chunk
+
     if len(content) > settings.max_file_size_bytes:
-        logger.warning("File too large: %s bytes (max: %s)", len(content), settings.max_file_size_bytes)
+        logger.warning("File too large: >%s bytes (max: %s)", len(content), settings.max_file_size_bytes)
         raise HTTPException(
             status_code=413,
             detail=f"File too large. Maximum size is {settings.max_file_size_mb}MB"

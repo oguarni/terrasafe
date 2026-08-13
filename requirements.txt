@@ -7,10 +7,13 @@ joblib==1.4.2
 # API and web framework
 fastapi==0.131.0
 uvicorn[standard]==0.34.0
-python-multipart==0.0.27
+# >=0.0.31 fixes CVE-2026-53537/53538/53539/53540 (parameter smuggling and
+# related multipart parsing flaws). This parser sits directly under the /scan
+# upload endpoint, so the fix is in the request path, not a transitive extra.
+python-multipart==0.0.31
 
 # Configuration and environment
-python-dotenv==1.0.0
+python-dotenv==1.2.2  # CVE-2026-28684
 pydantic==2.10.6
 pydantic-settings==2.7.1
 
