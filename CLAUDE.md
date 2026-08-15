@@ -7,7 +7,7 @@ TerraVault is a hybrid Terraform security scanner implementing Clean Architectur
 - **Security Approach**: 60% rule-based detection (11 rules) + 40% ML anomaly detection (8-dim *structural* feature vector, independent of the rule findings)
 - **Tech Stack**: FastAPI, PostgreSQL, Redis, Isolation Forest ML, Prometheus/Grafana
 - **Language**: Python 3.10+
-- **Health**: focused test suite (182 pytest cases, 82.91% line / 73.28% branch coverage) on security rules, scan pipeline, API contract, repositories, rate limiting, and ML predictions; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories, 0 mypy errors
+- **Health**: focused test suite (183 pytest cases, 82.63% line / 73.28% branch coverage) on security rules, scan pipeline, API contract, repositories, rate limiting, and ML predictions; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories, 0 mypy errors
 
 ## Quick Start
 
@@ -180,12 +180,26 @@ one of the three metrics actually moves**. Runs where coverage, file count, and
 duplicate blocks are unchanged leave `.ratchet.json` untouched, so the bot no
 longer commits on every push. Developers never edit `.ratchet.json` by hand.
 
+`--update` is **monotone**: each metric is clamped to its ratcheted direction,
+so a run that measures worse than the baseline logs `ratchet: holding baseline`
+and writes nothing. This matters because coverage is not identical across
+environments — CI scored 82.63% on the tree a local run scored 82.80% — and
+without the clamp the bump job would ratchet the bar *down* to whichever run
+happened to measure lowest.
+
+Moving a baseline backwards is therefore deliberate only: `--update --force`
+resets it from current metrics, regressions included. Use it when a drop is
+intentional (a heavily-tested module was deleted), never to make a red gate
+green.
+
 Local usage:
 
 ```bash
 make ratchet         # check against baseline
 make ratchet-show    # baseline vs current side-by-side
-make ratchet-update  # rewrite baseline (only for an intentional bump)
+make ratchet-update  # move baseline forward (improvements only)
+
+python scripts/ratchet.py --update --force   # deliberate reset, allows a drop
 ```
 
 ### Self-correction loop

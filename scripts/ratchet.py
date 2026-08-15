@@ -12,8 +12,14 @@ regress relative to the baseline stored in ``.ratchet.json``:
 
 Modes:
     --check  (default) compare current metrics against the baseline
-    --update           rewrite the baseline from current metrics
+    --update           move the baseline forward, keeping improvements only
     --show             print baseline vs current side-by-side
+
+``--update`` is monotone: each metric moves in its ratcheted direction or not
+at all, so a transient dip (an environment measuring coverage differently from
+the one that set the baseline) can never lower the bar for the next PR. Pass
+``--force`` alongside ``--update`` for a deliberate reset — the only supported
+way to move a baseline backwards.
 
 Exit codes:
     0 — all metrics tied or improved (check), or baseline written (update)
@@ -179,6 +185,45 @@ def compare(baseline: Metrics, current: Metrics) -> bool:
     )
 
 
+def ratchet_forward(baseline: Metrics, current: Metrics) -> Metrics:
+    """Merge ``current`` into ``baseline`` keeping only the improvements.
+
+    The bump job runs on every push to main, and coverage is not identical
+    across environments (CI measured 82.63% on the same tree a local run
+    scored 82.80%). Taking ``current`` wholesale would let a low reading
+    become the new bar, so each metric is clamped to its ratcheted direction.
+
+    >>> ratchet_forward(Metrics(82.8, 5, 0), Metrics(82.63, 6, 0))
+    Metrics(coverage_pct=82.8, files_over_threshold=5, duplicate_blocks=0)
+    """
+    return Metrics(
+        coverage_pct=max(baseline.coverage_pct, current.coverage_pct),
+        files_over_threshold=min(baseline.files_over_threshold, current.files_over_threshold),
+        duplicate_blocks=min(baseline.duplicate_blocks, current.duplicate_blocks),
+    )
+
+
+def _held_metrics(baseline: Metrics, current: Metrics) -> list[str]:
+    """Name the metrics whose current reading is worse than the baseline."""
+    held = []
+    if not _coverage_ok(baseline, current):
+        held.append(
+            f"coverage_pct {round(current.coverage_pct, 2):.2f}% "
+            f"< baseline {round(baseline.coverage_pct, 2):.2f}%"
+        )
+    if current.files_over_threshold > baseline.files_over_threshold:
+        held.append(
+            f"files_over_{FILE_SLOC_THRESHOLD}_sloc {current.files_over_threshold} "
+            f"> baseline {baseline.files_over_threshold}"
+        )
+    if current.duplicate_blocks > baseline.duplicate_blocks:
+        held.append(
+            f"duplicate_blocks {current.duplicate_blocks} "
+            f"> baseline {baseline.duplicate_blocks}"
+        )
+    return held
+
+
 def render_report(baseline: Metrics, current: Metrics, ok: bool) -> str:
     rows = [
         (
@@ -233,21 +278,35 @@ def cmd_check() -> int:
     return 0 if ok else 1
 
 
-def cmd_update() -> int:
+def cmd_update(force: bool = False) -> int:
     current = measure()
     baseline = load_baseline()
+    if baseline is None:
+        write_baseline(current)
+        print(f"ratchet: initial baseline written to {BASELINE_PATH.relative_to(REPO_ROOT)}")
+        print(json.dumps(current.to_payload(), indent=2))
+        return 0
+
+    if force:
+        target = current
+        print("ratchet: --force given — baseline reset from current metrics, regressions included")
+    else:
+        target = ratchet_forward(baseline, current)
+        for held in _held_metrics(baseline, current):
+            print(f"ratchet: holding baseline — {held}")
+
     # Only rewrite when a real metric moved. The baseline file also carries
     # volatile provenance fields (updated_at / updated_commit); rewriting on
     # every run would churn those and make the ratchet bot commit on every
     # push even when coverage/files/dupes are identical. Skip the write when
     # the three ratcheted metrics match the existing baseline.
-    if baseline is not None and baseline.to_payload() == current.to_payload():
+    if target.to_payload() == baseline.to_payload():
         print(f"ratchet: metrics unchanged — {BASELINE_PATH.name} left intact")
-        print(json.dumps(current.to_payload(), indent=2))
+        print(json.dumps(baseline.to_payload(), indent=2))
         return 0
-    write_baseline(current)
+    write_baseline(target)
     print(f"ratchet: baseline written to {BASELINE_PATH.relative_to(REPO_ROOT)}")
-    print(json.dumps(current.to_payload(), indent=2))
+    print(json.dumps(target.to_payload(), indent=2))
     return 0
 
 
@@ -266,12 +325,20 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="TerraVault metric ratchet")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--check", action="store_true", help="compare current to baseline (default)")
-    group.add_argument("--update", action="store_true", help="rewrite baseline from current state")
+    group.add_argument("--update", action="store_true", help="move baseline forward (improvements only)")
     group.add_argument("--show", action="store_true", help="show baseline vs current")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="with --update, allow the baseline to move backwards (deliberate reset)",
+    )
     args = parser.parse_args(argv)
 
+    if args.force and not args.update:
+        parser.error("--force is only meaningful together with --update")
+
     if args.update:
-        return cmd_update()
+        return cmd_update(force=args.force)
     if args.show:
         return cmd_show()
     return cmd_check()

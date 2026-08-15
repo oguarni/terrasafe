@@ -191,7 +191,7 @@ ratchet-show: install
 	$(VENV)/bin/python scripts/ratchet.py --show
 
 ratchet-update: install
-	@echo "📈 Rewriting .ratchet.json baseline..."
+	@echo "📈 Moving .ratchet.json baseline forward (improvements only)..."
 	$(VENV)/bin/python -m pytest --cov=terravault --cov-report=xml -q >/dev/null
 	$(VENV)/bin/python scripts/ratchet.py --update
 
