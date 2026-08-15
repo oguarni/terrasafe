@@ -2,20 +2,20 @@ name: DevSecOps Pipeline
 
 on:
   push:
-    branches: [ main, develop, master ]
+    branches: [ main, develop ]
     # A .ratchet.json-only commit comes from the ratchet-bump job below;
     # ignore it so the bot's baseline commit cannot re-trigger the pipeline.
     paths-ignore:
       - '.ratchet.json'
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
 permissions:
   contents: read
   pull-requests: write
   security-events: write
 
-# On a PR, supersede in-flight runs when new commits are pushed. On master
+# On a PR, supersede in-flight runs when new commits are pushed. On main
 # pushes keep cancel-in-progress off so ratchet-bump / deploy-staging are not
 # interrupted mid-run.
 concurrency:
@@ -582,14 +582,14 @@ jobs:
               body: `${header}\n\n${after}`,
             });
 
-  # Recompute the ratchet baseline on master, reusing the coverage.xml the
+  # Recompute the ratchet baseline on main, reusing the coverage.xml the
   # `test` job already produced (no second pytest run). Commits .ratchet.json
   # only when a real metric moved — see scripts/ratchet.py cmd_update().
   ratchet-bump:
-    name: Recompute ratchet baseline on master
+    name: Recompute ratchet baseline on main
     runs-on: ubuntu-latest
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
     concurrency:
@@ -645,11 +645,11 @@ jobs:
           git commit -m "chore(ratchet): bump baseline (cov=${coverage}% files=${files} dupes=${dupes})"
           git push origin HEAD:${GITHUB_REF#refs/heads/}
 
-  # Optional: Deploy to staging (only on master push)
+  # Optional: Deploy to staging (only on main push)
   deploy-staging:
     runs-on: ubuntu-latest
     needs: [security-scan, test, docker]
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
     steps:
     - name: Deploy notification
       run: |

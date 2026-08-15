@@ -7,7 +7,7 @@
 # the local machine (and the free credits expire 2026-07-22).
 #
 # What it does: stages the (uncommitted) evaluation/ harness changes to GCS,
-# creates a self-terminating VM that clones `master`, overlays the staged
+# creates a self-terminating VM that clones `main`, overlays the staged
 # harness files, restores the trained ML model, sparse-clones the KICS fixtures
 # at a pinned commit, builds the foreign corpus, runs the full 4-tool evaluation
 # in target-slice mode, uploads the results, and powers itself off. It never

@@ -72,9 +72,9 @@ name: CI Tests
 
 on:
   push:
-    branches: [ master, main, feat ]
+    branches: [ main, feat ]
   pull_request:
-    branches: [ master, main ]
+    branches: [ main ]
 
 jobs:
   test:
