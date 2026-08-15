@@ -15,7 +15,8 @@ mid-flight.
 Supported kinds:
 
     bandit-json        Bandit ``-f json`` output
-    safety-json        Safety ``check --json`` output
+    safety-json        Safety ``check --json`` output (superseded by pip-audit)
+    pip-audit-json     pip-audit ``-f json`` output
     gitleaks-sarif     GitLeaks SARIF output
     pytest-junit       pytest ``--junit-xml`` output
     coverage-xml       coverage.py XML report
@@ -166,6 +167,81 @@ def parse_safety(path: Path) -> Section:
         metrics={"total": total},
         findings=findings,
     )
+
+
+ADVISORY_DESC_CHARS = 160
+
+
+def parse_pip_audit(path: Path) -> Section:
+    """Parse ``pip-audit -f json`` output.
+
+    pip-audit reports no severity field — the PyPI Advisory / OSV records it
+    reads do not carry one consistently — so findings surface the advisory ID
+    and the fix version instead, which is the actionable half anyway.
+
+    The same advisory can appear more than once for one package when it is
+    matched through several aliases (starlette 0.52.1 reports PYSEC-2026-161
+    twice), so identical (package, advisory) pairs are collapsed. Counting the
+    raw list would overstate how much there is to fix.
+    """
+    data = _load_json(path)
+    dependencies = data.get("dependencies", []) or []
+    findings: List[Dict[str, Any]] = []
+    seen: set = set()
+    vulnerable_packages: List[str] = []
+    for dep in dependencies:
+        vulns = dep.get("vulns", []) or []
+        if not vulns:
+            continue
+        name, version = dep.get("name"), dep.get("version")
+        vulnerable_packages.append(str(name))
+        for vuln in vulns:
+            advisory_id = vuln.get("id")
+            key = (name, advisory_id)
+            if key in seen:
+                continue
+            seen.add(key)
+            fixes = vuln.get("fix_versions") or []
+            description = (vuln.get("description") or "").strip()
+            findings.append(
+                {
+                    "package": f"{name}=={version}",
+                    "advisory_id": advisory_id,
+                    "aliases": vuln.get("aliases") or [],
+                    "fix_versions": fixes,
+                    "message": (
+                        (f"fixed in {', '.join(fixes)} — " if fixes else "no fix available — ")
+                        + _truncate_words(description, ADVISORY_DESC_CHARS)
+                    ),
+                }
+            )
+    total = len(findings)
+    status = "fail" if total > 0 else "pass"
+    summary = (
+        f"{total} advisory(ies) across {len(vulnerable_packages)} package(s)"
+        if total
+        else f"0 known vulnerability(ies) across {len(dependencies)} dependencies"
+    )
+    return Section(
+        kind="pip-audit-json",
+        label="pip-audit (dependency CVEs)",
+        status=status,
+        summary=summary,
+        metrics={
+            "dependencies_scanned": len(dependencies),
+            "vulnerable_packages": sorted(set(vulnerable_packages)),
+            "advisories": total,
+        },
+        findings=findings,
+    )
+
+
+def _truncate_words(text: str, limit: int) -> str:
+    """Trim an advisory description to fit one Markdown table cell."""
+    collapsed = " ".join(text.split())
+    if len(collapsed) <= limit:
+        return collapsed
+    return collapsed[:limit].rsplit(" ", 1)[0] + "…"
 
 
 def _parse_sarif(path: Path, kind: str, label: str) -> Section:
@@ -359,6 +435,7 @@ def parse_gate_metrics_json(path: Path) -> Section:
 PARSERS = {
     "bandit-json": parse_bandit,
     "safety-json": parse_safety,
+    "pip-audit-json": parse_pip_audit,
     "gitleaks-sarif": parse_gitleaks_sarif,
     "trivy-sarif": parse_trivy_sarif,
     "terravault-sarif": parse_terravault_sarif,
@@ -372,6 +449,7 @@ PARSERS = {
 KIND_LABELS = {
     "bandit-json": "Bandit (SAST)",
     "safety-json": "Safety (dependency CVEs)",
+    "pip-audit-json": "pip-audit (dependency CVEs)",
     "gitleaks-sarif": "GitLeaks (secrets)",
     "trivy-sarif": "Trivy (container CVEs)",
     "terravault-sarif": "TerraVault (SARIF)",
