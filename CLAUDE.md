@@ -230,13 +230,23 @@ resolve, not a fix. Once the parent admits the safe version, the transitive
 *is* pinned explicitly (`starlette==1.3.1`, `lxml==6.1.1`) so the security
 floor is reproducible instead of "whatever pip picked that day".
 
-**Vendored code is not in any requirements file.** Trivy flagged
-`setuptools/_vendor/jaraco.context-5.3.0` (CVE-2026-23949) and
-`setuptools/_vendor/wheel-0.45.1` (CVE-2026-24049) in the built image. Neither
-appears in `requirements.txt`, and no pin there can fix them — they ship
-inside the base image's setuptools. The Dockerfile upgrades the build tooling
-instead; setuptools >= 82 vendors `wheel` 0.46.3 and no longer vendors
-`jaraco.context` at all.
+**Vendored code is not in any requirements file, and the runtime image has no
+build tooling.** Trivy flagged `setuptools/_vendor/jaraco.context-5.3.0`
+(CVE-2026-23949) and `setuptools/_vendor/wheel-0.45.1` (CVE-2026-24049) in the
+built image. Neither appears in `requirements.txt`, and no pin there can reach
+them — they ship inside the base image's setuptools.
+
+Upgrading the tooling fixed those two and immediately surfaced two more, this
+time inside pip's own `_vendor/`: msgpack 1.1.2 (GHSA-6v7p-g79w-8964) and a
+setuptools 70.3.0 (CVE-2025-47273). No pin fixes those either. So the
+Dockerfile does both: it upgrades pip/setuptools/wheel for the *build*, then
+uninstalls all three so the *runtime* image contains none of it. Nothing in
+the running container invokes pip, and no runtime dependency imports
+`pkg_resources`.
+
+If you ever reintroduce build tooling into the final image, expect its
+vendored tree to reappear in the Trivy gate — that is the gate working, not a
+false positive.
 
 Crossing `pytest` 7 → 9 (PYSEC-2026-1845) forced the plugin set forward with
 it, `pytest-asyncio` 0.21 → 1.4 included. The suite's 30

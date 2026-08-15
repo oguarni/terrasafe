@@ -29,6 +29,23 @@ RUN pip install --no-cache-dir --upgrade \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Then remove the build tooling from the runtime image entirely.
+#
+# Upgrading it (above) fixed the two vendored CVEs Trivy first reported, and
+# immediately surfaced two more: pip 26.2.1 ships its own _vendor/ tree
+# carrying msgpack 1.1.2 (GHSA-6v7p-g79w-8964) and a setuptools 70.3.0
+# (CVE-2025-47273). Those cannot be fixed by any pin — they are inside pip —
+# so version-chasing pip is a treadmill, and suppressing them in the gate
+# would be asserting something untrue about the image.
+#
+# Nothing in the running container invokes pip: the entrypoint applies alembic
+# migrations and execs uvicorn, and no runtime dependency imports
+# pkg_resources (checked across the installed tree — only pytest does, and
+# pytest is not in this image). Build tooling in a production image is
+# attack surface with no counterpart in function, so it goes. Order matters:
+# pip must uninstall itself last.
+RUN pip uninstall -y wheel setuptools && pip uninstall -y pip
+
 # Application code + database migrations (alembic/ and alembic.ini are needed
 # so the entrypoint can run `alembic upgrade head` on startup)
 COPY terravault/ ./terravault/
