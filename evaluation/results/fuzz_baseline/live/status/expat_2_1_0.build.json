@@ -1,0 +1,11 @@
+{
+  "target": "expat_2_1_0",
+  "kind": "known-bug",
+  "source_url": "https://github.com/libexpat/libexpat/releases/download/R_2_1_0/expat-2.1.0.tar.gz",
+  "known_bug_reference": "CVE-2016-0718: out-of-bounds read/write parsing malformed multi-byte input (fixed in 2.1.1); CVE-2015-1283 integer overflow in XML_GetBuffer.",
+  "status": "built",
+  "build_rc": 0,
+  "build_seconds": 11,
+  "binary": "/opt/fuzz-run/bin/expat_2_1_0",
+  "seeds_dir": "/opt/fuzz-run/seeds/expat_2_1_0"
+}

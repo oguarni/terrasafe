@@ -1,0 +1,11 @@
+{
+  "target": "cjson_1_7_10",
+  "kind": "known-bug",
+  "source_url": "https://github.com/DaveGamble/cJSON/archive/refs/tags/v1.7.10.tar.gz",
+  "known_bug_reference": "CVE-2019-11834 / CVE-2019-11835: out-of-bounds reads in cJSON parsing of multibyte and UTF-16 escape sequences; fixed in 1.7.11.",
+  "status": "built",
+  "build_rc": 0,
+  "build_seconds": 2,
+  "binary": "/opt/fuzz-run/bin/cjson_1_7_10",
+  "seeds_dir": "/opt/fuzz-run/seeds/cjson_1_7_10"
+}

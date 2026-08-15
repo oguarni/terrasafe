@@ -1,0 +1,11 @@
+{
+  "target": "libarchive_3_2_1",
+  "kind": "known-bug",
+  "source_url": "https://github.com/libarchive/libarchive/archive/refs/tags/v3.2.1.tar.gz",
+  "known_bug_reference": "CVE-2016-5844 (integer overflow in the ISO9660 parser), CVE-2016-6250 (integer overflow writing large files), plus the 2015-2016 tar/cpio/mtree out-of-bounds reads; fixed in 3.2.2/3.3.x.",
+  "status": "built",
+  "build_rc": 0,
+  "build_seconds": 78,
+  "binary": "/opt/fuzz-run/bin/libarchive_3_2_1",
+  "seeds_dir": "/opt/fuzz-run/seeds/libarchive_3_2_1"
+}
