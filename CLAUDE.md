@@ -146,7 +146,7 @@ All previously documented issues have been resolved:
 
 ## Quality Gate
 
-Pull requests against `master`/`main` run an automated Quality Gate
+Pull requests against `main` run an automated Quality Gate
 (`.github/workflows/quality-gate.yml`). The gate enforces, in a single
 `scripts/quality_gate.py` invocation:
 
@@ -173,7 +173,7 @@ the report on the PR.
 | `duplicate_blocks` | must not increase | pylint `R0801` at `--min-similarity-lines=4` |
 
 The baseline lives in `.ratchet.json` (tracked in git). After a merge to
-master, the `ratchet-bump` job in `.github/workflows/devsecops.yml` recomputes
+main, the `ratchet-bump` job in `.github/workflows/devsecops.yml` recomputes
 the baseline — reusing the `test` job's `coverage.xml` rather than running
 pytest again — and pushes a `chore(ratchet): bump baseline` commit **only when
 one of the three metrics actually moves**. Runs where coverage, file count, and
@@ -266,7 +266,7 @@ specify integration status        # read-only health check
 
 ## Contributing
 
-1. Create feature branch from `master`
+1. Create feature branch from `main`
 2. Run tests: `make test`
 3. Run linting: `make lint`
 4. Submit PR with descriptive commit messages

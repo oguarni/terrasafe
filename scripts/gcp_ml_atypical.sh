@@ -8,7 +8,7 @@
 # credits expire 2026-07-22).
 #
 # What it does: stages the (uncommitted) A.3 harness files to GCS, creates a
-# self-terminating VM that clones `master`, overlays the staged files, restores
+# self-terminating VM that clones `main`, overlays the staged files, restores
 # the trained ML model + training vectors, mines a registry-wide + GitHub corpus,
 # scans every config (rules + IF), runs the atypicality experiment, renders the
 # report, uploads everything, and powers itself off. No Docker, no competitors.

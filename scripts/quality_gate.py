@@ -8,7 +8,7 @@ emits a structured Markdown report at $GATE_REPORT_PATH (default:
 Thresholds (must match CLAUDE.md health stats):
   - pytest: every test passes
   - ratchet: coverage %, files-over-SLOC, and duplicate blocks do not regress
-             relative to ``.ratchet.json`` (auto-updated on merge to master)
+             relative to ``.ratchet.json`` (auto-updated on merge to main)
   - pylint: score == 10.00 / 10
   - flake8: 0 findings
   - bandit: 0 findings at -ll severity
