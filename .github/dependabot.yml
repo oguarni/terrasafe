@@ -6,9 +6,43 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 3
     groups:
       actions:
         patterns:
           - "*"
     commit-message:
       prefix: "ci"
+
+  # Every runtime and dev pin is exact, so nothing moves without a PR. Until
+  # now nothing opened those PRs either: `safety` in the DevSecOps pipeline
+  # reports a dependency CVE and turns the job red, but has no way to propose
+  # the bump — see the hand-written CVE notes in requirements.txt. Split into
+  # two groups because the blast radius differs: a dev-tooling bump can only
+  # break CI, a runtime bump ships. Group order is load-bearing — a dependency
+  # lands in the first group it matches, so dev-tooling must stay above the
+  # catch-all "*" or everything would be one runtime PR.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-tooling:
+        patterns:
+          - "pytest*"
+          - "pylint"
+          - "black"
+          - "flake8"
+          - "isort"
+          - "mypy"
+          - "bandit"
+          - "coverage"
+          - "safety"
+          - "cyclonedx-bom"
+          - "types-*"
+      runtime:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "deps"
