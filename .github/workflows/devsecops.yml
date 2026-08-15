@@ -275,6 +275,16 @@ jobs:
           echo "=== Artifact tree ==="
           find _artifacts -type f -maxdepth 3 -print
 
+      # Three inputs report findings on every run by construction, so gating on
+      # them pinned `overall` to "fail" on every PR — the comment was always
+      # red and devsecops-auto-fix fired on findings its own prompt calls
+      # no-fix zones. They stay in the report in full, but out of the verdict:
+      #   terravault-scan / terravault-sarif — scanned against test_files/,
+      #     which is a deliberately vulnerable fixture set (vulnerable.tf
+      #     scores 84 against a threshold of 70 on purpose).
+      #   trivy-sarif — python:3.10-slim base-image CVEs. trivy-action does not
+      #     fail the docker job either; its enforcement surface is the GitHub
+      #     Security tab upload, which this flag does not touch.
       - name: Generate consolidated report
         id: report
         run: |
@@ -288,6 +298,9 @@ jobs:
             --input terravault-scan=_artifacts/scan-results/scan_output.json \
             --input terravault-sarif=_artifacts/scan-results/terravault-results.sarif \
             --input trivy-sarif=_artifacts/docker-reports/trivy-results.sarif \
+            --informational terravault-scan \
+            --informational terravault-sarif \
+            --informational trivy-sarif \
             --output-md pipeline-report.md \
             --output-json pipeline-metrics.json \
             --title "DevSecOps Pipeline Report" \
@@ -456,7 +469,14 @@ jobs:
             Read both files at the repo root:
               - `pipeline-report.md`     — human + LLM readable failure summary
               - `pipeline-metrics.json`  — structured per-check metrics
-                                           (`checks[].kind`, `status`, `metrics`, `findings`)
+                                           (`checks[].kind`, `status`,
+                                           `informational`, `metrics`, `findings`)
+
+            A check with `"informational": true` reports findings that do not
+            gate the pipeline. Its findings are listed under *Informational
+            findings* in the Markdown. Do not act on those, and do not treat
+            them as the reason the pipeline failed — they are excluded from
+            `overall`.
 
             Auto-fix scope (in priority order):
 
