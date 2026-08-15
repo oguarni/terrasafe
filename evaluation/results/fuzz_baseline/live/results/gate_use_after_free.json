@@ -1,0 +1,45 @@
+{
+  "target": "gate_use_after_free",
+  "kind": "gate-validation",
+  "source_url": "(local harness)",
+  "known_bug_reference": "Synthetic heap-use-after-free read behind a 4-byte magic. Second gate-validation bug class, used to prove stack-signature dedup separates distinct bugs. Excluded from baseline metrics.",
+  "status": "fuzzed",
+  "build_seconds": 0,
+  "fuzz_budget_seconds": 1500,
+  "fuzz_wall_seconds": 1500,
+  "fuzz_cpu_seconds": 755.63,
+  "executed_units": 0,
+  "execs_per_second": 0.0,
+  "edge_coverage": 3,
+  "features": 3,
+  "corpus_units": 0,
+  "corpus_bytes": 0,
+  "crash_artifacts": 4943,
+  "time_to_first_crash_seconds": 1,
+  "time_to_first_confirmed_bug_seconds": 1,
+  "unique_signatures": 1,
+  "confirmed_unique_bugs": 1,
+  "confirmed_memory_safety_bugs": 1,
+  "bugs": [
+    {
+      "signature": "e2982dc368b52ad8",
+      "sanitizer": "AddressSanitizer",
+      "bug_class": "heap-use-after-free",
+      "detail": "heap-use-after-free on address 0x502000000053 at pc 0x564e801de434 bp 0x7ffeee7c1270 sp 0x7ffeee7c1268",
+      "top_frames": [
+        "_start"
+      ],
+      "artifact": "/opt/fuzz-run/artifacts/gate_use_after_free/crash-72fe28186ef9172358578f9ba16fbc795f50ffb7",
+      "artifact_bytes": 7,
+      "minimized_artifact": "/opt/fuzz-run/artifacts/gate_use_after_free/min-crash-72fe28186ef9172358578f9ba16fbc795f50ffb7",
+      "minimized_bytes": 5,
+      "first_seen_seconds": 1,
+      "duplicate_artifacts": 4942,
+      "sanitizer_confirmed": true,
+      "minimized": true,
+      "deterministic": true,
+      "confirmed": true,
+      "reject_reason": null
+    }
+  ]
+}
