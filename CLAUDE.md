@@ -7,7 +7,7 @@ TerraVault is a hybrid Terraform security scanner implementing Clean Architectur
 - **Security Approach**: 60% rule-based detection (11 rules) + 40% ML anomaly detection (8-dim *structural* feature vector, independent of the rule findings)
 - **Tech Stack**: FastAPI, PostgreSQL, Redis, Isolation Forest ML, Prometheus/Grafana
 - **Language**: Python 3.10+
-- **Health**: focused test suite (183 pytest cases, 82.63% line / 73.28% branch coverage) on security rules, scan pipeline, API contract, repositories, rate limiting, and ML predictions; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories, 0 mypy errors
+- **Health**: focused test suite (189 pytest cases, 82.63% line / 73.28% branch coverage) on security rules, scan pipeline, API contract, repositories, rate limiting, ML predictions, and the CI report tooling; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories, 0 mypy errors
 
 ## Quick Start
 
@@ -201,6 +201,28 @@ make ratchet-update  # move baseline forward (improvements only)
 
 python scripts/ratchet.py --update --force   # deliberate reset, allows a drop
 ```
+
+### DevSecOps report: informational checks
+
+The consolidated report (`scripts/pipeline_report.py`, commented on every PR
+by the `pipeline-report` job) accepts `--informational <kind>`. Such an input
+is parsed and rendered in full — under an *Informational findings* heading,
+with a real `"status"` plus `"informational": true` in
+`pipeline-metrics.json` — but is excluded from `overall`.
+
+Three kinds are informational today, and the reason is the same in each case:
+they report findings on **every** run by construction, so gating on them
+pinned `overall` to `fail` forever and fired `devsecops-auto-fix` on findings
+its own prompt calls no-fix zones.
+
+| Kind | Why it always reports |
+|---|---|
+| `terravault-scan`, `terravault-sarif` | scanned against `test_files/`, a deliberately vulnerable fixture set |
+| `trivy-sarif` | `python:3.10-slim` base-image CVEs; enforcement lives in the Security-tab SARIF upload, which this does not touch |
+
+Do not add a kind to this list to make a red pipeline green — that is the one
+thing the flag must never be used for. It is for inputs whose findings are
+*expected*, not for inputs that are merely inconvenient.
 
 ### Self-correction loop
 
