@@ -28,6 +28,7 @@ __pycache__/
 *.py[cod]
 .Python
 *.so
+__pypackages__/
 
 # ===================================
 # Virtual Environment
@@ -44,11 +45,19 @@ venv.bak/
 # ===================================
 .env
 .env.*
-.env.bak.*
-.env.local
-.env.*.local
-.env.production
-.env.staging
+# Keep sanitized templates available to new contributors.
+!.env.example
+!.env.*.example
+
+# Cloud credential files must never enter version control.
+application_default_credentials.json
+credentials.json
+*-key.json
+*-keyfile.json
+service-account*.json
+serviceAccount*.json
+*-service-account.json
+google-credentials*.json
 
 # ===================================
 # Private Keys & Certificates
@@ -62,6 +71,8 @@ venv.bak/
 *.crt
 id_rsa
 id_ed25519
+id_ecdsa
+id_dsa
 *.pub
 
 # ===================================
@@ -74,6 +85,8 @@ id_ed25519
 .Trashes
 ehthumbs.db
 Thumbs.db
+Desktop.ini
+*.stackdump
 *~
 
 # ===================================
@@ -81,6 +94,7 @@ Thumbs.db
 # ===================================
 .vscode/
 .idea/
+.fleet/
 *.swp
 *.swo
 *.swn
@@ -100,8 +114,11 @@ htmlcov/
 *.cover
 .hypothesis/
 .tox/
+.nox/
 nosetests.xml
 coverage.xml
+coverage.json
+junit.xml
 .benchmarks/
 gate-report.md
 gate-report-after-fix.md
@@ -123,6 +140,9 @@ terravault-scan-metrics.json
 .dmypy.json
 dmypy.json
 .pytype/
+.pyre/
+.pyright/
+.ruff_cache/
 
 # ===================================
 # ML Models (auto-generated)
@@ -198,8 +218,7 @@ logs/
 # ===================================
 # Jupyter Notebook
 # ===================================
-.ipynb_checkpoints
-*.ipynb
+.ipynb_checkpoints/
 
 # ===================================
 # Database
@@ -207,6 +226,16 @@ logs/
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3-journal
+*.sqlite3-shm
+*.sqlite3-wal
+.pgpass
 
 # ===================================
 # Temporary Files
@@ -215,6 +244,8 @@ tmp/
 temp/
 *.tmp
 *.bak
+*.orig
+*.rej
 *~.nib
 
 # ===================================
@@ -223,16 +254,18 @@ temp/
 # NOTE: .dockerignore is a config file and SHOULD be tracked in git
 
 # ===================================
-# Claude AI
+# Local Tool State
 # ===================================
+# Per-machine agent configuration and generated skill caches. Nothing tracked
+# references these; they are not part of the project's setup contract.
 .claude/
-CLAUDE.MD.bak
+.agents/
 
 # ===================================
 # Local Scripts
 # ===================================
-take_screenshots.sh
-run_local.sh
+/scripts/take_screenshots.sh
+/run_local.sh
 
 # ===================================
 # Cache
@@ -243,8 +276,8 @@ run_local.sh
 # ===================================
 # Production Configs
 # ===================================
-config/production.yaml
-config/local.yaml
+/config/production.yaml
+/config/local.yaml
 
 # ===================================
 # Alembic
@@ -255,11 +288,56 @@ alembic/__pycache__/
 # ===================================
 # Project-Specific Artifacts
 # ===================================
-terravault-architecture.svg
+/terravault-architecture.svg
 
 # ML corpus training (scripts/corpus_train.py) - downloaded modules + local GCP run config
-corpus/
-.gcp-train.json
+/corpus/
+/corpus_snapshot.tgz
+/.gcp/
+/.gcp-train.json
+
+# Fuzz baseline. Versionable evidence is only the scored output — baseline.json,
+# baseline_report.md, results/*.json, status/*.build.json — plus the minimized
+# reproducers (min-crash-*, min-leak-*). Seed corpora and the raw libFuzzer
+# artifact dumps are regenerable by the harness and would otherwise push ~193 MB
+# across ~47.8k files into history permanently.
+/evaluation/results/fuzz_baseline/corpus/
+# Prefix-anchored: "crash-*" does not match "min-crash-*", so the minimized
+# reproducers stay tracked without needing negation rules.
+/evaluation/results/fuzz_baseline/**/crash-*
+/evaluation/results/fuzz_baseline/**/leak-*
+/evaluation/results/fuzz_baseline/**/oom-*
+/evaluation/results/fuzz_baseline/**/timeout-*
+/evaluation/results/fuzz_baseline/**/slow-unit-*
+
+# ===================================
+# Terraform Local State
+# ===================================
+# Keep source .tf files and .terraform.lock.hcl tracked. State, plans, provider
+# downloads, local overrides, and variable values are machine-specific and may
+# contain secrets.
+.terraform/
+.terraform.d/
+.terragrunt-cache/
+terraform.tfstate.d/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+!*.example.tfvars
+!*.example.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# ===================================
+# Frontend Dependencies
+# ===================================
+node_modules/
 
 # ===================================
 # Ratchet / Quality Gate Artifacts
@@ -268,8 +346,6 @@ corpus/
 pylint-output.json
 pylint-report.txt
 ratchet-current.json
-gate-metrics.json
-pytest-junit.xml
 # Local Windows test scaffolding (pytest basetemp + redirected system temp)
 .systmp/
 .pytest_tmp/
