@@ -530,7 +530,9 @@ async def api_documentation() -> Dict[str, Any]:
 # it here means no CORS and no client configuration. Disabled on the VM, where Caddy
 # owns the static files.
 if settings.serve_frontend:
-    from fastapi.staticfiles import StaticFiles  # imported lazily: only this mode needs it
+    # Imported lazily because only this mode needs it. Deliberately not grouped with
+    # the fastapi imports at the top of the file, which is what ungrouped-imports flags.
+    from fastapi.staticfiles import StaticFiles  # pylint: disable=ungrouped-imports
 
     _frontend_path = Path(settings.frontend_dir)
     if _frontend_path.is_dir():
