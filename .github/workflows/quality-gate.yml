@@ -23,11 +23,16 @@ jobs:
     outputs:
       passed: ${{ steps.gate.outputs.passed }}
     steps:
-      - name: Checkout PR head
+      # Default checkout on a pull_request event resolves refs/pull/N/merge, so
+      # the gate measures the tree that would land on main. Pinning head.sha
+      # instead made stale branches fail on findings main had already fixed —
+      # dependabot PR #30 failed on api.py C0412 that a5662c15 had resolved.
+      # `ratchet --check` reads coverage.xml, never git history, so depth 1 is
+      # enough.
+      - name: Checkout PR merge result
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -48,8 +53,6 @@ jobs:
       - name: Run quality gate
         id: gate
         env:
-          API_USERNAME: ${{ secrets.API_USERNAME }}
-          API_PASSWORD: ${{ secrets.API_PASSWORD }}
           TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
           TERRAVAULT_ENVIRONMENT: development
           TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
@@ -189,8 +192,6 @@ jobs:
         if: steps.limits.outputs.proceed == 'true'
         uses: anthropics/claude-code-action@0f97b95b6536c26e5f6bd90faec370d41695beca # v1
         env:
-          API_USERNAME: ${{ secrets.API_USERNAME }}
-          API_PASSWORD: ${{ secrets.API_PASSWORD }}
           TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
           TERRAVAULT_ENVIRONMENT: development
           TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
@@ -211,12 +212,20 @@ jobs:
             Read `gate-report.md` (human-readable) and `gate-metrics.json`
             (structured per-check metrics: counts, scores, statuses) at the
             repo root for the exact failures. The gate enforces:
-              - pytest: every test passes
-              - coverage: line-rate >= 74.00 %
+              - pytest:  every test passes
+              - ratchet: coverage %, files-over-300-SLOC and duplicate blocks
+                         must not regress against `.ratchet.json`. That file is
+                         the baseline — read it for the current numbers, never
+                         edit it.
               - pylint:  score == 10.00 / 10
               - flake8:  0 findings
               - bandit:  0 findings at -ll
               - mypy:    0 errors
+
+            Note: the gate measured this PR *merged into* `main`, while you are
+            working on the branch alone. If a reported failure does not
+            reproduce on the branch, the branch is simply behind `main` — say
+            so in a PR comment instead of inventing a fix.
 
             Your job, in order:
               1. Diagnose each failed check from `gate-report.md`.
@@ -228,8 +237,12 @@ jobs:
                    `python scripts/quality_gate.py`
                  Iterate until it exits 0, or until you are confident the remaining
                  failure cannot be auto-fixed.
-              5. Stage and commit the changes:
-                   `git add -A`
+              5. Stage only what you changed. Never `git add -A` — it sweeps
+                 every untracked file in the workspace into a public repo.
+                 Stage tracked edits, then add new files you deliberately
+                 created by explicit path:
+                   `git add -u`
+                   `git add <path/to/new_file.py>`   # only files you created
                    `git commit -m "chore(quality-gate): auto-fix attempt ${{ steps.limits.outputs.attempt }}"`
               6. Push to the PR branch:
                    `git push origin HEAD:"$PR_BRANCH"`
@@ -249,8 +262,6 @@ jobs:
         if: steps.limits.outputs.proceed == 'true'
         id: verify
         env:
-          API_USERNAME: ${{ secrets.API_USERNAME }}
-          API_PASSWORD: ${{ secrets.API_PASSWORD }}
           TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
           TERRAVAULT_ENVIRONMENT: development
           TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"

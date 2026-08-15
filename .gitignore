@@ -5,6 +5,16 @@
 .git.bak/
 
 # ===================================
+# Local scratch notes (never published)
+# ===================================
+# Reference material pulled into the tree while working on CI/agent tooling.
+# Not project documentation. The auto-fix jobs no longer run `git add -A`, but
+# an unignored root file is still one stray `git add .` away from landing in a
+# public repo — ignore it at the source instead.
+/notes-local/
+/Lucas_Montano-Tech-Tips.txt
+
+# ===================================
 # Database backups (runtime dumps)
 # ===================================
 # Local output dir for scripts/backup_db.sh on the deploy VM before the dump
