@@ -11,6 +11,19 @@ permissions:
   checks: write
   actions: read
 
+# Settings validation rejects a TERRAVAULT_API_KEY_HASH that is not a
+# full-length bcrypt hash, so CI needs a real one. This is the hash of a
+# throwaway key that authenticates nothing — it exists only to get past
+# validation. Defined once here rather than repeated per step: a
+# credential-shaped literal copied into every env block is the shape that
+# eventually gets edited into a real secret by mistake.
+env:
+  TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
+  TERRAVAULT_ENVIRONMENT: development
+  TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
+  TERRAVAULT_REDIS_URL: "redis://localhost:6379"
+  TERRAVAULT_LOG_LEVEL: INFO
+
 concurrency:
   group: quality-gate-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -53,11 +66,6 @@ jobs:
       - name: Run quality gate
         id: gate
         env:
-          TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
-          TERRAVAULT_ENVIRONMENT: development
-          TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
-          TERRAVAULT_REDIS_URL: "redis://localhost:6379"
-          TERRAVAULT_LOG_LEVEL: INFO
           GATE_REPORT_PATH: gate-report.md
           GATE_METRICS_PATH: gate-metrics.json
         run: |
@@ -192,11 +200,6 @@ jobs:
         if: steps.limits.outputs.proceed == 'true'
         uses: anthropics/claude-code-action@0f97b95b6536c26e5f6bd90faec370d41695beca # v1
         env:
-          TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
-          TERRAVAULT_ENVIRONMENT: development
-          TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
-          TERRAVAULT_REDIS_URL: "redis://localhost:6379"
-          TERRAVAULT_LOG_LEVEL: INFO
           GATE_REPORT_PATH: gate-report.md
           GATE_METRICS_PATH: gate-metrics.json
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
@@ -262,11 +265,6 @@ jobs:
         if: steps.limits.outputs.proceed == 'true'
         id: verify
         env:
-          TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
-          TERRAVAULT_ENVIRONMENT: development
-          TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
-          TERRAVAULT_REDIS_URL: "redis://localhost:6379"
-          TERRAVAULT_LOG_LEVEL: INFO
           GATE_REPORT_PATH: gate-report-after-fix.md
           GATE_METRICS_PATH: gate-metrics-after-fix.json
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
