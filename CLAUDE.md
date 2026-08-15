@@ -108,7 +108,7 @@ black terravault/ tests/
 - **Max line length**: 120 characters (flake8 + pylint)
 - **E402 exceptions**: `api.py` and `cli.py` call `load_dotenv()` before imports (intentional)
 - **Bandit config**: `.bandit` file skips B101 (`assert_used`) project-wide
-- **Pre-commit hooks**: Configured in `.pre-commit-config.yaml` (black, isort, flake8, mypy, bandit, detect-secrets, gitleaks)
+- **Pre-commit hooks**: Configured in `.pre-commit-config.yaml` (black, isort, flake8, mypy, bandit, gitleaks). Secret detection is gitleaks only, matching what the DevSecOps pipeline gates on — a second engine with different findings would fail locally on things CI accepts
 - **Type checking**: `mypy.ini` keeps `disallow_untyped_defs = False` globally and switches it on per module. A layer listed there is fully annotated and must stay that way; never relax a section that already passes.
 
 ## Security Notes
