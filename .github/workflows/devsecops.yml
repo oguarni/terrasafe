@@ -62,17 +62,26 @@ jobs:
         bandit -r terravault/ --ini .bandit -ll -f screen
         exit 0
 
-    # Dependency vulnerability scanning
-    - name: Safety Check
-      id: safety
+    # Dependency vulnerability scanning.
+    #
+    # Replaced `safety check`, which reported 0 findings on this exact
+    # requirements set while pip-audit found 9 advisories across 4 packages —
+    # including starlette 0.52.1 (Host-header auth bypass, CVE-2026-48710).
+    # safety's free tier lags the advisory feed, and its CLI kept moving, which
+    # is why it had to be pinned to 3.7.0. pip-audit is PyPA's own tool, reads
+    # the PyPI Advisory / OSV database, and needs no account.
+    #
+    # Both requirement files are audited: a CVE in a dev pin still runs in CI
+    # with repository write access.
+    - name: pip-audit (dependency CVEs)
+      id: pip_audit
       run: |
-        # Pin safety: 3.7.0 changed the CLI so `--output` is a format, not a
-        # file path. Use --save-json to write the report; pin to stop the
-        # invocation drifting again on the next upstream release.
-        pip install 'safety==3.7.0'
+        pip install pip-audit
         set +e
-        safety check --save-json safety-report.json
-        echo "safety_exit=$?" >> "$GITHUB_OUTPUT"
+        pip-audit -r requirements.txt -r requirements-dev.txt \
+          --progress-spinner=off -f json -o pip-audit-report.json
+        echo "pip_audit_exit=$?" >> "$GITHUB_OUTPUT"
+        pip-audit -r requirements.txt -r requirements-dev.txt --progress-spinner=off
         exit 0
 
     # Secret detection — produce SARIF for the consolidated report
@@ -102,20 +111,20 @@ jobs:
         name: security-reports
         path: |
           bandit-report.json
-          safety-report.json
+          pip-audit-report.json
           gitleaks-results.sarif
         if-no-files-found: warn
 
     - name: Enforce security thresholds
       run: |
         # bandit/gitleaks: any finding fails the job
-        # safety: known CVEs fail the job
+        # pip-audit: known CVEs fail the job
         BANDIT_EXIT="${{ steps.bandit.outputs.bandit_exit }}"
-        SAFETY_EXIT="${{ steps.safety.outputs.safety_exit }}"
+        PIP_AUDIT_EXIT="${{ steps.pip_audit.outputs.pip_audit_exit }}"
         GITLEAKS_EXIT="${{ steps.gitleaks.outputs.gitleaks_exit }}"
         FAIL=0
-        if [ "$BANDIT_EXIT"   != "0" ]; then echo "::error::Bandit findings detected";   FAIL=1; fi
-        if [ "$SAFETY_EXIT"   != "0" ]; then echo "::error::Safety findings detected";   FAIL=1; fi
+        if [ "$BANDIT_EXIT"    != "0" ]; then echo "::error::Bandit findings detected";    FAIL=1; fi
+        if [ "$PIP_AUDIT_EXIT" != "0" ]; then echo "::error::pip-audit findings detected"; FAIL=1; fi
         # gitleaks --exit-code 0 always exits 0; detect findings from SARIF
         if [ -f gitleaks-results.sarif ]; then
           FOUND=$(python -c "import json,sys; d=json.load(open('gitleaks-results.sarif')); print(sum(len(r.get('results',[])) for r in d.get('runs',[])))")
@@ -311,7 +320,7 @@ jobs:
           set +e
           python scripts/pipeline_report.py \
             --input bandit-json=_artifacts/security-reports/bandit-report.json \
-            --input safety-json=_artifacts/security-reports/safety-report.json \
+            --input pip-audit-json=_artifacts/security-reports/pip-audit-report.json \
             --input gitleaks-sarif=_artifacts/security-reports/gitleaks-results.sarif \
             --input pytest-junit=_artifacts/test-reports/pytest-junit.xml \
             --input coverage-xml=_artifacts/test-reports/coverage.xml \
@@ -357,8 +366,8 @@ jobs:
             const hint = passed
               ? ''
               : (labels.includes('auto-fix')
-                  ? '\n\n🤖 The `auto-fix` label is set — Claude will attempt remediation of bandit/safety/pytest findings (gitleaks and Trivy require human review).'
-                  : '\n\n💡 Add the `auto-fix` label to let Claude attempt remediation (bandit/safety/pytest only; max 3 attempts).');
+                  ? '\n\n🤖 The `auto-fix` label is set — Claude will attempt remediation of bandit/pip-audit/pytest findings (gitleaks and Trivy require human review).'
+                  : '\n\n💡 Add the `auto-fix` label to let Claude attempt remediation (bandit/pip-audit/pytest only; max 3 attempts).');
             const marker = '<!-- devsecops-pipeline-report -->';
             const body = `${marker}\n## ${passed ? '✅' : '❌'} DevSecOps Pipeline ${passed ? 'passed' : 'failed'}\n\n${report}${hint}`;
             const { data: comments } = await github.rest.issues.listComments({
@@ -452,7 +461,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
-          pip install bandit 'safety==3.7.0'
+          pip install bandit pip-audit
 
       - name: Download consolidated report
         if: steps.limits.outputs.proceed == 'true'
@@ -500,10 +509,14 @@ jobs:
                  documented false positive AND you add a one-line justification
                  in the same commit.
 
-              2. **Safety (dependency CVEs)** — bump the affected package in
+              2. **pip-audit (dependency CVEs)** — bump the affected package in
                  `requirements.txt` / `requirements-dev.txt` to the lowest
-                 patched version specified in the advisory. Never make major
-                 version jumps that could break import contracts.
+                 version in the finding's `fix_versions`. Never make major
+                 version jumps that could break import contracts. If the
+                 affected package is transitive (it is not pinned in either
+                 requirements file), do NOT add a new direct pin to force it —
+                 bump the parent that constrains it, or leave a PR comment
+                 saying which parent needs the bump.
 
               3. **pytest** — fix the failing test or the code under test,
                  whichever matches the actual defect. Do not xfail / skip to
@@ -531,7 +544,7 @@ jobs:
               2. For each in-scope finding, apply the minimal change set.
               3. Re-run the affected checks locally where possible:
                    bandit -r terravault/ --ini .bandit -ll
-                   safety check
+                   pip-audit -r requirements.txt -r requirements-dev.txt
                    pytest -x --junit-xml=pytest-junit.xml
               4. Stage only what you changed. Never `git add -A` — it sweeps
                  every untracked file in the workspace into a public repo.
@@ -562,12 +575,13 @@ jobs:
           git pull --ff-only origin "$PR_BRANCH" || true
           mkdir -p _verify
           bandit -r terravault/ --ini .bandit -f json -o _verify/bandit-report.json -ll || true
-          safety check --save-json _verify/safety-report.json || true
+          pip-audit -r requirements.txt -r requirements-dev.txt \
+            --progress-spinner=off -f json -o _verify/pip-audit-report.json || true
           pytest -q --junit-xml=_verify/pytest-junit.xml --cov=terravault --cov-report=xml:_verify/coverage.xml || true
 
           python scripts/pipeline_report.py \
             --input bandit-json=_verify/bandit-report.json \
-            --input safety-json=_verify/safety-report.json \
+            --input pip-audit-json=_verify/pip-audit-report.json \
             --input pytest-junit=_verify/pytest-junit.xml \
             --input coverage-xml=_verify/coverage.xml \
             --output-md pipeline-report-after-fix.md \

@@ -7,7 +7,8 @@ TerraVault is a hybrid Terraform security scanner implementing Clean Architectur
 - **Security Approach**: 60% rule-based detection (11 rules) + 40% ML anomaly detection (8-dim *structural* feature vector, independent of the rule findings)
 - **Tech Stack**: FastAPI, PostgreSQL, Redis, Isolation Forest ML, Prometheus/Grafana
 - **Language**: Python 3.10+
-- **Health**: focused test suite (189 pytest cases, 82.63% line / 73.28% branch coverage) on security rules, scan pipeline, API contract, repositories, rate limiting, ML predictions, and the CI report tooling; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories, 0 mypy errors
+- **Health**: focused test suite (195 pytest cases, 82.63% line / 73.28% branch coverage) on security rules, scan pipeline, API contract, repositories, rate limiting, ML predictions, and the CI report tooling; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 mypy errors
+- **Open**: `pip-audit` reports 9 dependency advisories across 4 packages (starlette, lxml, black, pytest) that the previous `safety` scanner did not see — see *Dependency advisories* below. The DevSecOps `security-scan` job fails until they are remediated.
 
 ## Quick Start
 
@@ -201,6 +202,30 @@ make ratchet-update  # move baseline forward (improvements only)
 
 python scripts/ratchet.py --update --force   # deliberate reset, allows a drop
 ```
+
+### Dependency advisories (open)
+
+The `security-scan` job audits `requirements.txt` and `requirements-dev.txt`
+with `pip-audit` (PyPA, PyPI Advisory / OSV database). It replaced
+`safety check`, which reported **0 findings on the same requirements set**
+that pip-audit flags 9 advisories in. Reproduce locally with:
+
+```bash
+pip-audit -r requirements.txt -r requirements-dev.txt
+```
+
+| Package | Pinned | Advisories | Lowest fix | Notes |
+|---|---|---|---|---|
+| `starlette` | 0.52.1 (transitive via `fastapi==0.131.0`) | 5 | 1.3.1 | Host-header auth bypass (CVE-2026-48710), `request.url` path injection, `request.form()` bound bypass, StaticFiles SSRF, HTTPEndpoint handler selection |
+| `lxml` | 5.4.0 | 1 | 6.1.0 | XXE — default `resolve_entities=True` lets untrusted XML read local files |
+| `black` | 24.10.0 | 2 | 26.3.1 | cache poisoning via `--python-cell-magics`, GitHub action `use_pyproject` |
+| `pytest` | 7.4.3 | 1 | 9.0.3 | predictable `/tmp/pytest-of-{user}` directory |
+
+`starlette` is **not** pinned directly — do not add a direct pin to force it.
+The fix is bumping `fastapi` to a release that constrains
+`starlette>=1.3.1`, which is an API-compatibility question and needs its own
+PR with the suite green. The three dev pins are independent and safe to bump
+separately.
 
 ### DevSecOps report: informational checks
 
