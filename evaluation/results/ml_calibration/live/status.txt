@@ -1,0 +1,9 @@
+2026-07-22T00:52:17Z phase=boot
+2026-07-22T00:52:53Z phase=deps-done
+2026-07-22T00:53:50Z phase=pip-done
+2026-07-22T00:53:50Z phase=mine-home
+2026-07-22T00:55:32Z phase=github-materialise
+2026-07-22T00:55:39Z phase=calib-home
+2026-07-22T00:57:35Z phase=upload-home
+2026-07-22T00:57:38Z phase=mine-second
+2026-07-22T00:59:40Z phase=calib-full
