@@ -8,7 +8,7 @@ TerraVault is a hybrid Terraform security scanner implementing Clean Architectur
 - **Tech Stack**: FastAPI, PostgreSQL, Redis, Isolation Forest ML, Prometheus/Grafana
 - **Language**: Python 3.10+
 - **Health**: focused test suite (195 pytest cases, 82.63% line / 73.28% branch coverage) on security rules, scan pipeline, API contract, repositories, rate limiting, ML predictions, and the CI report tooling; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 mypy errors
-- **Open**: `pip-audit` reports 9 dependency advisories across 4 packages (starlette, lxml, black, pytest) that the previous `safety` scanner did not see — see *Dependency advisories* below. The DevSecOps `security-scan` job fails until they are remediated.
+- **Dependencies**: `pip-audit` clean (0 advisories) across `requirements.txt` and `requirements-dev.txt` — see *Dependency advisories* below for what was fixed and why the pins look the way they do
 
 ## Quick Start
 
@@ -203,29 +203,45 @@ make ratchet-update  # move baseline forward (improvements only)
 python scripts/ratchet.py --update --force   # deliberate reset, allows a drop
 ```
 
-### Dependency advisories (open)
+### Dependency advisories
 
 The `security-scan` job audits `requirements.txt` and `requirements-dev.txt`
 with `pip-audit` (PyPA, PyPI Advisory / OSV database). It replaced
 `safety check`, which reported **0 findings on the same requirements set**
-that pip-audit flags 9 advisories in. Reproduce locally with:
+that pip-audit found 9 advisories in. Reproduce locally with:
 
 ```bash
-pip-audit -r requirements.txt -r requirements-dev.txt
+pip-audit -r requirements.txt -r requirements-dev.txt   # currently: clean
 ```
 
-| Package | Pinned | Advisories | Lowest fix | Notes |
-|---|---|---|---|---|
-| `starlette` | 0.52.1 (transitive via `fastapi==0.131.0`) | 5 | 1.3.1 | Host-header auth bypass (CVE-2026-48710), `request.url` path injection, `request.form()` bound bypass, StaticFiles SSRF, HTTPEndpoint handler selection |
-| `lxml` | 5.4.0 | 1 | 6.1.0 | XXE — default `resolve_entities=True` lets untrusted XML read local files |
-| `black` | 24.10.0 | 2 | 26.3.1 | cache poisoning via `--python-cell-magics`, GitHub action `use_pyproject` |
-| `pytest` | 7.4.3 | 1 | 9.0.3 | predictable `/tmp/pytest-of-{user}` directory |
+All 9 are resolved. Two constraints drove the shape of the fix, and both are
+worth knowing before touching these pins again:
 
-`starlette` is **not** pinned directly — do not add a direct pin to force it.
-The fix is bumping `fastapi` to a release that constrains
-`starlette>=1.3.1`, which is an API-compatibility question and needs its own
-PR with the suite green. The three dev pins are independent and safe to bump
-separately.
+**Bump the parent, not the transitive.** Two of the vulnerable packages were
+unreachable because a parent capped them:
+
+| Vulnerable | Capped by | Fix |
+|---|---|---|
+| `starlette` 0.52.1 | `fastapi<=0.132.1` pinned `starlette<1.0.0` | `fastapi==0.133.0` — first release to drop the cap |
+| `lxml` 5.4.0 | `cyclonedx-bom==4.2.0` → `cyclonedx-python-lib[validation]` capped `lxml<6` | `cyclonedx-bom==7.3.1` — its lib requires `lxml<7` |
+
+Pinning the transitive under the old cap would have produced a broken
+resolve, not a fix. Once the parent admits the safe version, the transitive
+*is* pinned explicitly (`starlette==1.3.1`, `lxml==6.1.1`) so the security
+floor is reproducible instead of "whatever pip picked that day".
+
+**Vendored code is not in any requirements file.** Trivy flagged
+`setuptools/_vendor/jaraco.context-5.3.0` (CVE-2026-23949) and
+`setuptools/_vendor/wheel-0.45.1` (CVE-2026-24049) in the built image. Neither
+appears in `requirements.txt`, and no pin there can fix them — they ship
+inside the base image's setuptools. The Dockerfile upgrades the build tooling
+instead; setuptools >= 82 vendors `wheel` 0.46.3 and no longer vendors
+`jaraco.context` at all.
+
+Crossing `pytest` 7 → 9 (PYSEC-2026-1845) forced the plugin set forward with
+it, `pytest-asyncio` 0.21 → 1.4 included. The suite's 30
+`@pytest.mark.asyncio` decorators were unaffected — 1.x still honours them in
+the strict mode this repo uses.
 
 ### DevSecOps report: informational checks
 

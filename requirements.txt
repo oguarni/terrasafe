@@ -5,7 +5,20 @@ numpy==1.26.4
 joblib==1.4.2
 
 # API and web framework
-fastapi==0.131.0
+# 0.133.0 is the first release to drop the `starlette<1.0.0` cap (0.131.0 and
+# 0.132.x pinned `starlette<1.0.0,>=0.40.0`). That cap, not starlette itself,
+# is why the image shipped a vulnerable 0.52.1 — see the starlette note below.
+# Minimal bump on purpose: 0.133.0 still asks only for pydantic>=2.7.0, which
+# the pinned 2.10.6 satisfies, so nothing else in the tree moves.
+fastapi==0.133.0
+# Pinned explicitly even though it is fastapi's transitive ASGI core, because
+# the version floor here is a security boundary and must be reproducible
+# rather than "whatever pip resolved that day". 1.3.1 is the lowest release
+# fixing both CVE-2026-48818 (SSRF and NTLM credential theft via UNC paths in
+# StaticFiles) and CVE-2026-54283 (request.form() silently ignoring
+# max_fields / max_part_size). Both were flagged independently by pip-audit
+# and by Trivy against the built image.
+starlette==1.3.1
 uvicorn[standard]==0.34.0
 # >=0.0.31 fixes CVE-2026-53537/53538/53539/53540 (parameter smuggling and
 # related multipart parsing flaws). This parser sits directly under the /scan
