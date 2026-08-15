@@ -5,6 +5,26 @@ WORKDIR /app
 # System dependencies first (changes rarely, better layer caching)
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
+# Upgrade the build tooling the base image bakes in, before anything uses it.
+# python:3.10-slim ships pip 23.0.1 and a setuptools old enough that its
+# _vendor/ tree carried jaraco.context 5.3.0 (CVE-2026-23949, path traversal)
+# and wheel 0.45.1 (CVE-2026-24049, privilege escalation / arbitrary code).
+# Both were flagged by the Trivy gate against the built image, and neither is
+# reachable through requirements.txt — they are vendored copies, so the fix is
+# the tooling itself. setuptools >= 82 vendors wheel 0.46.3 and stopped
+# vendoring jaraco.context altogether, so the vulnerable files are removed
+# rather than merely patched.
+#
+# Floors, not exact pins, deliberately: this is the layer whose whole job is to
+# be current on security patches, and pinning it exactly would mean editing the
+# Dockerfile for every future build-tool advisory. requirements.txt below stays
+# exactly pinned — that is what determines what the application runs.
+# Own layer, above the COPY, so it is not rebuilt when requirements.txt changes.
+RUN pip install --no-cache-dir --upgrade \
+        "pip>=25.0" \
+        "setuptools>=82.0.0" \
+        "wheel>=0.46.2"
+
 # Python dependencies (cached unless requirements.txt changes)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

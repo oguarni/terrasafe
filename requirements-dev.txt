@@ -1,16 +1,27 @@
-pytest==7.4.3
-pytest-cov==5.0.0
-pytest-mock==3.12.0
-pytest-asyncio==0.21.1
-pytest-benchmark==4.0.0
-pytest-timeout==2.2.0
+# pytest 9.0.3 fixes PYSEC-2026-1845 (predictable /tmp/pytest-of-{user} paths,
+# local DoS / symlink attack). Crossing 7 -> 9 forces the plugin set forward
+# with it: pytest-asyncio 0.21 does not load under pytest 9, and the rest are
+# moved to their first pytest-9-compatible release. The suite's 30
+# @pytest.mark.asyncio decorators keep working — pytest-asyncio 1.x still
+# honours them in the strict mode this repo already uses, so no test changed.
+pytest==9.0.3
+pytest-cov==7.1.0
+pytest-mock==3.15.1
+pytest-asyncio==1.4.0
+pytest-benchmark==5.2.3
+pytest-timeout==2.4.0
 coverage>=7.10.6
 httpx<0.28
 psutil==5.9.6
 
 # Linting and formatting
 pylint==3.3.4
-black==24.10.0
+# 26.3.1 fixes PYSEC-2026-2121 (cache poisoning through --python-cell-magics)
+# and PYSEC-2026-2120 (the GitHub action's use_pyproject option). Safe to move:
+# black gates nothing here — the Quality Gate runs pylint/flake8/bandit/mypy,
+# and `black --check` already reported 43 files needing reformatting under the
+# old pin, so the tree was never black-clean to begin with.
+black==26.3.1
 flake8==7.1.1
 
 # Type checking
@@ -21,4 +32,15 @@ types-aiofiles>=24.1.0
 
 # Security scanning
 bandit==1.9.4
-cyclonedx-bom==4.2.0
+# lxml's XXE fix (PYSEC-2026-87 — the default resolve_entities=True lets
+# untrusted XML read local files) landed in 6.1.0, but lxml is transitive:
+# cyclonedx-bom 4.2.0 -> cyclonedx-python-lib[validation] capped it at
+# `lxml>=4,<6`, so 6.1.0 was unreachable. Forcing an lxml pin under the old
+# cap would have produced a broken resolve; bumping the parent is the fix.
+# cyclonedx-bom 7.3.1 requires cyclonedx-python-lib[validation]>=8.0, whose
+# cap is `lxml<7`. The `cyclonedx-py requirements` CLI that `make sbom` calls
+# is unchanged — verified generating an 18-component CycloneDX 1.6 document.
+cyclonedx-bom==7.3.1
+# Pinned for the same reason as starlette: a transitive security floor should
+# be reproducible, not left to whatever satisfies `lxml<7` on the day.
+lxml==6.1.1
