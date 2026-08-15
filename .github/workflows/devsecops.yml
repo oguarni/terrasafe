@@ -270,6 +270,22 @@ jobs:
           terravault:${{ github.sha }} \
           python -m terravault.cli test_files/secure.tf
 
+    # The SARIF step above stays non-gating on purpose: it reports every
+    # CRITICAL/HIGH in the image, unfixed ones included, so the Security tab
+    # keeps full visibility. This step is the actual gate and looks only at
+    # CVEs with a fix available — gating on unfixed base-image CVEs would put
+    # the job permanently red, which is the exact failure mode the
+    # informational tier exists to avoid. Runs last so the smoke test and both
+    # uploads have already happened. Trivy's DB is cached from the run above.
+    - name: Gate on fixable image CVEs
+      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+      with:
+        image-ref: 'terravault:${{ github.sha }}'
+        format: 'table'
+        severity: 'CRITICAL,HIGH'
+        ignore-unfixed: true
+        exit-code: '1'
+
   # Consolidated AI-readable pipeline report
   pipeline-report:
     name: Consolidated Pipeline Report
