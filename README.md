@@ -7,8 +7,8 @@
   **Hybrid Terraform Security Scanner — Deterministic Rules + ML Anomaly Detection**
 
   [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-  [![Tests 72 Passed](https://img.shields.io/badge/tests-72%20passed-2ea44f)](tests/)
-  [![Coverage 74%](https://img.shields.io/badge/coverage-74%25-dfb317)](tests/)
+  [![Tests 137 Passed](https://img.shields.io/badge/tests-137%20passed-2ea44f)](tests/)
+  [![Coverage 76.8%](https://img.shields.io/badge/coverage-76.8%25-dfb317)](tests/)
   [![Pylint 10.00](https://img.shields.io/badge/pylint-10.00%2F10-2ea44f)](https://pylint.pycqa.org/)
   [![SAST Clean](https://img.shields.io/badge/SAST-0%20issues-2ea44f)](https://bandit.readthedocs.io/)
   [![License AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
@@ -27,7 +27,7 @@
 - **Hybrid scoring** — 60% rule-based + 40% ML anomaly detection. Deterministic rules for known risks, Isolation Forest for everything else
 - **Fast enough for CI gating** — sub-second per-file scans — no meaningful pipeline latency
 - **Operable API** — FastAPI with bcrypt API keys, Redis rate limiting, async I/O, Prometheus metrics, correlation IDs
-- **Measured quality** — 72 focused pytest cases, 74% line coverage (1,518 SLOC), Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories
+- **Measured quality** — 137 focused pytest cases, 76.8% line coverage (1,720 measured statements), Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories
 
 ---
 
@@ -62,7 +62,7 @@
 ### Machine Learning Engine
 - **Isolation Forest** anomaly detection (unsupervised — no labeled data required)
 - **8-dimensional _structural_ feature vector** extracted directly from the parsed Terraform — _independent of the rule findings_ — so the model reacts to risky infrastructure shapes the fixed rules don't encode: resource count, type diversity, ingress-rule count, public-exposure count, IAM-resource count, encryption coverage, logging-resource count, secret parametrization
-- Trained on a synthetic-but-principled corpus of secure-infrastructure profiles where every feature varies and the secure mode is centered, so a fully-encrypted/parametrized config sits inside the learned manifold and insecure deviations score as anomalies
+- Trained on **real-world Terraform**, not a synthetic mock-up: model `v20260708_015533` fits 35,594 vectors, of which **35,294 are mined from production code** (Terraform Registry 21,746 + public GitHub 13,548, hash-deduplicated), seeded with 300 synthetic secure-baseline profiles so the secure mode stays centered
 - Model persistence via Joblib with versioning and drift detection
 - Confidence scoring based on anomaly distance from learned security baselines
 
@@ -318,15 +318,15 @@ print(response.json())
 
 ## Quality Metrics
 
-> All metrics from the latest full local run — **April 16, 2026**.
+> All metrics from the latest full quality-gate run — **July 21, 2026** (`gate-metrics.json`).
 
 | Category | Metric | Result |
 |----------|--------|--------|
-| **Testing** | Test suite | **72 tests** — 72 passed, 0 skipped |
-| **Testing** | Code coverage | **74.11%** across 24 measured modules (1,518 statements) |
+| **Testing** | Test suite | **137 tests** — 137 passed, 0 skipped |
+| **Testing** | Code coverage | **76.8%** across 25 measured modules (1,321 / 1,720 statements) |
 | **Code Quality** | Pylint score | **10.00 / 10** |
 | **Code Quality** | Flake8 | **0 issues** |
-| **Code Quality** | Codebase size | 1,518 measured statements (3,352 non-blank lines) |
+| **Code Quality** | Codebase size | 1,720 measured statements (3,946 non-blank lines) |
 | **Security** | SAST (Bandit) | **0 issues** — 0 High, 0 Medium, 0 Low |
 | **Security** | Dependencies (Safety) | **0 vulnerabilities** |
 
@@ -486,7 +486,9 @@ Isolation Forest was selected after evaluating alternatives against four practic
 ## Limitations & Future Work
 
 ### Current Limitations
-- Baseline training data is synthetic; real-world distributions may differ
+- The anomaly signal ranks configurations for **human review** — it is never an automatic gate. Structural atypicality is not evidence of vulnerability
+- The model is trained on essentially all public Terraform, so evaluation of it is **in-distribution**; there is no meaningful held-out real corpus to be had
+- The `contamination=0.1` threshold is trained-in and not yet calibrated; percentile-based cutoffs on the raw anomaly score are the pending fix
 - No support for Terraform modules or remote state
 - Vulnerability messages and remediation guidance in English only
 - AWS coverage only; Azure and GCP provider patterns are not yet encoded
@@ -502,7 +504,12 @@ Isolation Forest was selected after evaluating alternatives against four practic
 
 ## References
 
-- Gartner (2024). *Cloud Security Failures Report*
+<!-- 2026-07-21: the previous entry cited "Gartner (2024), Cloud Security Failures Report" — no Gartner
+     publication by that title could be verified. The statistic usually attributed to it traces to
+     Gartner's "Is the Cloud Secure?" (the "through 2025, 99% of cloud security failures will be the
+     customer's fault" prediction). Do not re-cite the old title; verify against the primary Gartner
+     document before restoring any claim built on it. -->
+- Gartner. *Is the Cloud Secure?* — TODO(verify): confirm edition/date against the primary source before citing
 - IBM Security (2024). *Cost of a Data Breach Report*
 - HashiCorp. *Terraform Security Best Practices*
 - Liu, F. T., Ting, K. M., & Zhou, Z. H. (2008). *Isolation Forest*. In Proceedings of the Eighth IEEE International Conference on Data Mining (ICDM '08)

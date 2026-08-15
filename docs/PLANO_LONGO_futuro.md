@@ -22,8 +22,12 @@ half; the vuln agent is the *dynamic/memory-safety* half of the same story.
 - Ablation (the honest core): **rules alone separate by 33,3 pts; hybrid 21,4; ML alone 3,2.**
   The ML *compresses* the rules' separation — it is an orthogonal out-of-catalog signal, not a
   separation improver. Never restate this as a win.
-- ML model `v20260708_015533`: Isolation Forest trained on **35.594 real vectors** (Terraform Registry
-  21.746 + GitHub 13.548) — the "synthetic baseline" criticism is already partly retired.
+- ML model `v20260708_015533`: Isolation Forest trained on **35.594 vectors total, of which 35.294 are
+  real** (Terraform Registry 21.746 + GitHub 13.548) plus **300 synthetic** secure-baseline vectors —
+  the "synthetic baseline" criticism is largely, but not entirely, retired. Corrected 2026-07-21: this
+  line previously called all 35.594 "real", which its own arithmetic contradicted. Source of truth is
+  `models/training_metadata.json` (`total_samples` 35594, `corpus_vectors` 35294, `training_source`
+  still names the synthetic secure baseline first). Quote 35.294 whenever the claim is "real corpus".
 - **A.2 done** (third-party KICS corpus, 57 fixtures the author did not write): TerraVault
   70,4/59,4/64,4 P/R/F1. The decomposition is the result: **83% recall (19/23) inside its rule scope**
   vs **0/9 outside** it. Checkov leads in-scope (96%). The drop from the home 100/100/100 is
@@ -78,10 +82,35 @@ Ordered by value-for-effort.
    this sample the atypicality is pure **resource-graph shape** (no top-atypical config had low
    encryption coverage or public exposure), so *structurally unusual is not evidence of vulnerability* —
    the signal is for **prioritising human review**, never an automatic gate.
-   **Next on this thread:** threshold calibration. `contamination=0.1` is trained-in, yet 37,5% of the
-   rule-clean population trips it; the *ranking* is sound (AUC 0,9151) so the fix is a percentile-based
-   cutoff on the anomaly score rather than the raw `predict == -1`, plus a second corpus to check whether
-   the 2,0% typical-half rate holds outside this mine.
+   ~~**Next on this thread:** threshold calibration.~~ — **DONE 2026-07-21.** Canonical GCS run
+   `ml-calib-20260721-215119` under `evaluation/results/ml_calibration/`, which reconciles against
+   banked A.3 on **10/10 fields exactly**; the first pass `ml-calib-20260721-213038` is kept as an
+   independent replicate on a separately mined corpus (see that directory's `RUNS.md`).
+   Both halves answered:
+   - **Calibration.** Candidate cutoffs are percentiles of the *training* score distribution, so they are
+     absolute constants of the model rather than a self-referential per-corpus threshold. Decision rule,
+     fixed in code before looking at the answer: *the most restrictive cutoff that still flags ≥50% of the
+     atypical decile.* That selects **train p95 (`if_anomaly` ≥ +0,0670)**. It shrinks the rule-clean
+     review queue **37,5% → 11,2%** (home) and **38,8% → 10,4%** (second), takes the typical half to
+     **0,0%** in *both* corpora, and still keeps **57,5% / 58,6%** of the atypical decile. Use this
+     instead of `predict == -1`.
+   - **Second corpus — the 2,0% rate holds.** Registry download-rank window [1501, 7500] — modules the A.3
+     mine never touched, then filtered by content sha256 against it (3.784 files dropped, **residual hash
+     overlap 0, verified after the scan rather than asserted**). 10.853 configs, 565 rule-clean: typical
+     half **1,7%** vs home's 2,0%, atypical decile **100%** in both, lift 59,88×, AUC 0,889, ρ 0,7873, and
+     the IF again fires *more* on rule-clean (38,8%) than rule-flagged (6,8%). The A.3 result was a
+     property of the signal, not of the original mine.
+   - **The permanent hedge against credit expiry:** `per_config_scores.csv.gz` (28.894 rows: raw
+     `score_samples` / `decision_function` / anomaly, Mahalanobis, rule verdict, content hash, all 8
+     features) plus `training_reference_scores.csv.gz` (35.594 rows). **Any future threshold — percentile,
+     absolute, banded — is now re-derivable offline forever with zero paid compute.**
+   - **Limit that did not go away:** hash-disjoint is a *different sample*, not a held-out distribution —
+     10.848/10.853 second-corpus configs still reproduce an exact training vector. This tests whether the
+     rate survives outside the original mine; it does **not** establish out-of-distribution generalisation,
+     which is unreachable for a model trained on essentially all public Terraform.
+   - Reconciliation against banked A.3: **10/10 fields exact** in the canonical run. (The first pass read
+     `selectivity_lift` 50,251 vs 50,25 because ratios divided already-rounded rates — a display artifact,
+     never a scientific disagreement; fixed, and the fix is what the canonical run carries.)
 4. **LLM-assisted remediation (the strategic bridge to Track B).** Add an optional LLM layer that
    (a) explains each finding in plain language and (b) drafts the *fix* as a diff/PR, re-scanning to
    confirm the finding clears before proposing it. Low-risk (findings are already deterministic) and a
@@ -115,9 +144,33 @@ Project Zero "Naptime", ClusterFuzz). But as originally written it is 4–5 rese
   is what separates a thesis from a demo.
 
 ### Staged build
-- **Stage 0 — Benchmark & baseline.** Ground truth with *known* bugs: Magma, fuzzer-test-suite, or
-  historical OSS-Fuzz issues. Establish a plain-fuzzing baseline (bugs found, time-to-repro). Without
-  this you cannot claim the LLM added anything — the same discipline as TerraVault's ablation. *(GCP)*
+- ~~**Stage 0 — Benchmark & baseline.**~~ — **DONE 2026-07-21**, run `fuzz-baseline-20260721-213507`,
+  results in `evaluation/results/fuzz_baseline/`. It was expected to be killed by the cap; it finished.
+  - **Benchmark:** neither Magma nor fuzzer-test-suite. FTS has bit-rotted — its per-target `build.sh`
+    fetches from hosts that are dead or moved, and a dead download in an unattended VM is a silent zero.
+    Magma's ground truth is better but costs hours of Docker build before the first input. Used instead:
+    **9 pinned pre-fix upstream releases**, each carrying its CVE/OSS-Fuzz reference (cJSON 1.7.10,
+    TinyXML-2 6.0.0, Expat 2.1.0, libyaml 0.1.7, libxml2 2.9.2, SQLite 3.13.0, libarchive 3.2.1,
+    RE2 2017-06-01, c-ares 1.11.0). All 9 built in ~2 min, 0 build failures.
+  - **The floor — read `evaluation/results/fuzz_baseline/BASELINE_CORRECTIONS.md` before quoting it.**
+    4,09 CPU-hours, 1500s/target unseeded. 18.983 crash artifacts → 24 unique signatures → 6 confirmed
+    findings (18 rejected as non-deterministic — the gate filters rather than rubber-stamps). Of those 6:
+    **1 memory-safety bug** (c-ares CVE-2016-5180, ASan heap-buffer-overflow, minimised to **2 bytes**,
+    deterministic, first seen at 5s) and **5 resource leaks**. The raw `baseline.json` reports
+    `confirmed_memory_safety_bugs: 6` because triage classified by *sanitizer* rather than by *bug class*,
+    folding LeakSanitizer findings in; that is a ~6× inflation of the exact denominator the thesis
+    comparison rests on. **Quote 1, not 6.** Fixed in `fuzzing/triage_crashes.py`.
+  - **7 of 9 targets found nothing** despite real coverage (sqlite 7005 edges, expat 3547, libxml2 3217,
+    re2 2838). That zero is the baseline and it is honest — but 25 min/target unseeded is a thin campaign,
+    so it is a floor *for those conditions*, not evidence those libraries are clean.
+  - **Known gap:** `executed_units` / `execs_per_second` read 0 — libFuzzer's fork mode exits before
+    `-print_final_stats`. Recoverable offline from the force-tracked `tv-fuzz.log`; execs/sec is a core
+    Stage 0 metric and must be re-derived before the baseline is quoted.
+  - **Toolchain lesson:** the synthetic `gate_heap_overflow` validator reported cov=1 over 634M execs
+    because its planted bug touched a heap buffer that never escaped, so at `-O1` LLVM dead-code-eliminated
+    the whole allocate/overflow/free sequence (5 inline counters at `-O0`, 1 at `-O1`/`-O2`). Any synthetic
+    sanitizer-validation harness must defeat DCE — publish the pointer through a `volatile` global — or it
+    silently validates nothing.
 - **Stage 1 — LLM fuzz-harness synthesis.** LLM reads headers/call-graph and writes libFuzzer harnesses.
   Metric: coverage reached and bugs found vs. hand-written and vs. OSS-Fuzz-Gen harnesses. *(GCP)*
 - **Stage 2 — Triage + root-cause.** Dedup crashes by stack/sanitizer signature, classify the bug class,

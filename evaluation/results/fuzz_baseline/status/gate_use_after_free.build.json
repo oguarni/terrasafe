@@ -1,0 +1,11 @@
+{
+  "target": "gate_use_after_free",
+  "kind": "gate-validation",
+  "source_url": "(local harness)",
+  "known_bug_reference": "Synthetic heap-use-after-free read behind a 4-byte magic. Second gate-validation bug class, used to prove stack-signature dedup separates distinct bugs. Excluded from baseline metrics.",
+  "status": "built",
+  "build_rc": 0,
+  "build_seconds": 0,
+  "binary": "/opt/fuzz-run/bin/gate_use_after_free",
+  "seeds_dir": "/opt/fuzz-run/seeds/gate_use_after_free"
+}

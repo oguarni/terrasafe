@@ -101,7 +101,7 @@ class FallbackRateLimiter:
 
             return max(0, self.max_requests - len(self.requests[client_ip]))
 
-    def reset(self, client_ip: Optional[str] = None):
+    def reset(self, client_ip: Optional[str] = None) -> None:
         """
         Reset rate limit tracking.
 

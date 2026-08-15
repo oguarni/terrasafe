@@ -1,0 +1,688 @@
+++ md run-id
+++ curl -s -H 'Metadata-Flavor: Google' http://metadata/computeMetadata/v1/instance/attributes/run-id
++ RUN=fuzz-baseline-20260721-213507
+++ md bucket
+++ curl -s -H 'Metadata-Flavor: Google' http://metadata/computeMetadata/v1/instance/attributes/bucket
++ BUCKET=terravault-ml-artifacts
+++ md repo-url
+++ curl -s -H 'Metadata-Flavor: Google' http://metadata/computeMetadata/v1/instance/attributes/repo-url
++ REPO_URL=https://github.com/oguarni/terravault.git
+++ md budget-min
+++ curl -s -H 'Metadata-Flavor: Google' http://metadata/computeMetadata/v1/instance/attributes/budget-min
++ BUDGET_MIN=95
+++ md fuzz-seconds
+++ curl -s -H 'Metadata-Flavor: Google' http://metadata/computeMetadata/v1/instance/attributes/fuzz-seconds
++ FUZZ_SECONDS=1500
++ DST=gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507
++ RUN_ROOT=/opt/fuzz-run
++ mkdir -p /opt/fuzz-run
++ STATUS=/opt/fuzz-run/status.txt
++ :
++ HEARTBEAT_PID=1498
++ sleep 180
+++ date -u +%FT%TZ
++ echo '2026-07-22T00:36:01Z phase=boot'
++ sysctl -w vm.mmap_rnd_bits=28
+vm.mmap_rnd_bits = 28
++ ulimit -c 0
++ export DEBIAN_FRONTEND=noninteractive
++ DEBIAN_FRONTEND=noninteractive
++ apt-get update
+Hit:1 http://us-central1.gce.archive.ubuntu.com/ubuntu noble InRelease
+Get:2 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:3 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:4 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/universe amd64 Packages [15.0 MB]
+Get:5 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Get:6 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/universe Translation-en [5982 kB]
+Get:7 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/universe amd64 Components [3871 kB]
+Get:8 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/universe amd64 c-n-f Metadata [301 kB]
+Get:9 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/multiverse amd64 Packages [269 kB]
+Get:10 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/multiverse Translation-en [118 kB]
+Get:11 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/multiverse amd64 Components [35.0 kB]
+Get:12 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/multiverse amd64 c-n-f Metadata [8328 B]
+Get:13 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1124 kB]
+Get:14 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [274 kB]
+Get:15 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [180 kB]
+Get:16 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1666 kB]
+Get:17 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [329 kB]
+Get:18 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+Get:19 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/universe amd64 c-n-f Metadata [34.9 kB]
+Get:20 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1274 kB]
+Get:21 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [291 kB]
+Get:22 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [40.4 kB]
+Get:23 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [11.8 kB]
+Get:24 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Get:25 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 c-n-f Metadata [656 B]
+Get:26 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages [40.6 kB]
+Get:27 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports/main Translation-en [9172 B]
+Get:28 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5752 B]
+Get:29 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports/main amd64 c-n-f Metadata [368 B]
+Get:30 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages [31.0 kB]
+Get:31 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports/universe Translation-en [18.6 kB]
+Get:32 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [10.5 kB]
+Get:33 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports/universe amd64 c-n-f Metadata [1588 B]
+Get:34 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports/restricted amd64 Components [212 B]
+Get:35 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports/restricted amd64 c-n-f Metadata [116 B]
+Get:36 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Packages [748 B]
+Get:37 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports/multiverse Translation-en [340 B]
+Get:38 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Components [212 B]
+Get:39 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 c-n-f Metadata [116 B]
+Get:40 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [862 kB]
+Get:41 http://security.ubuntu.com/ubuntu noble-security/main Translation-en [193 kB]
+Get:42 http://security.ubuntu.com/ubuntu noble-security/main amd64 Components [46.3 kB]
+Get:43 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1180 kB]
+Get:44 http://security.ubuntu.com/ubuntu noble-security/universe Translation-en [233 kB]
+Get:45 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.3 kB]
+Get:46 http://security.ubuntu.com/ubuntu noble-security/universe amd64 c-n-f Metadata [24.2 kB]
+Get:47 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1178 kB]
+Get:48 http://security.ubuntu.com/ubuntu noble-security/restricted Translation-en [272 kB]
+Get:49 http://security.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [35.3 kB]
+Get:50 http://security.ubuntu.com/ubuntu noble-security/multiverse Translation-en [10.1 kB]
+Get:51 http://security.ubuntu.com/ubuntu noble-security/multiverse amd64 Components [208 B]
+Get:52 http://security.ubuntu.com/ubuntu noble-security/multiverse amd64 c-n-f Metadata [468 B]
+Fetched 35.8 MB in 4s (9055 kB/s)
+Reading package lists...
++ apt-get install -y --no-install-recommends clang lld llvm cmake make git curl ca-certificates unzip xz-utils bzip2 autoconf automake libtool pkg-config python3 time cpio binutils file
+Reading package lists...
+Building dependency tree...
+Reading state information...
+git is already the newest version (1:2.43.0-1ubuntu7.3).
+git set to manually installed.
+curl is already the newest version (8.5.0-2ubuntu10.11).
+curl set to manually installed.
+ca-certificates is already the newest version (20260601~24.04.1).
+ca-certificates set to manually installed.
+xz-utils is already the newest version (5.6.1+really5.4.5-1ubuntu0.3).
+xz-utils set to manually installed.
+python3 is already the newest version (3.12.3-0ubuntu2.1).
+python3 set to manually installed.
+time is already the newest version (1.9-0.2build1).
+time set to manually installed.
+cpio is already the newest version (2.15+dfsg-1ubuntu2).
+cpio set to manually installed.
+file is already the newest version (1:5.45-3build1).
+file set to manually installed.
+The following additional packages will be installed:
+  autotools-dev binutils-common binutils-x86-64-linux-gnu clang-18 cmake-data
+  cpp cpp-13 cpp-13-x86-64-linux-gnu cpp-x86-64-linux-gnu gcc-13-base
+  libarchive13t64 libasan8 libatomic1 libbinutils libc-dev-bin libc6-dev
+  libclang-common-18-dev libcrypt-dev libctf-nobfd0 libctf0 libgc1
+  libgcc-13-dev libgomp1 libgprofng0 libhwasan0 libisl23 libitm1 libjsoncpp25
+  liblsan0 libmpc3 libobjc-13-dev libobjc4 libpfm4 libpkgconf3 libquadmath0
+  librhash0 libsframe1 libstdc++-13-dev libtsan2 libubsan1 linux-libc-dev
+  lld-18 llvm-18 llvm-18-linker-tools llvm-18-runtime llvm-runtime m4 pkgconf
+  pkgconf-bin rpcsvc-proto
+Suggested packages:
+  autoconf-archive gnu-standards autoconf-doc gettext binutils-doc gprofng-gui
+  bzip2-doc clang-18-doc wasi-libc cmake-doc cmake-format elpa-cmake-mode
+  ninja-build cpp-doc gcc-13-locales cpp-13-doc lrzip glibc-doc manpages-dev
+  libstdc++-13-doc libtool-doc gfortran | fortran95-compiler gcj-jdk
+  llvm-18-doc m4-doc make-doc zip
+Recommended packages:
+  llvm-18-dev gcc manpages-dev libc-devtools libclang-rt-18-dev libltdl-dev
+The following NEW packages will be installed:
+  autoconf automake autotools-dev binutils binutils-common
+  binutils-x86-64-linux-gnu bzip2 clang clang-18 cmake cmake-data cpp cpp-13
+  cpp-13-x86-64-linux-gnu cpp-x86-64-linux-gnu gcc-13-base libarchive13t64
+  libasan8 libatomic1 libbinutils libc-dev-bin libc6-dev
+  libclang-common-18-dev libcrypt-dev libctf-nobfd0 libctf0 libgc1
+  libgcc-13-dev libgomp1 libgprofng0 libhwasan0 libisl23 libitm1 libjsoncpp25
+  liblsan0 libmpc3 libobjc-13-dev libobjc4 libpfm4 libpkgconf3 libquadmath0
+  librhash0 libsframe1 libstdc++-13-dev libtool libtsan2 libubsan1
+  linux-libc-dev lld lld-18 llvm llvm-18 llvm-18-linker-tools llvm-18-runtime
+  llvm-runtime m4 make pkg-config pkgconf pkgconf-bin rpcsvc-proto unzip
+0 upgraded, 62 newly installed, 0 to remove and 3 not upgraded.
+Need to get 81.0 MB of archives.
+After this operation, 355 MB of additional disk space will be used.
+Get:1 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 m4 amd64 1.4.19-4build1 [244 kB]
+Get:2 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 autoconf all 2.71-3 [339 kB]
+Get:3 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 autotools-dev all 20220109.1 [44.9 kB]
+Get:4 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 automake all 1:1.16.5-1.3ubuntu1 [558 kB]
+Get:5 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 binutils-common amd64 2.42-4ubuntu2.10 [240 kB]
+Get:6 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsframe1 amd64 2.42-4ubuntu2.10 [15.7 kB]
+Get:7 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libbinutils amd64 2.42-4ubuntu2.10 [577 kB]
+Get:8 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libctf-nobfd0 amd64 2.42-4ubuntu2.10 [98.0 kB]
+Get:9 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libctf0 amd64 2.42-4ubuntu2.10 [94.5 kB]
+Get:10 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libgprofng0 amd64 2.42-4ubuntu2.10 [849 kB]
+Get:11 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 binutils-x86-64-linux-gnu amd64 2.42-4ubuntu2.10 [2463 kB]
+Get:12 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 binutils amd64 2.42-4ubuntu2.10 [18.2 kB]
+Get:13 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 bzip2 amd64 1.0.8-5.1build0.1 [34.5 kB]
+Get:14 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 gcc-13-base amd64 13.3.0-6ubuntu2~24.04.1 [51.6 kB]
+Get:15 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libgomp1 amd64 14.2.0-4ubuntu2~24.04.1 [148 kB]
+Get:16 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libitm1 amd64 14.2.0-4ubuntu2~24.04.1 [29.7 kB]
+Get:17 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libatomic1 amd64 14.2.0-4ubuntu2~24.04.1 [10.5 kB]
+Get:18 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libasan8 amd64 14.2.0-4ubuntu2~24.04.1 [3027 kB]
+Get:19 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 liblsan0 amd64 14.2.0-4ubuntu2~24.04.1 [1322 kB]
+Get:20 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libtsan2 amd64 14.2.0-4ubuntu2~24.04.1 [2772 kB]
+Get:21 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libubsan1 amd64 14.2.0-4ubuntu2~24.04.1 [1184 kB]
+Get:22 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libhwasan0 amd64 14.2.0-4ubuntu2~24.04.1 [1641 kB]
+Get:23 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libquadmath0 amd64 14.2.0-4ubuntu2~24.04.1 [153 kB]
+Get:24 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libgcc-13-dev amd64 13.3.0-6ubuntu2~24.04.1 [2681 kB]
+Get:25 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libc-dev-bin amd64 2.39-0ubuntu8.7 [20.4 kB]
+Get:26 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 linux-libc-dev amd64 6.8.0-136.136 [1575 kB]
+Get:27 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 libcrypt-dev amd64 1:4.4.36-4build1 [112 kB]
+Get:28 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 rpcsvc-proto amd64 1.4.2-0ubuntu7 [67.4 kB]
+Get:29 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libc6-dev amd64 2.39-0ubuntu8.7 [2124 kB]
+Get:30 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libstdc++-13-dev amd64 13.3.0-6ubuntu2~24.04.1 [2420 kB]
+Get:31 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 libgc1 amd64 1:8.2.6-1build1 [90.3 kB]
+Get:32 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libobjc4 amd64 14.2.0-4ubuntu2~24.04.1 [47.1 kB]
+Get:33 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libobjc-13-dev amd64 13.3.0-6ubuntu2~24.04.1 [194 kB]
+Get:34 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libclang-common-18-dev amd64 1:18.1.3-1ubuntu1 [736 kB]
+Get:35 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/universe amd64 llvm-18-linker-tools amd64 1:18.1.3-1ubuntu1 [1314 kB]
+Get:36 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/universe amd64 clang-18 amd64 1:18.1.3-1ubuntu1 [80.0 kB]
+Get:37 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/universe amd64 clang amd64 1:18.0-59~exp2 [5846 B]
+Get:38 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libarchive13t64 amd64 3.7.2-2ubuntu0.8 [383 kB]
+Get:39 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 libjsoncpp25 amd64 1.9.5-6build1 [82.8 kB]
+Get:40 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 librhash0 amd64 1.4.3-3build1 [129 kB]
+Get:41 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 cmake-data all 3.28.3-1build7 [2155 kB]
+Get:42 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 cmake amd64 3.28.3-1build7 [11.2 MB]
+Get:43 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libisl23 amd64 0.26-3build1.1 [680 kB]
+Get:44 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libmpc3 amd64 1.3.1-1build1.1 [54.6 kB]
+Get:45 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 cpp-13-x86-64-linux-gnu amd64 13.3.0-6ubuntu2~24.04.1 [10.7 MB]
+Get:46 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 cpp-13 amd64 13.3.0-6ubuntu2~24.04.1 [1042 B]
+Get:47 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 cpp-x86-64-linux-gnu amd64 4:13.2.0-7ubuntu1 [5326 B]
+Get:48 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 cpp amd64 4:13.2.0-7ubuntu1 [22.4 kB]
+Get:49 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 libpkgconf3 amd64 1.8.1-2build1 [30.7 kB]
+Get:50 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 libtool all 2.4.7-7build1 [166 kB]
+Get:51 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/universe amd64 lld-18 amd64 1:18.1.3-1ubuntu1 [1372 kB]
+Get:52 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/universe amd64 lld amd64 1:18.0-59~exp2 [5494 B]
+Get:53 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/universe amd64 llvm-18-runtime amd64 1:18.1.3-1ubuntu1 [538 kB]
+Get:54 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/universe amd64 llvm-runtime amd64 1:18.0-59~exp2 [5496 B]
+Get:55 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/universe amd64 libpfm4 amd64 4.13.0+git32-g0d4ed0e-1 [414 kB]
+Get:56 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/universe amd64 llvm-18 amd64 1:18.1.3-1ubuntu1 [25.3 MB]
+Get:57 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/universe amd64 llvm amd64 1:18.0-59~exp2 [4146 B]
+Get:58 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 make amd64 4.3-4.1build2 [180 kB]
+Get:59 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 pkgconf-bin amd64 1.8.1-2build1 [20.7 kB]
+Get:60 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 pkgconf amd64 1.8.1-2build1 [16.8 kB]
+Get:61 http://us-central1.gce.archive.ubuntu.com/ubuntu noble/main amd64 pkg-config amd64 1.8.1-2build1 [7264 B]
+Get:62 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 unzip amd64 6.0-28ubuntu4.1 [174 kB]
+Fetched 81.0 MB in 2s (44.7 MB/s)
+Selecting previously unselected package m4.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 72724 files and directories currently installed.)
+Preparing to unpack .../00-m4_1.4.19-4build1_amd64.deb ...
+Unpacking m4 (1.4.19-4build1) ...
+Selecting previously unselected package autoconf.
+Preparing to unpack .../01-autoconf_2.71-3_all.deb ...
+Unpacking autoconf (2.71-3) ...
+Selecting previously unselected package autotools-dev.
+Preparing to unpack .../02-autotools-dev_20220109.1_all.deb ...
+Unpacking autotools-dev (20220109.1) ...
+Selecting previously unselected package automake.
+Preparing to unpack .../03-automake_1%3a1.16.5-1.3ubuntu1_all.deb ...
+Unpacking automake (1:1.16.5-1.3ubuntu1) ...
+Selecting previously unselected package binutils-common:amd64.
+Preparing to unpack .../04-binutils-common_2.42-4ubuntu2.10_amd64.deb ...
+Unpacking binutils-common:amd64 (2.42-4ubuntu2.10) ...
+Selecting previously unselected package libsframe1:amd64.
+Preparing to unpack .../05-libsframe1_2.42-4ubuntu2.10_amd64.deb ...
+Unpacking libsframe1:amd64 (2.42-4ubuntu2.10) ...
+Selecting previously unselected package libbinutils:amd64.
+Preparing to unpack .../06-libbinutils_2.42-4ubuntu2.10_amd64.deb ...
+Unpacking libbinutils:amd64 (2.42-4ubuntu2.10) ...
+Selecting previously unselected package libctf-nobfd0:amd64.
+Preparing to unpack .../07-libctf-nobfd0_2.42-4ubuntu2.10_amd64.deb ...
+Unpacking libctf-nobfd0:amd64 (2.42-4ubuntu2.10) ...
+Selecting previously unselected package libctf0:amd64.
+Preparing to unpack .../08-libctf0_2.42-4ubuntu2.10_amd64.deb ...
+Unpacking libctf0:amd64 (2.42-4ubuntu2.10) ...
+Selecting previously unselected package libgprofng0:amd64.
+Preparing to unpack .../09-libgprofng0_2.42-4ubuntu2.10_amd64.deb ...
+Unpacking libgprofng0:amd64 (2.42-4ubuntu2.10) ...
+Selecting previously unselected package binutils-x86-64-linux-gnu.
+Preparing to unpack .../10-binutils-x86-64-linux-gnu_2.42-4ubuntu2.10_amd64.deb ...
+Unpacking binutils-x86-64-linux-gnu (2.42-4ubuntu2.10) ...
+Selecting previously unselected package binutils.
+Preparing to unpack .../11-binutils_2.42-4ubuntu2.10_amd64.deb ...
+Unpacking binutils (2.42-4ubuntu2.10) ...
+Selecting previously unselected package bzip2.
+Preparing to unpack .../12-bzip2_1.0.8-5.1build0.1_amd64.deb ...
+Unpacking bzip2 (1.0.8-5.1build0.1) ...
+Selecting previously unselected package gcc-13-base:amd64.
+Preparing to unpack .../13-gcc-13-base_13.3.0-6ubuntu2~24.04.1_amd64.deb ...
+Unpacking gcc-13-base:amd64 (13.3.0-6ubuntu2~24.04.1) ...
+Selecting previously unselected package libgomp1:amd64.
+Preparing to unpack .../14-libgomp1_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Unpacking libgomp1:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Selecting previously unselected package libitm1:amd64.
+Preparing to unpack .../15-libitm1_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Unpacking libitm1:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Selecting previously unselected package libatomic1:amd64.
+Preparing to unpack .../16-libatomic1_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Unpacking libatomic1:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Selecting previously unselected package libasan8:amd64.
+Preparing to unpack .../17-libasan8_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Unpacking libasan8:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Selecting previously unselected package liblsan0:amd64.
+Preparing to unpack .../18-liblsan0_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Unpacking liblsan0:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Selecting previously unselected package libtsan2:amd64.
+Preparing to unpack .../19-libtsan2_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Unpacking libtsan2:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Selecting previously unselected package libubsan1:amd64.
+Preparing to unpack .../20-libubsan1_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Unpacking libubsan1:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Selecting previously unselected package libhwasan0:amd64.
+Preparing to unpack .../21-libhwasan0_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Unpacking libhwasan0:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Selecting previously unselected package libquadmath0:amd64.
+Preparing to unpack .../22-libquadmath0_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Unpacking libquadmath0:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Selecting previously unselected package libgcc-13-dev:amd64.
+Preparing to unpack .../23-libgcc-13-dev_13.3.0-6ubuntu2~24.04.1_amd64.deb ...
+Unpacking libgcc-13-dev:amd64 (13.3.0-6ubuntu2~24.04.1) ...
+Selecting previously unselected package libc-dev-bin.
+Preparing to unpack .../24-libc-dev-bin_2.39-0ubuntu8.7_amd64.deb ...
+Unpacking libc-dev-bin (2.39-0ubuntu8.7) ...
+Selecting previously unselected package linux-libc-dev:amd64.
+Preparing to unpack .../25-linux-libc-dev_6.8.0-136.136_amd64.deb ...
+Unpacking linux-libc-dev:amd64 (6.8.0-136.136) ...
+Selecting previously unselected package libcrypt-dev:amd64.
+Preparing to unpack .../26-libcrypt-dev_1%3a4.4.36-4build1_amd64.deb ...
+Unpacking libcrypt-dev:amd64 (1:4.4.36-4build1) ...
+Selecting previously unselected package rpcsvc-proto.
+Preparing to unpack .../27-rpcsvc-proto_1.4.2-0ubuntu7_amd64.deb ...
+Unpacking rpcsvc-proto (1.4.2-0ubuntu7) ...
+Selecting previously unselected package libc6-dev:amd64.
+Preparing to unpack .../28-libc6-dev_2.39-0ubuntu8.7_amd64.deb ...
+Unpacking libc6-dev:amd64 (2.39-0ubuntu8.7) ...
+Selecting previously unselected package libstdc++-13-dev:amd64.
+Preparing to unpack .../29-libstdc++-13-dev_13.3.0-6ubuntu2~24.04.1_amd64.deb ...
+Unpacking libstdc++-13-dev:amd64 (13.3.0-6ubuntu2~24.04.1) ...
+Selecting previously unselected package libgc1:amd64.
+Preparing to unpack .../30-libgc1_1%3a8.2.6-1build1_amd64.deb ...
+Unpacking libgc1:amd64 (1:8.2.6-1build1) ...
+Selecting previously unselected package libobjc4:amd64.
+Preparing to unpack .../31-libobjc4_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Unpacking libobjc4:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Selecting previously unselected package libobjc-13-dev:amd64.
+Preparing to unpack .../32-libobjc-13-dev_13.3.0-6ubuntu2~24.04.1_amd64.deb ...
+Unpacking libobjc-13-dev:amd64 (13.3.0-6ubuntu2~24.04.1) ...
+Selecting previously unselected package libclang-common-18-dev:amd64.
+Preparing to unpack .../33-libclang-common-18-dev_1%3a18.1.3-1ubuntu1_amd64.deb ...
+Unpacking libclang-common-18-dev:amd64 (1:18.1.3-1ubuntu1) ...
+Selecting previously unselected package llvm-18-linker-tools.
+Preparing to unpack .../34-llvm-18-linker-tools_1%3a18.1.3-1ubuntu1_amd64.deb ...
+Unpacking llvm-18-linker-tools (1:18.1.3-1ubuntu1) ...
+Selecting previously unselected package clang-18.
+Preparing to unpack .../35-clang-18_1%3a18.1.3-1ubuntu1_amd64.deb ...
+Unpacking clang-18 (1:18.1.3-1ubuntu1) ...
+Selecting previously unselected package clang.
+Preparing to unpack .../36-clang_1%3a18.0-59~exp2_amd64.deb ...
+Unpacking clang (1:18.0-59~exp2) ...
+Selecting previously unselected package libarchive13t64:amd64.
+Preparing to unpack .../37-libarchive13t64_3.7.2-2ubuntu0.8_amd64.deb ...
+Unpacking libarchive13t64:amd64 (3.7.2-2ubuntu0.8) ...
+Selecting previously unselected package libjsoncpp25:amd64.
+Preparing to unpack .../38-libjsoncpp25_1.9.5-6build1_amd64.deb ...
+Unpacking libjsoncpp25:amd64 (1.9.5-6build1) ...
+Selecting previously unselected package librhash0:amd64.
+Preparing to unpack .../39-librhash0_1.4.3-3build1_amd64.deb ...
+Unpacking librhash0:amd64 (1.4.3-3build1) ...
+Selecting previously unselected package cmake-data.
+Preparing to unpack .../40-cmake-data_3.28.3-1build7_all.deb ...
+Unpacking cmake-data (3.28.3-1build7) ...
+Selecting previously unselected package cmake.
+Preparing to unpack .../41-cmake_3.28.3-1build7_amd64.deb ...
+Unpacking cmake (3.28.3-1build7) ...
+Selecting previously unselected package libisl23:amd64.
+Preparing to unpack .../42-libisl23_0.26-3build1.1_amd64.deb ...
+Unpacking libisl23:amd64 (0.26-3build1.1) ...
+Selecting previously unselected package libmpc3:amd64.
+Preparing to unpack .../43-libmpc3_1.3.1-1build1.1_amd64.deb ...
+Unpacking libmpc3:amd64 (1.3.1-1build1.1) ...
+Selecting previously unselected package cpp-13-x86-64-linux-gnu.
+Preparing to unpack .../44-cpp-13-x86-64-linux-gnu_13.3.0-6ubuntu2~24.04.1_amd64.deb ...
+Unpacking cpp-13-x86-64-linux-gnu (13.3.0-6ubuntu2~24.04.1) ...
+Selecting previously unselected package cpp-13.
+Preparing to unpack .../45-cpp-13_13.3.0-6ubuntu2~24.04.1_amd64.deb ...
+Unpacking cpp-13 (13.3.0-6ubuntu2~24.04.1) ...
+Selecting previously unselected package cpp-x86-64-linux-gnu.
+Preparing to unpack .../46-cpp-x86-64-linux-gnu_4%3a13.2.0-7ubuntu1_amd64.deb ...
+Unpacking cpp-x86-64-linux-gnu (4:13.2.0-7ubuntu1) ...
+Selecting previously unselected package cpp.
+Preparing to unpack .../47-cpp_4%3a13.2.0-7ubuntu1_amd64.deb ...
+Unpacking cpp (4:13.2.0-7ubuntu1) ...
+Selecting previously unselected package libpkgconf3:amd64.
+Preparing to unpack .../48-libpkgconf3_1.8.1-2build1_amd64.deb ...
+Unpacking libpkgconf3:amd64 (1.8.1-2build1) ...
+Selecting previously unselected package libtool.
+Preparing to unpack .../49-libtool_2.4.7-7build1_all.deb ...
+Unpacking libtool (2.4.7-7build1) ...
+Selecting previously unselected package lld-18.
+Preparing to unpack .../50-lld-18_1%3a18.1.3-1ubuntu1_amd64.deb ...
+Unpacking lld-18 (1:18.1.3-1ubuntu1) ...
+Selecting previously unselected package lld:amd64.
+Preparing to unpack .../51-lld_1%3a18.0-59~exp2_amd64.deb ...
+Unpacking lld:amd64 (1:18.0-59~exp2) ...
+Selecting previously unselected package llvm-18-runtime.
+Preparing to unpack .../52-llvm-18-runtime_1%3a18.1.3-1ubuntu1_amd64.deb ...
+Unpacking llvm-18-runtime (1:18.1.3-1ubuntu1) ...
+Selecting previously unselected package llvm-runtime:amd64.
+Preparing to unpack .../53-llvm-runtime_1%3a18.0-59~exp2_amd64.deb ...
+Unpacking llvm-runtime:amd64 (1:18.0-59~exp2) ...
+Selecting previously unselected package libpfm4:amd64.
+Preparing to unpack .../54-libpfm4_4.13.0+git32-g0d4ed0e-1_amd64.deb ...
+Unpacking libpfm4:amd64 (4.13.0+git32-g0d4ed0e-1) ...
+Selecting previously unselected package llvm-18.
+Preparing to unpack .../55-llvm-18_1%3a18.1.3-1ubuntu1_amd64.deb ...
+Unpacking llvm-18 (1:18.1.3-1ubuntu1) ...
+Selecting previously unselected package llvm.
+Preparing to unpack .../56-llvm_1%3a18.0-59~exp2_amd64.deb ...
+Unpacking llvm (1:18.0-59~exp2) ...
+Selecting previously unselected package make.
+Preparing to unpack .../57-make_4.3-4.1build2_amd64.deb ...
+Unpacking make (4.3-4.1build2) ...
+Selecting previously unselected package pkgconf-bin.
+Preparing to unpack .../58-pkgconf-bin_1.8.1-2build1_amd64.deb ...
+Unpacking pkgconf-bin (1.8.1-2build1) ...
+Selecting previously unselected package pkgconf:amd64.
+Preparing to unpack .../59-pkgconf_1.8.1-2build1_amd64.deb ...
+Unpacking pkgconf:amd64 (1.8.1-2build1) ...
+Selecting previously unselected package pkg-config:amd64.
+Preparing to unpack .../60-pkg-config_1.8.1-2build1_amd64.deb ...
+Unpacking pkg-config:amd64 (1.8.1-2build1) ...
+Selecting previously unselected package unzip.
+Preparing to unpack .../61-unzip_6.0-28ubuntu4.1_amd64.deb ...
+Unpacking unzip (6.0-28ubuntu4.1) ...
+Setting up unzip (6.0-28ubuntu4.1) ...
+Setting up binutils-common:amd64 (2.42-4ubuntu2.10) ...
+Setting up linux-libc-dev:amd64 (6.8.0-136.136) ...
+Setting up libctf-nobfd0:amd64 (2.42-4ubuntu2.10) ...
+Setting up m4 (1.4.19-4build1) ...
+Setting up libgomp1:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Setting up bzip2 (1.0.8-5.1build0.1) ...
+Setting up libsframe1:amd64 (2.42-4ubuntu2.10) ...
+Setting up autotools-dev (20220109.1) ...
+Setting up libpkgconf3:amd64 (1.8.1-2build1) ...
+Setting up libpfm4:amd64 (4.13.0+git32-g0d4ed0e-1) ...
+Setting up rpcsvc-proto (1.4.2-0ubuntu7) ...
+Setting up gcc-13-base:amd64 (13.3.0-6ubuntu2~24.04.1) ...
+Setting up make (4.3-4.1build2) ...
+Setting up libquadmath0:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Setting up libmpc3:amd64 (1.3.1-1build1.1) ...
+Setting up libatomic1:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Setting up libjsoncpp25:amd64 (1.9.5-6build1) ...
+Setting up pkgconf-bin (1.8.1-2build1) ...
+Setting up libclang-common-18-dev:amd64 (1:18.1.3-1ubuntu1) ...
+Setting up libgc1:amd64 (1:8.2.6-1build1) ...
+Setting up autoconf (2.71-3) ...
+Setting up llvm-18-linker-tools (1:18.1.3-1ubuntu1) ...
+Setting up libubsan1:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Setting up libhwasan0:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Setting up librhash0:amd64 (1.4.3-3build1) ...
+Setting up libcrypt-dev:amd64 (1:4.4.36-4build1) ...
+Setting up libasan8:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Setting up cmake-data (3.28.3-1build7) ...
+Setting up libtsan2:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Setting up libbinutils:amd64 (2.42-4ubuntu2.10) ...
+Setting up libisl23:amd64 (0.26-3build1.1) ...
+Setting up libc-dev-bin (2.39-0ubuntu8.7) ...
+Setting up llvm-18-runtime (1:18.1.3-1ubuntu1) ...
+Setting up libarchive13t64:amd64 (3.7.2-2ubuntu0.8) ...
+Setting up liblsan0:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Setting up libitm1:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Setting up lld-18 (1:18.1.3-1ubuntu1) ...
+Setting up libctf0:amd64 (2.42-4ubuntu2.10) ...
+Setting up automake (1:1.16.5-1.3ubuntu1) ...
+update-alternatives: using /usr/bin/automake-1.16 to provide /usr/bin/automake (automake) in auto mode
+Setting up cpp-13-x86-64-linux-gnu (13.3.0-6ubuntu2~24.04.1) ...
+Setting up lld:amd64 (1:18.0-59~exp2) ...
+Setting up libobjc4:amd64 (14.2.0-4ubuntu2~24.04.1) ...
+Setting up pkgconf:amd64 (1.8.1-2build1) ...
+Setting up libgprofng0:amd64 (2.42-4ubuntu2.10) ...
+Setting up llvm-runtime:amd64 (1:18.0-59~exp2) ...
+Setting up pkg-config:amd64 (1.8.1-2build1) ...
+Setting up libgcc-13-dev:amd64 (13.3.0-6ubuntu2~24.04.1) ...
+Setting up llvm-18 (1:18.1.3-1ubuntu1) ...
+Setting up cmake (3.28.3-1build7) ...
+Setting up libc6-dev:amd64 (2.39-0ubuntu8.7) ...
+Setting up libobjc-13-dev:amd64 (13.3.0-6ubuntu2~24.04.1) ...
+Setting up libstdc++-13-dev:amd64 (13.3.0-6ubuntu2~24.04.1) ...
+Setting up binutils-x86-64-linux-gnu (2.42-4ubuntu2.10) ...
+Setting up cpp-x86-64-linux-gnu (4:13.2.0-7ubuntu1) ...
+Setting up cpp-13 (13.3.0-6ubuntu2~24.04.1) ...
+Setting up binutils (2.42-4ubuntu2.10) ...
+Setting up llvm (1:18.0-59~exp2) ...
+Setting up cpp (4:13.2.0-7ubuntu1) ...
+Setting up clang-18 (1:18.1.3-1ubuntu1) ...
+Setting up clang (1:18.0-59~exp2) ...
+Setting up libtool (2.4.7-7build1) ...
+Processing triggers for systemd (255.4-1ubuntu8.16) ...
+Processing triggers for man-db (2.12.0-4build2) ...
+Processing triggers for install-info (7.1-3build2) ...
+Processing triggers for libc-bin (2.39-0ubuntu8.7) ...
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
++ apt-get install -y libclang-rt-18-dev
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  lib32gcc-s1 lib32stdc++6 libc6-i386
+The following NEW packages will be installed:
+  lib32gcc-s1 lib32stdc++6 libc6-i386 libclang-rt-18-dev
+0 upgraded, 4 newly installed, 0 to remove and 3 not upgraded.
+Need to get 7467 kB of archives.
+After this operation, 59.9 MB of additional disk space will be used.
+Get:1 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 libc6-i386 amd64 2.39-0ubuntu8.7 [2788 kB]
+Get:2 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 lib32gcc-s1 amd64 14.2.0-4ubuntu2~24.04.1 [92.3 kB]
+Get:3 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/main amd64 lib32stdc++6 amd64 14.2.0-4ubuntu2~24.04.1 [814 kB]
+Get:4 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libclang-rt-18-dev amd64 1:18.1.3-1ubuntu1 [3772 kB]
+Fetched 7467 kB in 0s (23.5 MB/s)
+Selecting previously unselected package libc6-i386.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 80255 files and directories currently installed.)
+Preparing to unpack .../libc6-i386_2.39-0ubuntu8.7_amd64.deb ...
+Unpacking libc6-i386 (2.39-0ubuntu8.7) ...
+Selecting previously unselected package lib32gcc-s1.
+Preparing to unpack .../lib32gcc-s1_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Unpacking lib32gcc-s1 (14.2.0-4ubuntu2~24.04.1) ...
+Selecting previously unselected package lib32stdc++6.
+Preparing to unpack .../lib32stdc++6_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Unpacking lib32stdc++6 (14.2.0-4ubuntu2~24.04.1) ...
+Selecting previously unselected package libclang-rt-18-dev:amd64.
+Preparing to unpack .../libclang-rt-18-dev_1%3a18.1.3-1ubuntu1_amd64.deb ...
+Unpacking libclang-rt-18-dev:amd64 (1:18.1.3-1ubuntu1) ...
+Setting up libc6-i386 (2.39-0ubuntu8.7) ...
+Setting up lib32gcc-s1 (14.2.0-4ubuntu2~24.04.1) ...
+Setting up lib32stdc++6 (14.2.0-4ubuntu2~24.04.1) ...
+Setting up libclang-rt-18-dev:amd64 (1:18.1.3-1ubuntu1) ...
+Processing triggers for libc-bin (2.39-0ubuntu8.7) ...
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+++ date -u +%FT%TZ
+++ clang --version
+++ head -1
++ echo '2026-07-22T00:36:28Z phase=deps-done clang=Ubuntu clang version 18.1.3 (1ubuntu1)'
++ git clone --depth 1 https://github.com/oguarni/terravault.git /opt/tv
+Cloning into '/opt/tv'...
++ gsutil cp gs://terravault-ml-artifacts/eval-src/fuzz-baseline-20260721-213507.tgz /tmp/fuzz-src.tgz
+Copying gs://terravault-ml-artifacts/eval-src/fuzz-baseline-20260721-213507.tgz...
+/ [0 files][    0.0 B/ 33.2 KiB]                                                / [1 files][ 33.2 KiB/ 33.2 KiB]                                                
+Operation completed over 1 objects/33.2 KiB.                                     
++ tar xzf /tmp/fuzz-src.tgz -C /opt/tv
++ chmod +x /opt/tv/fuzzing/build_target.sh /opt/tv/fuzzing/fuzz_env.sh /opt/tv/fuzzing/fuzz_target.sh /opt/tv/fuzzing/run_baseline.sh
++ export TV_LIVE_DST=gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live
++ TV_LIVE_DST=gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live
++ export TV_BUDGET_MIN=95
++ TV_BUDGET_MIN=95
++ export TV_FUZZ_SECONDS=1500
++ TV_FUZZ_SECONDS=1500
+++ nproc
++ export TV_FUZZ_SLOTS=8
++ TV_FUZZ_SLOTS=8
++ /opt/tv/fuzzing/run_baseline.sh /opt/fuzz-run fuzz-baseline-20260721-213507
+>> phase=start budget_min=95 slots=8 deadline=2026-07-22T02:11:35Z
+>> phase=build 
+build gate_use_after_free: built in 0s
+build gate_heap_overflow: built in 0s
+build cjson_1_7_10: built in 2s
+build tinyxml2_6_0_0: built in 3s
+build libyaml_0_1_7: built in 5s
+build expat_2_1_0: built in 11s
+build re2_2017_06_01: built in 14s
+build libxml2_2_9_2: built in 57s
+build sqlite_3_13_0: built in 73s
+build libarchive_3_2_1: built in 78s
+build cares_1_11_0: built in 94s
+>> phase=build-done built=11
+>> phase=fuzz targets=11 waves=2 budget_s=1500
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
+gate_heap_overflow: artifacts=0 unique=0 confirmed=0 cov=1 ttfc=None
+fuzz gate_heap_overflow: done (1500s budget)
+libxml2_2_9_2: artifacts=0 unique=0 confirmed=0 cov=3217 ttfc=None
+cjson_1_7_10: artifacts=0 unique=0 confirmed=0 cov=257 ttfc=None
+expat_2_1_0: artifacts=0 unique=0 confirmed=0 cov=3547 ttfc=None
+fuzz libxml2_2_9_2: done (1500s budget)
+fuzz cjson_1_7_10: done (1500s budget)
+fuzz expat_2_1_0: done (1500s budget)
+libyaml_0_1_7: artifacts=0 unique=0 confirmed=0 cov=1573 ttfc=None
+fuzz libyaml_0_1_7: done (1500s budget)
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
+gate_use_after_free: artifacts=4943 unique=1 confirmed=1 cov=3 ttfc=1
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
+fuzz gate_use_after_free: done (1500s budget)
+libarchive_3_2_1: artifacts=6815 unique=22 confirmed=4 cov=1263 ttfc=0
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
+cares_1_11_0: artifacts=12168 unique=2 confirmed=2 cov=32 ttfc=0
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
+fuzz libarchive_3_2_1: done (1500s budget)
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
+sqlite_3_13_0: artifacts=0 unique=0 confirmed=0 cov=7005 ttfc=None
+fuzz sqlite_3_13_0: done (1500s budget)
+re2_2017_06_01: artifacts=0 unique=0 confirmed=0 cov=2838 ttfc=None
+fuzz re2_2017_06_01: done (1500s budget)
+tinyxml2_6_0_0: artifacts=0 unique=0 confirmed=0 cov=623 ttfc=None
+fuzz tinyxml2_6_0_0: done (1500s budget)
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/live/status
++ sleep 180
+fuzz cares_1_11_0: done (1500s budget)
+>> phase=aggregate 
+{
+  "targets_total": 9,
+  "targets_built": 9,
+  "targets_build_failed": 0,
+  "targets_fuzzed": 9,
+  "targets_with_any_crash_artifact": 2,
+  "targets_with_confirmed_bug": 2,
+  "confirmed_unique_bugs": 6,
+  "confirmed_memory_safety_bugs": 6,
+  "unique_signatures": 24,
+  "crash_artifacts": 18983,
+  "median_time_to_first_crash_seconds": 0,
+  "fastest_time_to_first_crash_seconds": 0,
+  "total_edge_coverage": 20355,
+  "total_executed_units": 0,
+  "total_cpu_seconds": 14713.5,
+  "total_fuzz_wall_seconds": 16640,
+  "gate_validation_targets": 2,
+  "gate_validation_confirmed_bugs": 1
+}
+>> phase=done elapsed_s=3518
+++ date -u +%FT%TZ
++ echo '2026-07-22T01:35:13Z phase=upload'
++ kill 1498
++ gsutil -q cp /opt/fuzz-run/baseline.json /opt/fuzz-run/baseline_report.md gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/
++ gsutil -q -m rsync -r /opt/fuzz-run/results gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/results
++ gsutil -q -m rsync -r /opt/fuzz-run/status gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/status
++ gsutil -q -m rsync -r /opt/fuzz-run/artifacts gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/artifacts
++ gsutil -q -m rsync -r /opt/fuzz-run/logs gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/logs
++ gsutil -q -m rsync -r /opt/fuzz-run/corpus gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/corpus
++ gsutil -q cp /var/log/tv-fuzz.log /opt/fuzz-run/status.txt gs://terravault-ml-artifacts/runs/fuzz-baseline-20260721-213507/
