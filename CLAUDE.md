@@ -7,7 +7,7 @@ TerraVault is a hybrid Terraform security scanner implementing Clean Architectur
 - **Security Approach**: 60% rule-based detection (11 rules) + 40% ML anomaly detection (8-dim *structural* feature vector, independent of the rule findings)
 - **Tech Stack**: FastAPI, PostgreSQL, Redis, Isolation Forest ML, Prometheus/Grafana
 - **Language**: Python 3.10+
-- **Health**: focused test suite (72 pytest cases, 74% line coverage on 1,518 SLOC) on security rules, scan pipeline, API contract, and ML predictions; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories, 0 mypy errors
+- **Health**: focused test suite (182 pytest cases, 82.91% line / 73.28% branch coverage) on security rules, scan pipeline, API contract, repositories, rate limiting, and ML predictions; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories, 0 mypy errors
 
 ## Quick Start
 
@@ -107,7 +107,8 @@ black terravault/ tests/
 - **Max line length**: 120 characters (flake8 + pylint)
 - **E402 exceptions**: `api.py` and `cli.py` call `load_dotenv()` before imports (intentional)
 - **Bandit config**: `.bandit` file skips B101 (`assert_used`) project-wide
-- **Pre-commit hooks**: Configured in `.pre-commit-config.yaml` (black, isort, flake8, bandit, detect-secrets)
+- **Pre-commit hooks**: Configured in `.pre-commit-config.yaml` (black, isort, flake8, mypy, bandit, detect-secrets, gitleaks)
+- **Type checking**: `mypy.ini` keeps `disallow_untyped_defs = False` globally and switches it on per module. A layer listed there is fully annotated and must stay that way; never relax a section that already passes.
 
 ## Security Notes
 
@@ -128,7 +129,7 @@ Subdirectory CLAUDE.md files provide focused instructions per architectural laye
 | Application | `terravault/application/CLAUDE.md` | Scan pipeline, scoring, caching, 8-dim structural feature extraction |
 | Infrastructure | `terravault/infrastructure/CLAUDE.md` | DB, cache, parser, repositories, rate limiter |
 | ML System | `terravault/infrastructure/CLAUDE_ML.md` | IsolationForest, training, drift detection, model files |
-| Tests | `tests/CLAUDE.md` | 72 focused tests, fixtures, markers, mocking patterns, per-module coverage |
+| Tests | `tests/CLAUDE.md` | What to test and what to delete, fixtures, markers, mocking patterns |
 
 ## Known Issues
 
@@ -167,7 +168,7 @@ the report on the PR.
 
 | Metric | Direction | Source |
 |---|---|---|
-| `coverage_pct` | must not decrease | `coverage.xml` line-rate |
+| `coverage_pct` | must not decrease | `coverage.xml` line-rate (branch coverage is also measured since 2026-07-26, but the ratchet still gates on line-rate) |
 | `files_over_300_sloc` | must not increase | `.py` files in `terravault/` over 300 lines |
 | `duplicate_blocks` | must not increase | pylint `R0801` at `--min-similarity-lines=4` |
 
@@ -223,6 +224,45 @@ Project-specific slash commands for common workflows:
 | `/coverage-gaps` | Identify untested code and suggest targeted tests |
 | `/rules-inventory` | Audit security rules engine coverage and gaps |
 | `/ml-status` | Check ML model health, drift, and configuration |
+
+### Spec Kit (spec-driven development)
+
+TerraVault is the pilot repository for [github/spec-kit](https://github.com/github/spec-kit)
+(CLI `specify`, pinned to v0.16.1). Spec Kit installs the same ten `speckit-*`
+skills for both agents — Claude Code reads `.claude/skills/`, Codex CLI reads
+`.agents/skills/` — over one shared `.specify/` tree, so a feature specified in
+one agent is resumable in the other.
+
+Use it for **multi-step features that need a written contract before code**
+(a new security rule family, a framework mapping, an API surface change).
+Do not use it for bug fixes, refactors, or single-file edits — the existing
+slash commands above and a plain prompt are cheaper and better suited.
+
+| Command | Use it |
+|---|---|
+| `/speckit-constitution` | Once, to seed `.specify/memory/constitution.md`. It must **reference** this guide and the Quality Gate, not restate them |
+| `/speckit-specify` | Start every feature — writes `specs/<nnn>-<slug>/spec.md` |
+| `/speckit-clarify` | Only when the spec has open questions; run before `plan` |
+| `/speckit-plan` | Technical design against Clean Architecture layers |
+| `/speckit-tasks` | Dependency-ordered `tasks.md` |
+| `/speckit-analyze` | Consistency check across spec/plan/tasks before implementing |
+| `/speckit-implement` | Execute the task list |
+
+Avoid `/speckit-checklist` and `/speckit-converge` (both generate long reports
+that crowd out context for little gain on a repo this size), and
+`/speckit-taskstoissues` (this repo does not track work as GitHub issues).
+
+Spec Kit does not replace any gate. `/speckit-implement` output is still subject
+to `make quality-gate` and the ratchet — treat a green gate, not a completed
+`tasks.md`, as done.
+
+```bash
+# Refresh skills after a Spec Kit release (never use `init --force`:
+# it rewrites files Spec Kit considers managed)
+specify integration upgrade claude
+specify integration upgrade codex
+specify integration status        # read-only health check
+```
 
 ## Contributing
 

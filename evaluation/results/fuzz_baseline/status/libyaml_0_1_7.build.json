@@ -1,0 +1,11 @@
+{
+  "target": "libyaml_0_1_7",
+  "kind": "known-bug",
+  "source_url": "https://github.com/yaml/libyaml/archive/refs/tags/0.1.7.tar.gz",
+  "known_bug_reference": "OSS-Fuzz issues fixed between 0.1.7 and 0.2.1: out-of-bounds reads and invalid frees in the scanner/parser on malformed anchors, tags and block scalars.",
+  "status": "built",
+  "build_rc": 0,
+  "build_seconds": 5,
+  "binary": "/opt/fuzz-run/bin/libyaml_0_1_7",
+  "seeds_dir": "/opt/fuzz-run/seeds/libyaml_0_1_7"
+}

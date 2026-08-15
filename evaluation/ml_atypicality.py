@@ -66,8 +66,8 @@ from terravault.domain.security_rules import SecurityRuleEngine
 from terravault.infrastructure.ml_model import ModelManager, MLPredictor
 from terravault.infrastructure.parser import HCLParser
 
-_ATYPICAL_QUANTILE = 0.90   # top decile of the atypicality axis == "atypical"
-_TYPICAL_QUANTILE = 0.50    # bottom half == "typical"
+ATYPICAL_QUANTILE = 0.90   # top decile of the atypicality axis == "atypical"
+TYPICAL_QUANTILE = 0.50    # bottom half == "typical"
 _TOP_N = 15                 # most-anomalous rule-clean configs to characterise
 
 
@@ -94,6 +94,27 @@ class ScanStats:
     scan_errors: int = 0
     kept: int = 0
     per_error: Dict[str, int] = field(default_factory=dict)
+    # Files dropped because an earlier corpus already contained that exact
+    # content hash — the disjointness proof for a multi-corpus run.
+    excluded_shared: int = 0
+
+
+@dataclass
+class CorpusScan:
+    """One corpus pass: kept records, audit trail and the content-hash index.
+
+    ``digest_by_path`` covers every file admitted to the scan (not only the ones
+    that survived it), so a caller can both attribute a hash to each scanned
+    config and hand the whole set to the next corpus as an exclusion list.
+    """
+
+    records: List[ConfigRecord]
+    stats: ScanStats
+    digest_by_path: Dict[str, str]
+
+    def digests(self) -> set[str]:
+        """Every unique content hash this corpus admitted."""
+        return set(self.digest_by_path.values())
 
 
 def build_scanner(model_dir: str) -> IntelligentSecurityScanner:
@@ -114,15 +135,19 @@ def iter_tf_files(root: Path) -> List[Path]:
 
 
 def _dedup_and_filter(root: Path, max_file_kb: Optional[int], max_files: Optional[int],
-                      stats: ScanStats) -> List[str]:
-    """Parent-side fast pass: the unique, size-bounded file list (updates stats).
+                      stats: ScanStats,
+                      exclude_digests: Optional[set[str]] = None) -> List[Tuple[str, str]]:
+    """Parent-side fast pass: the unique, size-bounded ``(path, digest)`` list.
 
     Hashing is I/O-bound and cheap; doing it once here keeps the expensive
     parse+rules+ML scan free of duplicate and pathological-size work — which is
-    what lets the scan below parallelise cleanly.
+    what lets the scan below parallelise cleanly. ``exclude_digests`` additionally
+    drops content already admitted by an earlier corpus, which is how a
+    second-corpus run proves it is disjoint from the first (counted in
+    ``stats.excluded_shared``).
     """
     seen_hashes: set[str] = set()
-    unique: List[str] = []
+    unique: List[Tuple[str, str]] = []
     limit = max_file_kb * 1024 if max_file_kb else None
     for path in iter_tf_files(root):
         if max_files is not None and len(unique) >= max_files:
@@ -140,8 +165,11 @@ def _dedup_and_filter(root: Path, max_file_kb: Optional[int], max_files: Optiona
         if digest in seen_hashes:
             stats.deduped += 1
             continue
+        if exclude_digests is not None and digest in exclude_digests:
+            stats.excluded_shared += 1
+            continue
         seen_hashes.add(digest)
-        unique.append(str(path))
+        unique.append((str(path), digest))
     return unique
 
 
@@ -216,10 +244,11 @@ def _tally(outcome: Tuple[str, object], stats: ScanStats,
         stats.per_error[etype] = stats.per_error.get(etype, 0) + 1
 
 
-def scan_corpus(root: Path, model_dir: str, workers: int = 0,
-                max_files: Optional[int] = None, max_file_kb: Optional[int] = None,
-                timeout_s: int = 20) -> Tuple[List[ConfigRecord], ScanStats]:
-    """Scan every unique ``.tf`` under ``root``; return records + an audit trail.
+def scan_corpus_indexed(root: Path, model_dir: str, workers: int = 0,
+                        max_files: Optional[int] = None, max_file_kb: Optional[int] = None,
+                        timeout_s: int = 20,
+                        exclude_digests: Optional[set[str]] = None) -> CorpusScan:
+    """Scan every unique ``.tf`` under ``root``; return records + audit + hashes.
 
     Deduplicates by content hash and drops oversize / parser-rejected /
     no-resource files (the extractor emits the all-default secure vector for the
@@ -227,30 +256,42 @@ def scan_corpus(root: Path, model_dir: str, workers: int = 0,
     the scan across processes; ``max_files`` caps the unique files scanned
     (bounds runtime); ``max_file_kb`` skips pathological giant blobs; each file's
     scan is abandoned after ``timeout_s`` seconds so a poison file cannot pin a
-    worker (reported as a ``ScanTimeout`` error).
+    worker (reported as a ``ScanTimeout`` error). ``exclude_digests`` skips
+    content an earlier corpus already contributed.
     """
     stats = ScanStats()
-    unique = _dedup_and_filter(root, max_file_kb, max_files, stats)
+    unique = _dedup_and_filter(root, max_file_kb, max_files, stats, exclude_digests)
+    digest_by_path = dict(unique)
+    paths = [path for path, _ in unique]
     records: List[ConfigRecord] = []
 
     def _progress() -> None:
         done = stats.kept + stats.no_resource + stats.scan_errors
         if done and done % 4000 == 0:
-            print(f"  scanned {done}/{len(unique)} unique ({stats.kept} kept)",
+            print(f"  scanned {done}/{len(paths)} unique ({stats.kept} kept)",
                   file=sys.stderr)
 
     if workers and workers > 1:
         with Pool(workers, initializer=_worker_init,
                   initargs=(model_dir, timeout_s)) as pool:
-            for outcome in pool.imap_unordered(_worker_scan, unique, chunksize=8):
+            for outcome in pool.imap_unordered(_worker_scan, paths, chunksize=8):
                 _tally(outcome, stats, records)
                 _progress()
     else:
         _worker_init(model_dir, timeout_s)
-        for path_str in unique:
+        for path_str in paths:
             _tally(_worker_scan(path_str), stats, records)
             _progress()
-    return records, stats
+    return CorpusScan(records=records, stats=stats, digest_by_path=digest_by_path)
+
+
+def scan_corpus(root: Path, model_dir: str, workers: int = 0,
+                max_files: Optional[int] = None, max_file_kb: Optional[int] = None,
+                timeout_s: int = 20) -> Tuple[List[ConfigRecord], ScanStats]:
+    """``scan_corpus_indexed`` without the hash index (the A.3 entry point)."""
+    scan = scan_corpus_indexed(root, model_dir, workers=workers, max_files=max_files,
+                               max_file_kb=max_file_kb, timeout_s=timeout_s)
+    return scan.records, scan.stats
 
 
 def mahalanobis_atypicality(feats: np.ndarray, training: np.ndarray) -> np.ndarray:
@@ -278,14 +319,14 @@ def isolation_forest_signal(feats: np.ndarray, model_dir: str) -> Tuple[np.ndarr
     return anomaly, flagged
 
 
-def _rate(mask: np.ndarray) -> Tuple[int, int, float]:
+def count_rate(mask: np.ndarray) -> Tuple[int, int, float]:
     """(count_true, total, fraction) for a boolean mask; 0.0 fraction if empty."""
     n = int(mask.size)
     t = int(mask.sum())
     return t, n, (t / n if n else 0.0)
 
 
-def _bin_flag_rates(maha: np.ndarray, flagged: np.ndarray) -> List[dict]:
+def flag_rate_bands(maha: np.ndarray, flagged: np.ndarray) -> List[dict]:
     """Flag rate within Mahalanobis bands <p50, p50-p90, p90-p99, >=p99."""
     edges = [np.percentile(maha, p) for p in (50, 90, 99)]
     bands = [
@@ -296,12 +337,12 @@ def _bin_flag_rates(maha: np.ndarray, flagged: np.ndarray) -> List[dict]:
     ]
     out = []
     for label, mask in bands:
-        t, n, r = _rate(flagged[mask])
+        t, n, r = count_rate(flagged[mask])
         out.append({"band": label, "flagged": t, "n": n, "flag_rate": round(r, 4)})
     return out
 
 
-def _training_overlap_mask(feats: np.ndarray, training: np.ndarray) -> np.ndarray:
+def training_overlap_mask(feats: np.ndarray, training: np.ndarray) -> np.ndarray:
     """True where a config's feature vector exactly matches a training vector.
 
     Configs from modules the model trained on reproduce their exact 8-dim
@@ -322,12 +363,12 @@ def _analyze_subpop(maha: np.ndarray, anomaly: np.ndarray, flagged: np.ndarray,
     n = int(maha.size)
     if n < 10:
         return None
-    ct, _, crate = _rate(flagged)
+    ct, _, crate = count_rate(flagged)
 
-    atypical = maha >= np.percentile(maha, _ATYPICAL_QUANTILE * 100)
-    typical = maha < np.percentile(maha, _TYPICAL_QUANTILE * 100)
-    at, an, arate = _rate(flagged[atypical])
-    tt, tn, trate = _rate(flagged[typical])
+    atypical = maha >= np.percentile(maha, ATYPICAL_QUANTILE * 100)
+    typical = maha < np.percentile(maha, TYPICAL_QUANTILE * 100)
+    at, an, arate = count_rate(flagged[atypical])
+    tt, tn, trate = count_rate(flagged[typical])
     lift = (arate / trate) if trate > 0 else None
 
     auc = (roc_auc_score(atypical.astype(int), anomaly)
@@ -357,7 +398,7 @@ def _analyze_subpop(maha: np.ndarray, anomaly: np.ndarray, flagged: np.ndarray,
         "spearman_p": float(f"{pval:.3e}"),
         "flag_share_in_atypical_tail": (round(flag_share_atypical, 4)
                                         if flag_share_atypical is not None else None),
-        "flag_bands": _bin_flag_rates(maha, flagged),
+        "flag_bands": flag_rate_bands(maha, flagged),
         "top_atypical": top,
     }
 
@@ -369,7 +410,7 @@ def compute_metrics(records: List[ConfigRecord], training: np.ndarray,
     maha = mahalanobis_atypicality(feats, training)
     anomaly, flagged = isolation_forest_signal(feats, model_dir)
     clean = np.array([r.rule_clean for r in records], dtype=bool)
-    overlap = _training_overlap_mask(feats, training)
+    overlap = training_overlap_mask(feats, training)
 
     result: dict = {
         "population": {
@@ -401,7 +442,7 @@ def compute_metrics(records: List[ConfigRecord], training: np.ndarray,
 
     # Orthogonality check: IF flag rate where the RULES already fire.
     if (~clean).any():
-        rt, rn, rr = _rate(flagged[~clean])
+        rt, rn, rr = count_rate(flagged[~clean])
         result["rule_flagged_analysis"] = {
             "n": rn, "flagged": rt, "flag_rate": round(rr, 4)}
     return result
@@ -441,8 +482,8 @@ def main() -> int:
         "model_dir": str(args.model_dir),
         "model_version": ModelManager(model_dir=args.model_dir).get_current_version(),
         "training_vectors": int(training.shape[0]),
-        "atypical_quantile": _ATYPICAL_QUANTILE,
-        "typical_quantile": _TYPICAL_QUANTILE,
+        "atypical_quantile": ATYPICAL_QUANTILE,
+        "typical_quantile": TYPICAL_QUANTILE,
         "workers": args.workers,
         "max_files": args.max_files,
         "max_file_kb": args.max_file_kb,
