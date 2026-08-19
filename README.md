@@ -7,8 +7,8 @@
   **Hybrid Terraform Security Scanner — Deterministic Rules + ML Anomaly Detection**
 
   [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-  [![Tests 137 Passed](https://img.shields.io/badge/tests-137%20passed-2ea44f)](tests/)
-  [![Coverage 76.8%](https://img.shields.io/badge/coverage-76.8%25-dfb317)](tests/)
+  [![Tests 195 Passed](https://img.shields.io/badge/tests-195%20passed-2ea44f)](tests/)
+  [![Coverage 82.63%](https://img.shields.io/badge/coverage-82.63%25-97ca00)](tests/)
   [![Pylint 10.00](https://img.shields.io/badge/pylint-10.00%2F10-2ea44f)](https://pylint.pycqa.org/)
   [![SAST Clean](https://img.shields.io/badge/SAST-0%20issues-2ea44f)](https://bandit.readthedocs.io/)
   [![License AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
@@ -27,7 +27,7 @@
 - **Hybrid scoring** — 60% rule-based + 40% ML anomaly detection. Deterministic rules for known risks, Isolation Forest for everything else
 - **Fast enough for CI gating** — sub-second per-file scans — no meaningful pipeline latency
 - **Operable API** — FastAPI with bcrypt API keys, Redis rate limiting, async I/O, Prometheus metrics, correlation IDs
-- **Measured quality** — 137 focused pytest cases, 76.8% line coverage (1,720 measured statements), Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories
+- **Measured quality** — 195 focused pytest cases, 82.63% line / 73.28% branch coverage (1,733 measured statements), Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 pip-audit advisories
 
 ---
 
@@ -76,7 +76,7 @@
 
 ### DevSecOps
 - GitHub Actions CI/CD with 5-stage pipeline
-- SAST (Bandit), dependency scanning (Safety), secret detection (GitLeaks)
+- SAST (Bandit), dependency scanning (pip-audit), secret detection (GitLeaks)
 - Docker image security scan (Trivy)
 - Pre-commit hooks for local development
 - SBOM generation (CycloneDX)
@@ -118,7 +118,7 @@ python -m terravault.cli test_files/mixed.tf
 make test          # All tests
 make coverage      # With coverage report
 make lint          # Code quality (Pylint + Flake8)
-make security-scan # Bandit SAST + Safety dependency check
+make security-scan # Bandit SAST + pip-audit dependency check
 ```
 
 > For full API setup with Docker, database, and monitoring, see the **[Quick Start Guide](QUICKSTART.md)**.
@@ -322,13 +322,13 @@ print(response.json())
 
 | Category | Metric | Result |
 |----------|--------|--------|
-| **Testing** | Test suite | **137 tests** — 137 passed, 0 skipped |
-| **Testing** | Code coverage | **76.8%** across 25 measured modules (1,321 / 1,720 statements) |
+| **Testing** | Test suite | **195 tests** — 195 passed, 0 skipped |
+| **Testing** | Code coverage | **82.63% line / 73.28% branch** across 1,733 measured statements |
 | **Code Quality** | Pylint score | **10.00 / 10** |
 | **Code Quality** | Flake8 | **0 issues** |
 | **Code Quality** | Codebase size | 1,720 measured statements (3,946 non-blank lines) |
 | **Security** | SAST (Bandit) | **0 issues** — 0 High, 0 Medium, 0 Low |
-| **Security** | Dependencies (Safety) | **0 vulnerabilities** |
+| **Security** | Dependencies (pip-audit) | **0 advisories** |
 
 ---
 
@@ -354,7 +354,7 @@ graph LR
 | Stage | Tool | Purpose |
 |-------|------|---------|
 | **SAST** | Bandit | Static code analysis for Python security issues |
-| **Dependencies** | Safety | Known vulnerability check for all pip packages |
+| **Dependencies** | pip-audit | PyPA advisory / OSV check for all pip packages |
 | **Secrets** | GitLeaks | Detect hardcoded secrets and credentials |
 | **Container** | Trivy | Docker image vulnerability scanning |
 | **Coverage** | Codecov | Test coverage tracking and reporting |
