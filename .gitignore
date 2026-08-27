@@ -276,6 +276,9 @@ temp/
 /scripts/take_screenshots.sh
 /run_local.sh
 
+# Personal research notes are not project source.
+/Lucas_Montano-Tech-Tips.txt
+
 # ===================================
 # Cache
 # ===================================
