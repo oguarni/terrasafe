@@ -7,8 +7,8 @@
   **Hybrid Terraform Security Scanner — Deterministic Rules + ML Anomaly Detection**
 
   [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-  [![Tests 137 Passed](https://img.shields.io/badge/tests-137%20passed-2ea44f)](tests/)
-  [![Coverage 76.8%](https://img.shields.io/badge/coverage-76.8%25-dfb317)](tests/)
+  [![Tests 183 Passed](https://img.shields.io/badge/tests-183%20passed-2ea44f)](tests/)
+  [![Coverage 82.8%](https://img.shields.io/badge/coverage-82.8%25-dfb317)](tests/)
   [![Pylint 10.00](https://img.shields.io/badge/pylint-10.00%2F10-2ea44f)](https://pylint.pycqa.org/)
   [![SAST Clean](https://img.shields.io/badge/SAST-0%20issues-2ea44f)](https://bandit.readthedocs.io/)
   [![License AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
@@ -27,7 +27,7 @@
 - **Hybrid scoring** — 60% rule-based + 40% ML anomaly detection. Deterministic rules for known risks, Isolation Forest for everything else
 - **Fast enough for CI gating** — sub-second per-file scans — no meaningful pipeline latency
 - **Operable API** — FastAPI with bcrypt API keys, Redis rate limiting, async I/O, Prometheus metrics, correlation IDs
-- **Measured quality** — 137 focused pytest cases, 76.8% line coverage (1,720 measured statements), Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories
+- **Measured quality** — 183 pytest cases, 82.8% line coverage (1,435 of 1,733 measured statements), Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories. Regenerate with `make quality-gate`; the values land in `gate-metrics.json`
 
 ---
 
@@ -322,8 +322,8 @@ print(response.json())
 
 | Category | Metric | Result |
 |----------|--------|--------|
-| **Testing** | Test suite | **137 tests** — 137 passed, 0 skipped |
-| **Testing** | Code coverage | **76.8%** across 25 measured modules (1,321 / 1,720 statements) |
+| **Testing** | Test suite | **183 tests** — 183 passed, 0 skipped |
+| **Testing** | Code coverage | **82.8%** across 25 measured modules (1,435 / 1,733 statements) |
 | **Code Quality** | Pylint score | **10.00 / 10** |
 | **Code Quality** | Flake8 | **0 issues** |
 | **Code Quality** | Codebase size | 1,720 measured statements (3,946 non-blank lines) |
