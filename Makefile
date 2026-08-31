@@ -162,8 +162,8 @@ security-scan: install
 
 security-deps: install
 	@echo "🔍 Checking for vulnerable dependencies..."
-	$(VENV)/bin/pip install safety
-	$(VENV)/bin/safety check
+	$(VENV)/bin/pip install pip-audit
+	$(VENV)/bin/pip-audit -r requirements.txt -r requirements-dev.txt
 
 security-sast: install
 	@echo "🔍 Running SAST with Bandit..."

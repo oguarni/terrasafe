@@ -7,7 +7,8 @@ TerraVault is a hybrid Terraform security scanner implementing Clean Architectur
 - **Security Approach**: 60% rule-based detection (11 rules) + 40% ML anomaly detection (8-dim *structural* feature vector, independent of the rule findings)
 - **Tech Stack**: FastAPI, PostgreSQL, Redis, Isolation Forest ML, Prometheus/Grafana
 - **Language**: Python 3.10+
-- **Health**: focused test suite (183 pytest cases, 82.63% line / 73.28% branch coverage) on security rules, scan pipeline, API contract, repositories, rate limiting, and ML predictions; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 Safety advisories, 0 mypy errors
+- **Health**: focused test suite (195 pytest cases, 82.63% line / 73.28% branch coverage) on security rules, scan pipeline, API contract, repositories, rate limiting, ML predictions, and the CI report tooling; Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 mypy errors
+- **Dependencies**: `pip-audit` clean (0 advisories) across `requirements.txt` and `requirements-dev.txt` — see *Dependency advisories* below for what was fixed and why the pins look the way they do
 
 ## Quick Start
 
@@ -107,7 +108,7 @@ black terravault/ tests/
 - **Max line length**: 120 characters (flake8 + pylint)
 - **E402 exceptions**: `api.py` and `cli.py` call `load_dotenv()` before imports (intentional)
 - **Bandit config**: `.bandit` file skips B101 (`assert_used`) project-wide
-- **Pre-commit hooks**: Configured in `.pre-commit-config.yaml` (black, isort, flake8, mypy, bandit, detect-secrets, gitleaks)
+- **Pre-commit hooks**: Configured in `.pre-commit-config.yaml` (black, isort, flake8, mypy, bandit, gitleaks). Secret detection is gitleaks only, matching what the DevSecOps pipeline gates on — a second engine with different findings would fail locally on things CI accepts
 - **Type checking**: `mypy.ini` keeps `disallow_untyped_defs = False` globally and switches it on per module. A layer listed there is fully annotated and must stay that way; never relax a section that already passes.
 
 ## Security Notes
@@ -201,6 +202,78 @@ make ratchet-update  # move baseline forward (improvements only)
 
 python scripts/ratchet.py --update --force   # deliberate reset, allows a drop
 ```
+
+### Dependency advisories
+
+The `security-scan` job audits `requirements.txt` and `requirements-dev.txt`
+with `pip-audit` (PyPA, PyPI Advisory / OSV database). It replaced
+`safety check`, which reported **0 findings on the same requirements set**
+that pip-audit found 9 advisories in. Reproduce locally with:
+
+```bash
+pip-audit -r requirements.txt -r requirements-dev.txt   # currently: clean
+```
+
+All 9 are resolved. Two constraints drove the shape of the fix, and both are
+worth knowing before touching these pins again:
+
+**Bump the parent, not the transitive.** Two of the vulnerable packages were
+unreachable because a parent capped them:
+
+| Vulnerable | Capped by | Fix |
+|---|---|---|
+| `starlette` 0.52.1 | `fastapi<=0.132.1` pinned `starlette<1.0.0` | `fastapi==0.133.0` — first release to drop the cap |
+| `lxml` 5.4.0 | `cyclonedx-bom==4.2.0` → `cyclonedx-python-lib[validation]` capped `lxml<6` | `cyclonedx-bom==7.3.1` — its lib requires `lxml<7` |
+
+Pinning the transitive under the old cap would have produced a broken
+resolve, not a fix. Once the parent admits the safe version, the transitive
+*is* pinned explicitly (`starlette==1.3.1`, `lxml==6.1.1`) so the security
+floor is reproducible instead of "whatever pip picked that day".
+
+**Vendored code is not in any requirements file, and the runtime image has no
+build tooling.** Trivy flagged `setuptools/_vendor/jaraco.context-5.3.0`
+(CVE-2026-23949) and `setuptools/_vendor/wheel-0.45.1` (CVE-2026-24049) in the
+built image. Neither appears in `requirements.txt`, and no pin there can reach
+them — they ship inside the base image's setuptools.
+
+Upgrading the tooling fixed those two and immediately surfaced two more, this
+time inside pip's own `_vendor/`: msgpack 1.1.2 (GHSA-6v7p-g79w-8964) and a
+setuptools 70.3.0 (CVE-2025-47273). No pin fixes those either. So the
+Dockerfile does both: it upgrades pip/setuptools/wheel for the *build*, then
+uninstalls all three so the *runtime* image contains none of it. Nothing in
+the running container invokes pip, and no runtime dependency imports
+`pkg_resources`.
+
+If you ever reintroduce build tooling into the final image, expect its
+vendored tree to reappear in the Trivy gate — that is the gate working, not a
+false positive.
+
+Crossing `pytest` 7 → 9 (PYSEC-2026-1845) forced the plugin set forward with
+it, `pytest-asyncio` 0.21 → 1.4 included. The suite's 30
+`@pytest.mark.asyncio` decorators were unaffected — 1.x still honours them in
+the strict mode this repo uses.
+
+### DevSecOps report: informational checks
+
+The consolidated report (`scripts/pipeline_report.py`, commented on every PR
+by the `pipeline-report` job) accepts `--informational <kind>`. Such an input
+is parsed and rendered in full — under an *Informational findings* heading,
+with a real `"status"` plus `"informational": true` in
+`pipeline-metrics.json` — but is excluded from `overall`.
+
+Three kinds are informational today, and the reason is the same in each case:
+they report findings on **every** run by construction, so gating on them
+pinned `overall` to `fail` forever and fired `devsecops-auto-fix` on findings
+its own prompt calls no-fix zones.
+
+| Kind | Why it always reports |
+|---|---|
+| `terravault-scan`, `terravault-sarif` | scanned against `test_files/`, a deliberately vulnerable fixture set |
+| `trivy-sarif` | `python:3.10-slim` base-image CVEs; enforcement lives in the Security-tab SARIF upload, which this does not touch |
+
+Do not add a kind to this list to make a red pipeline green — that is the one
+thing the flag must never be used for. It is for inputs whose findings are
+*expected*, not for inputs that are merely inconvenient.
 
 ### Self-correction loop
 
