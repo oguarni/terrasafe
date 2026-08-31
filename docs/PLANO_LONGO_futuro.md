@@ -15,7 +15,7 @@ half; the vuln agent is the *dynamic/memory-safety* half of the same story.
   (`compliant: true`); delivery PDF md5 `7f20a1ae086b2e20593f3fc30c3b9b6a`.
 - Pre-approval SIACOES PDF: 49 pages, 703.984 bytes, md5 `d65aed08…`; it declared PDF/A-3b but failed
   veraPDF because link annotations lacked `/F`.
-- Test suite: **137 tests, 76,80% line coverage** (`.ratchet.json` → `coverage_pct: 76.8`).
+- Test suite: **183 tests, 82,8% line coverage** as of 2026-08-28 (`.ratchet.json` → `coverage_pct: 82.63`, the floor the ratchet holds, updated 2026-08-15).
 - Rules: 11 · ML features: 8 · default weights: 60% rules / 40% ML (operator-configurable).
 - Detection benchmark: TerraVault 100/100/100 · Checkov 100/95,7/97,8 · tfsec 100/87,0/93,0 ·
   Terrascan 100/47,8/64,7 (precision/recall/F1); raw findings 23/187/107/63.
