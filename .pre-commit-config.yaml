@@ -41,13 +41,13 @@ repos:
         args: ["-r", "terravault/", "--ini", ".bandit", "-ll"]
         exclude: ^test_
 
-  # Secret detection
-  - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.4.0
-    hooks:
-      - id: detect-secrets
-
-  # Secret detection (gitleaks — defense-in-depth alongside detect-secrets)
+  # Secret detection. gitleaks only, deliberately: the DevSecOps pipeline gates
+  # on gitleaks, so a clean hook here means that check passes. detect-secrets
+  # was also configured, with no `.secrets.baseline` and no --baseline arg — a
+  # second engine with different findings and no allowlist can only disagree
+  # with the gate, and a hook that fails on something CI accepts trains people
+  # to reach for --no-verify. GitHub secret scanning + push protection are
+  # enabled on the repo and cover the server side.
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
     hooks:

@@ -10,10 +10,25 @@ on:
   pull_request:
     branches: [ main ]
 
+# Least privilege: every job inherits read-only, and the four jobs that need
+# to write something declare exactly what. Granting pull-requests write and
+# security-events write here handed them to `test` and `docker` too, which
+# only ever read the checkout.
 permissions:
   contents: read
-  pull-requests: write
-  security-events: write
+
+# Settings validation rejects a TERRAVAULT_API_KEY_HASH that is not a
+# full-length bcrypt hash, so CI needs a real one. This is the hash of a
+# throwaway key that authenticates nothing — it exists only to get past
+# validation. Defined once here rather than repeated per step: a
+# credential-shaped literal copied into every env block is the shape that
+# eventually gets edited into a real secret by mistake.
+env:
+  TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
+  TERRAVAULT_ENVIRONMENT: development
+  TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
+  TERRAVAULT_REDIS_URL: "redis://localhost:6379"
+  TERRAVAULT_LOG_LEVEL: INFO
 
 # On a PR, supersede in-flight runs when new commits are pushed. On main
 # pushes keep cancel-in-progress off so ratchet-bump / deploy-staging are not
@@ -47,17 +62,26 @@ jobs:
         bandit -r terravault/ --ini .bandit -ll -f screen
         exit 0
 
-    # Dependency vulnerability scanning
-    - name: Safety Check
-      id: safety
+    # Dependency vulnerability scanning.
+    #
+    # Replaced `safety check`, which reported 0 findings on this exact
+    # requirements set while pip-audit found 9 advisories across 4 packages —
+    # including starlette 0.52.1 (Host-header auth bypass, CVE-2026-48710).
+    # safety's free tier lags the advisory feed, and its CLI kept moving, which
+    # is why it had to be pinned to 3.7.0. pip-audit is PyPA's own tool, reads
+    # the PyPI Advisory / OSV database, and needs no account.
+    #
+    # Both requirement files are audited: a CVE in a dev pin still runs in CI
+    # with repository write access.
+    - name: pip-audit (dependency CVEs)
+      id: pip_audit
       run: |
-        # Pin safety: 3.7.0 changed the CLI so `--output` is a format, not a
-        # file path. Use --save-json to write the report; pin to stop the
-        # invocation drifting again on the next upstream release.
-        pip install 'safety==3.7.0'
+        pip install pip-audit
         set +e
-        safety check --save-json safety-report.json
-        echo "safety_exit=$?" >> "$GITHUB_OUTPUT"
+        pip-audit -r requirements.txt -r requirements-dev.txt \
+          --progress-spinner=off -f json -o pip-audit-report.json
+        echo "pip_audit_exit=$?" >> "$GITHUB_OUTPUT"
+        pip-audit -r requirements.txt -r requirements-dev.txt --progress-spinner=off
         exit 0
 
     # Secret detection — produce SARIF for the consolidated report
@@ -87,20 +111,20 @@ jobs:
         name: security-reports
         path: |
           bandit-report.json
-          safety-report.json
+          pip-audit-report.json
           gitleaks-results.sarif
         if-no-files-found: warn
 
     - name: Enforce security thresholds
       run: |
         # bandit/gitleaks: any finding fails the job
-        # safety: known CVEs fail the job
+        # pip-audit: known CVEs fail the job
         BANDIT_EXIT="${{ steps.bandit.outputs.bandit_exit }}"
-        SAFETY_EXIT="${{ steps.safety.outputs.safety_exit }}"
+        PIP_AUDIT_EXIT="${{ steps.pip_audit.outputs.pip_audit_exit }}"
         GITLEAKS_EXIT="${{ steps.gitleaks.outputs.gitleaks_exit }}"
         FAIL=0
-        if [ "$BANDIT_EXIT"   != "0" ]; then echo "::error::Bandit findings detected";   FAIL=1; fi
-        if [ "$SAFETY_EXIT"   != "0" ]; then echo "::error::Safety findings detected";   FAIL=1; fi
+        if [ "$BANDIT_EXIT"    != "0" ]; then echo "::error::Bandit findings detected";    FAIL=1; fi
+        if [ "$PIP_AUDIT_EXIT" != "0" ]; then echo "::error::pip-audit findings detected"; FAIL=1; fi
         # gitleaks --exit-code 0 always exits 0; detect findings from SARIF
         if [ -f gitleaks-results.sarif ]; then
           FOUND=$(python -c "import json,sys; d=json.load(open('gitleaks-results.sarif')); print(sum(len(r.get('results',[])) for r in d.get('runs',[])))")
@@ -133,12 +157,6 @@ jobs:
         pip install -r requirements-dev.txt
 
     - name: Run tests
-      env:
-        TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
-        TERRAVAULT_ENVIRONMENT: "development"
-        TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
-        TERRAVAULT_REDIS_URL: "redis://localhost:6379"
-        TERRAVAULT_LOG_LEVEL: "INFO"
       run: |
         pytest -v --cov=terravault --cov-report=xml --junit-xml=pytest-junit.xml
 
@@ -163,6 +181,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: always()
+    # pull-requests: write for the composite action's PR comment (it also runs
+    # `gh pr diff`); security-events: write for the SARIF upload.
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write
     steps:
     - uses: actions/checkout@v6
       with:
@@ -203,6 +227,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: always()
+    # security-events: write for the Trivy SARIF upload — that upload, not the
+    # pipeline report, is where container CVEs are actually tracked.
+    permissions:
+      contents: read
+      security-events: write
     steps:
     - uses: actions/checkout@v6
 
@@ -241,6 +270,22 @@ jobs:
           terravault:${{ github.sha }} \
           python -m terravault.cli test_files/secure.tf
 
+    # The SARIF step above stays non-gating on purpose: it reports every
+    # CRITICAL/HIGH in the image, unfixed ones included, so the Security tab
+    # keeps full visibility. This step is the actual gate and looks only at
+    # CVEs with a fix available — gating on unfixed base-image CVEs would put
+    # the job permanently red, which is the exact failure mode the
+    # informational tier exists to avoid. Runs last so the smoke test and both
+    # uploads have already happened. Trivy's DB is cached from the run above.
+    - name: Gate on fixable image CVEs
+      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+      with:
+        image-ref: 'terravault:${{ github.sha }}'
+        format: 'table'
+        severity: 'CRITICAL,HIGH'
+        ignore-unfixed: true
+        exit-code: '1'
+
   # Consolidated AI-readable pipeline report
   pipeline-report:
     name: Consolidated Pipeline Report
@@ -275,19 +320,32 @@ jobs:
           echo "=== Artifact tree ==="
           find _artifacts -type f -maxdepth 3 -print
 
+      # Three inputs report findings on every run by construction, so gating on
+      # them pinned `overall` to "fail" on every PR — the comment was always
+      # red and devsecops-auto-fix fired on findings its own prompt calls
+      # no-fix zones. They stay in the report in full, but out of the verdict:
+      #   terravault-scan / terravault-sarif — scanned against test_files/,
+      #     which is a deliberately vulnerable fixture set (vulnerable.tf
+      #     scores 84 against a threshold of 70 on purpose).
+      #   trivy-sarif — python:3.10-slim base-image CVEs. trivy-action does not
+      #     fail the docker job either; its enforcement surface is the GitHub
+      #     Security tab upload, which this flag does not touch.
       - name: Generate consolidated report
         id: report
         run: |
           set +e
           python scripts/pipeline_report.py \
             --input bandit-json=_artifacts/security-reports/bandit-report.json \
-            --input safety-json=_artifacts/security-reports/safety-report.json \
+            --input pip-audit-json=_artifacts/security-reports/pip-audit-report.json \
             --input gitleaks-sarif=_artifacts/security-reports/gitleaks-results.sarif \
             --input pytest-junit=_artifacts/test-reports/pytest-junit.xml \
             --input coverage-xml=_artifacts/test-reports/coverage.xml \
             --input terravault-scan=_artifacts/scan-results/scan_output.json \
             --input terravault-sarif=_artifacts/scan-results/terravault-results.sarif \
             --input trivy-sarif=_artifacts/docker-reports/trivy-results.sarif \
+            --informational terravault-scan \
+            --informational terravault-sarif \
+            --informational trivy-sarif \
             --output-md pipeline-report.md \
             --output-json pipeline-metrics.json \
             --title "DevSecOps Pipeline Report" \
@@ -324,8 +382,8 @@ jobs:
             const hint = passed
               ? ''
               : (labels.includes('auto-fix')
-                  ? '\n\n🤖 The `auto-fix` label is set — Claude will attempt remediation of bandit/safety/pytest findings (gitleaks and Trivy require human review).'
-                  : '\n\n💡 Add the `auto-fix` label to let Claude attempt remediation (bandit/safety/pytest only; max 3 attempts).');
+                  ? '\n\n🤖 The `auto-fix` label is set — Claude will attempt remediation of bandit/pip-audit/pytest findings (gitleaks and Trivy require human review).'
+                  : '\n\n💡 Add the `auto-fix` label to let Claude attempt remediation (bandit/pip-audit/pytest only; max 3 attempts).');
             const marker = '<!-- devsecops-pipeline-report -->';
             const body = `${marker}\n## ${passed ? '✅' : '❌'} DevSecOps Pipeline ${passed ? 'passed' : 'failed'}\n\n${report}${hint}`;
             const { data: comments } = await github.rest.issues.listComments({
@@ -419,7 +477,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
-          pip install bandit 'safety==3.7.0'
+          pip install bandit pip-audit
 
       - name: Download consolidated report
         if: steps.limits.outputs.proceed == 'true'
@@ -438,11 +496,6 @@ jobs:
         if: steps.limits.outputs.proceed == 'true'
         uses: anthropics/claude-code-action@0f97b95b6536c26e5f6bd90faec370d41695beca # v1
         env:
-          TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
-          TERRAVAULT_ENVIRONMENT: development
-          TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
-          TERRAVAULT_REDIS_URL: "redis://localhost:6379"
-          TERRAVAULT_LOG_LEVEL: INFO
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
           ATTEMPT: ${{ steps.limits.outputs.attempt }}
           MAX_ATTEMPTS: ${{ steps.limits.outputs.max }}
@@ -456,7 +509,14 @@ jobs:
             Read both files at the repo root:
               - `pipeline-report.md`     — human + LLM readable failure summary
               - `pipeline-metrics.json`  — structured per-check metrics
-                                           (`checks[].kind`, `status`, `metrics`, `findings`)
+                                           (`checks[].kind`, `status`,
+                                           `informational`, `metrics`, `findings`)
+
+            A check with `"informational": true` reports findings that do not
+            gate the pipeline. Its findings are listed under *Informational
+            findings* in the Markdown. Do not act on those, and do not treat
+            them as the reason the pipeline failed — they are excluded from
+            `overall`.
 
             Auto-fix scope (in priority order):
 
@@ -465,10 +525,14 @@ jobs:
                  documented false positive AND you add a one-line justification
                  in the same commit.
 
-              2. **Safety (dependency CVEs)** — bump the affected package in
+              2. **pip-audit (dependency CVEs)** — bump the affected package in
                  `requirements.txt` / `requirements-dev.txt` to the lowest
-                 patched version specified in the advisory. Never make major
-                 version jumps that could break import contracts.
+                 version in the finding's `fix_versions`. Never make major
+                 version jumps that could break import contracts. If the
+                 affected package is transitive (it is not pinned in either
+                 requirements file), do NOT add a new direct pin to force it —
+                 bump the parent that constrains it, or leave a PR comment
+                 saying which parent needs the bump.
 
               3. **pytest** — fix the failing test or the code under test,
                  whichever matches the actual defect. Do not xfail / skip to
@@ -496,10 +560,14 @@ jobs:
               2. For each in-scope finding, apply the minimal change set.
               3. Re-run the affected checks locally where possible:
                    bandit -r terravault/ --ini .bandit -ll
-                   safety check
+                   pip-audit -r requirements.txt -r requirements-dev.txt
                    pytest -x --junit-xml=pytest-junit.xml
-              4. Stage and commit:
-                   git add -A
+              4. Stage only what you changed. Never `git add -A` — it sweeps
+                 every untracked file in the workspace into a public repo.
+                 Stage tracked edits, then add new files you deliberately
+                 created by explicit path:
+                   git add -u
+                   git add <path/to/new_file.py>   # only files you created
                    git commit -m "chore(devsecops): auto-fix attempt ${{ steps.limits.outputs.attempt }}"
                    git push origin HEAD:"$PR_BRANCH"
 
@@ -517,23 +585,19 @@ jobs:
         if: steps.limits.outputs.proceed == 'true'
         id: verify
         env:
-          TERRAVAULT_API_KEY_HASH: "$2b$12$LJ3m9ZkRjWyEbhMxBqXvkuN/3QlGYbTEwHqMFEVBBxkLpN0uWxjAq"
-          TERRAVAULT_ENVIRONMENT: development
-          TERRAVAULT_DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test"
-          TERRAVAULT_REDIS_URL: "redis://localhost:6379"
-          TERRAVAULT_LOG_LEVEL: INFO
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
           set +e
           git pull --ff-only origin "$PR_BRANCH" || true
           mkdir -p _verify
           bandit -r terravault/ --ini .bandit -f json -o _verify/bandit-report.json -ll || true
-          safety check --save-json _verify/safety-report.json || true
+          pip-audit -r requirements.txt -r requirements-dev.txt \
+            --progress-spinner=off -f json -o _verify/pip-audit-report.json || true
           pytest -q --junit-xml=_verify/pytest-junit.xml --cov=terravault --cov-report=xml:_verify/coverage.xml || true
 
           python scripts/pipeline_report.py \
             --input bandit-json=_verify/bandit-report.json \
-            --input safety-json=_verify/safety-report.json \
+            --input pip-audit-json=_verify/pip-audit-report.json \
             --input pytest-junit=_verify/pytest-junit.xml \
             --input coverage-xml=_verify/coverage.xml \
             --output-md pipeline-report-after-fix.md \
@@ -632,8 +696,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.AUTO_FIX_PAT || secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name  "ratchet-bot[bot]"
-          git config user.email "ratchet-bot[bot]@users.noreply.github.com"
+          # github-actions[bot] is the only bot identity GitHub links to a real
+          # account: the numeric-prefixed noreply address is what makes commits
+          # render with the Actions avatar instead of an unlinked author. A
+          # made-up "<name>[bot]@users.noreply.github.com" resolves to nothing.
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git diff --quiet -- .ratchet.json; then
             echo "Baseline unchanged — nothing to commit."
             exit 0
@@ -643,7 +711,22 @@ jobs:
           files=$(python -c "import json; d=json.load(open('.ratchet.json')); print(d['files_over_threshold'])")
           dupes=$(python -c "import json; d=json.load(open('.ratchet.json')); print(d['duplicate_blocks'])")
           git commit -m "chore(ratchet): bump baseline (cov=${coverage}% files=${files} dupes=${dupes})"
-          git push origin HEAD:${GITHUB_REF#refs/heads/}
+
+          # A human push to main during this job's ~45s makes the push a
+          # non-fast-forward and turns main red for a bookkeeping commit.
+          # Rebase the single .ratchet.json commit and retry.
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          for attempt in 1 2 3; do
+            if git push origin "HEAD:$BRANCH"; then
+              echo "Baseline pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected on attempt $attempt — rebasing onto origin/$BRANCH."
+            git fetch origin "$BRANCH" || exit 1
+            git rebase "origin/$BRANCH" || { git rebase --abort; exit 1; }
+          done
+          echo "::error::Could not push the ratchet baseline after 3 attempts."
+          exit 1
 
   # Optional: Deploy to staging (only on main push)
   deploy-staging:

@@ -15,7 +15,8 @@ mid-flight.
 Supported kinds:
 
     bandit-json        Bandit ``-f json`` output
-    safety-json        Safety ``check --json`` output
+    safety-json        Safety ``check --json`` output (superseded by pip-audit)
+    pip-audit-json     pip-audit ``-f json`` output
     gitleaks-sarif     GitLeaks SARIF output
     pytest-junit       pytest ``--junit-xml`` output
     coverage-xml       coverage.py XML report
@@ -24,6 +25,15 @@ Supported kinds:
     terravault-sarif   TerraVault CLI ``--output-format sarif`` output
     gate-report-md     Quality Gate Markdown report (embedded verbatim)
     gate-metrics-json  Quality Gate JSON sidecar
+
+A kind listed as ``--informational <kind>`` still parses, still renders its
+findings and still keeps its real ``status`` in the JSON sidecar, but is
+excluded from the overall verdict. This exists for inputs whose findings are
+expected rather than actionable — scanning a deliberately vulnerable fixture
+directory, or restating CVEs whose enforcement surface is elsewhere. Without
+it a permanently-failing input pins ``overall`` to "fail" forever, which both
+destroys the signal of the PR comment and fires the auto-fix job on findings
+its own prompt declares out of scope.
 """
 from __future__ import annotations
 
@@ -52,10 +62,26 @@ class Section:
     findings: List[Dict[str, Any]] = field(default_factory=list)
     raw_excerpt: str = ""
     error: Optional[str] = None
+    informational: bool = False
 
     @property
     def passed(self) -> bool:
         return self.status == "pass"
+
+    @property
+    def blocking(self) -> bool:
+        """True when this section's failure should decide the overall verdict.
+
+        ``status`` deliberately stays truthful — a failing informational
+        section still reports ``fail`` — so a consumer of the JSON sidecar can
+        tell "no findings" from "findings we chose not to gate on".
+
+        >>> Section("trivy-sarif", "Trivy", "fail", "252 findings").blocking
+        True
+        >>> Section("trivy-sarif", "Trivy", "fail", "252 findings", informational=True).blocking
+        False
+        """
+        return self.status in ("fail", "error") and not self.informational
 
 
 def _truncate(text: str, limit: int = DETAIL_TAIL_CHARS) -> str:
@@ -141,6 +167,81 @@ def parse_safety(path: Path) -> Section:
         metrics={"total": total},
         findings=findings,
     )
+
+
+ADVISORY_DESC_CHARS = 160
+
+
+def parse_pip_audit(path: Path) -> Section:
+    """Parse ``pip-audit -f json`` output.
+
+    pip-audit reports no severity field — the PyPI Advisory / OSV records it
+    reads do not carry one consistently — so findings surface the advisory ID
+    and the fix version instead, which is the actionable half anyway.
+
+    The same advisory can appear more than once for one package when it is
+    matched through several aliases (starlette 0.52.1 reports PYSEC-2026-161
+    twice), so identical (package, advisory) pairs are collapsed. Counting the
+    raw list would overstate how much there is to fix.
+    """
+    data = _load_json(path)
+    dependencies = data.get("dependencies", []) or []
+    findings: List[Dict[str, Any]] = []
+    seen: set = set()
+    vulnerable_packages: List[str] = []
+    for dep in dependencies:
+        vulns = dep.get("vulns", []) or []
+        if not vulns:
+            continue
+        name, version = dep.get("name"), dep.get("version")
+        vulnerable_packages.append(str(name))
+        for vuln in vulns:
+            advisory_id = vuln.get("id")
+            key = (name, advisory_id)
+            if key in seen:
+                continue
+            seen.add(key)
+            fixes = vuln.get("fix_versions") or []
+            description = (vuln.get("description") or "").strip()
+            findings.append(
+                {
+                    "package": f"{name}=={version}",
+                    "advisory_id": advisory_id,
+                    "aliases": vuln.get("aliases") or [],
+                    "fix_versions": fixes,
+                    "message": (
+                        (f"fixed in {', '.join(fixes)} — " if fixes else "no fix available — ")
+                        + _truncate_words(description, ADVISORY_DESC_CHARS)
+                    ),
+                }
+            )
+    total = len(findings)
+    status = "fail" if total > 0 else "pass"
+    summary = (
+        f"{total} advisory(ies) across {len(vulnerable_packages)} package(s)"
+        if total
+        else f"0 known vulnerability(ies) across {len(dependencies)} dependencies"
+    )
+    return Section(
+        kind="pip-audit-json",
+        label="pip-audit (dependency CVEs)",
+        status=status,
+        summary=summary,
+        metrics={
+            "dependencies_scanned": len(dependencies),
+            "vulnerable_packages": sorted(set(vulnerable_packages)),
+            "advisories": total,
+        },
+        findings=findings,
+    )
+
+
+def _truncate_words(text: str, limit: int) -> str:
+    """Trim an advisory description to fit one Markdown table cell."""
+    collapsed = " ".join(text.split())
+    if len(collapsed) <= limit:
+        return collapsed
+    return collapsed[:limit].rsplit(" ", 1)[0] + "…"
 
 
 def _parse_sarif(path: Path, kind: str, label: str) -> Section:
@@ -334,6 +435,7 @@ def parse_gate_metrics_json(path: Path) -> Section:
 PARSERS = {
     "bandit-json": parse_bandit,
     "safety-json": parse_safety,
+    "pip-audit-json": parse_pip_audit,
     "gitleaks-sarif": parse_gitleaks_sarif,
     "trivy-sarif": parse_trivy_sarif,
     "terravault-sarif": parse_terravault_sarif,
@@ -347,6 +449,7 @@ PARSERS = {
 KIND_LABELS = {
     "bandit-json": "Bandit (SAST)",
     "safety-json": "Safety (dependency CVEs)",
+    "pip-audit-json": "pip-audit (dependency CVEs)",
     "gitleaks-sarif": "GitLeaks (secrets)",
     "trivy-sarif": "Trivy (container CVEs)",
     "terravault-sarif": "TerraVault (SARIF)",
@@ -409,8 +512,56 @@ def _status_emoji(status: str) -> str:
     return {"pass": "✅", "fail": "❌", "error": "⚠️", "missing": "⏭️"}.get(status, "•")
 
 
+def _section_badge(section: Section) -> str:
+    """Render one status cell, marking non-gating failures as informational."""
+    if section.informational and section.status in ("fail", "error"):
+        return "ℹ️ INFO"
+    return f"{_status_emoji(section.status)} {STATUS_BADGE.get(section.status, section.status.upper())}"
+
+
+def _append_detail_blocks(lines: List[str], sections: List[Section], heading: str) -> None:
+    """Append one ``## <heading>`` block with a detail entry per section.
+
+    Blocking failures and informational findings render identically — the
+    agent reading this report needs the same evidence either way; only the
+    heading tells it whether action is expected.
+    """
+    if not sections:
+        return
+    lines.append(f"## {heading}")
+    lines.append("")
+    for s in sections:
+        lines.append(f"### {s.label} — {s.summary}")
+        lines.append("")
+        if s.error:
+            lines.append(f"_Error:_ `{s.error}`")
+            lines.append("")
+        if s.findings:
+            shown = s.findings[:DETAIL_MAX_ITEMS]
+            lines.append("| Severity | Location | Detail |")
+            lines.append("| --- | --- | --- |")
+            for f in shown:
+                loc = _format_location(f)
+                detail = _format_detail(f)
+                sev = (f.get("severity") or "").upper() or "—"
+                lines.append(f"| {sev} | {loc} | {detail} |")
+            if len(s.findings) > DETAIL_MAX_ITEMS:
+                lines.append("")
+                lines.append(f"_...and {len(s.findings) - DETAIL_MAX_ITEMS} more findings (see JSON sidecar)._")
+            lines.append("")
+        if s.raw_excerpt:
+            lines.append("<details><summary>Raw output (tail)</summary>")
+            lines.append("")
+            lines.append("```")
+            lines.append(s.raw_excerpt)
+            lines.append("```")
+            lines.append("")
+            lines.append("</details>")
+            lines.append("")
+
+
 def render_markdown(sections: List[Section], title: str, context: Dict[str, str]) -> str:
-    overall_fail = any(s.status in ("fail", "error") for s in sections)
+    overall_fail = any(s.blocking for s in sections)
     badge = "❌ FAILED" if overall_fail else "✅ PASSED"
 
     lines: List[str] = []
@@ -426,42 +577,20 @@ def render_markdown(sections: List[Section], title: str, context: Dict[str, str]
     lines.append("| Check | Status | Summary |")
     lines.append("| --- | --- | --- |")
     for s in sections:
-        badge_text = f"{_status_emoji(s.status)} {STATUS_BADGE.get(s.status, s.status.upper())}"
-        lines.append(f"| {s.label} | {badge_text} | {s.summary} |")
+        lines.append(f"| {s.label} | {_section_badge(s)} | {s.summary} |")
     lines.append("")
 
-    failing = [s for s in sections if s.status in ("fail", "error")]
-    if failing:
-        lines.append("## Failure details")
+    informational = [s for s in sections if s.informational and s.status in ("fail", "error")]
+    if informational:
+        lines.append(
+            "> ℹ️ Sections marked **INFO** reported findings but do not gate this "
+            "pipeline — their findings are expected, or enforced elsewhere. They "
+            "are listed in full below under *Informational findings*."
+        )
         lines.append("")
-        for s in failing:
-            lines.append(f"### {s.label} — {s.summary}")
-            lines.append("")
-            if s.error:
-                lines.append(f"_Error:_ `{s.error}`")
-                lines.append("")
-            if s.findings:
-                shown = s.findings[:DETAIL_MAX_ITEMS]
-                lines.append("| Severity | Location | Detail |")
-                lines.append("| --- | --- | --- |")
-                for f in shown:
-                    loc = _format_location(f)
-                    detail = _format_detail(f)
-                    sev = (f.get("severity") or "").upper() or "—"
-                    lines.append(f"| {sev} | {loc} | {detail} |")
-                if len(s.findings) > DETAIL_MAX_ITEMS:
-                    lines.append("")
-                    lines.append(f"_...and {len(s.findings) - DETAIL_MAX_ITEMS} more findings (see JSON sidecar)._")
-                lines.append("")
-            if s.raw_excerpt:
-                lines.append("<details><summary>Raw output (tail)</summary>")
-                lines.append("")
-                lines.append("```")
-                lines.append(s.raw_excerpt)
-                lines.append("```")
-                lines.append("")
-                lines.append("</details>")
-                lines.append("")
+
+    _append_detail_blocks(lines, [s for s in sections if s.blocking], "Failure details")
+    _append_detail_blocks(lines, informational, "Informational findings")
 
     skipped = [s for s in sections if s.status == "missing"]
     if skipped:
@@ -495,7 +624,7 @@ def _format_detail(finding: Dict[str, Any]) -> str:
 
 
 def render_metrics(sections: List[Section], context: Dict[str, str]) -> Dict[str, Any]:
-    overall_fail = any(s.status in ("fail", "error") for s in sections)
+    overall_fail = any(s.blocking for s in sections)
     return {
         "overall": "fail" if overall_fail else "pass",
         "generated_at": context.get("generated_at"),
@@ -506,6 +635,7 @@ def render_metrics(sections: List[Section], context: Dict[str, str]) -> Dict[str
                 "kind": s.kind,
                 "label": s.label,
                 "status": s.status,
+                "informational": s.informational,
                 "summary": s.summary,
                 "metrics": s.metrics,
                 "finding_count": len(s.findings),
@@ -545,11 +675,28 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--commit", default="")
     parser.add_argument("--pr", default="")
     parser.add_argument(
+        "--informational",
+        action="append",
+        default=[],
+        metavar="KIND",
+        help=(
+            "Report this kind's findings but exclude it from the overall "
+            "verdict; repeatable"
+        ),
+    )
+    parser.add_argument(
         "--fail-on-issues",
         action="store_true",
-        help="Exit non-zero if any section status is fail/error",
+        help="Exit non-zero if any non-informational section status is fail/error",
     )
     args = parser.parse_args(argv)
+
+    unknown = [k for k in args.informational if k not in PARSERS]
+    if unknown:
+        parser.error(
+            f"--informational got unknown kind(s) {unknown}; "
+            f"expected one of {sorted(PARSERS)}"
+        )
 
     context = {
         "generated_at": _dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
@@ -557,9 +704,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         "pr": args.pr,
     }
 
+    informational_kinds = set(args.informational)
     sections: List[Section] = []
     for kind, path in args.input:
-        sections.append(parse_input(kind, path))
+        section = parse_input(kind, path)
+        section.informational = kind in informational_kinds
+        sections.append(section)
 
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
     args.output_md.write_text(render_markdown(sections, args.title, context), encoding="utf-8")
@@ -573,7 +723,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"Markdown report written to {args.output_md}", flush=True)
     print(f"JSON metrics  written to {args.output_json}", flush=True)
 
-    if args.fail_on_issues and any(s.status in ("fail", "error") for s in sections):
+    if args.fail_on_issues and any(s.blocking for s in sections):
         return 1
     return 0
 
