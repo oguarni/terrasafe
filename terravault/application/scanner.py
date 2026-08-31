@@ -5,7 +5,7 @@ import logging
 import numpy as np
 from pathlib import Path
 import hashlib
-from typing import Callable, Dict, Any, List, Optional, Tuple
+from typing import Callable, Dict, Any, List, Optional, Tuple, TypeVar
 
 from ..domain.models import Vulnerability, Severity
 from ..domain.security_rules import SecurityRuleEngine
@@ -18,11 +18,16 @@ from .feature_extraction import (
     StructuralFeatureExtractor,
 )
 
+# Defined outside the try/except below: the fallback branch does not execute
+# when terravault.metrics imports cleanly, so a TypeVar declared inside it would
+# be a permanently uncovered statement and would trip the coverage ratchet.
+_F = TypeVar("_F", bound=Callable[..., Any])
+
 try:
     from terravault.metrics import track_metrics
 except ImportError:
     # Metrics module not available (e.g., prometheus_client not installed)
-    def track_metrics(func: Callable[..., Any]) -> Callable[..., Any]:  # type: ignore[misc]
+    def track_metrics(func: _F) -> _F:  # type: ignore[misc]
         """Fallback decorator when metrics are not available"""
         return func
 
