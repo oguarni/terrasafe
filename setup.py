@@ -13,10 +13,10 @@ setup(
     # the floor is what keeps future dependency PRs resolvable.
     python_requires=">=3.10",
     install_requires=[
-        "python-hcl2==4.3.2",
-        "scikit-learn==1.3.2",
-        "numpy==1.24.3",
-        "joblib==1.3.2",
+        "python-hcl2==8.1.3",
+        "scikit-learn==1.7.2",
+        "numpy==2.2.6",
+        "joblib==1.5.3",
         "fastapi",
         "uvicorn",
         "pydantic",
