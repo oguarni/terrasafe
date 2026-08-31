@@ -1,5 +1,12 @@
-# Core scanning dependencies for the TerraVault composite action
-python-hcl2==4.3.2
+# Core scanning dependencies for the TerraVault composite action.
+#
+# A third copy of the pins, after requirements.txt and setup.py, and the
+# only one Dependabot does not update — every pin here has drifted from
+# requirements.txt. python-hcl2 moves now because it must: the parser
+# imports hcl2.utils.SerializationOptions, so the action fails at import
+# on v4. The remaining drift is left alone deliberately rather than
+# widened into an unrelated cleanup inside a parser migration.
+python-hcl2==8.1.3
 scikit-learn==1.6.1
 numpy==1.26.4
 joblib==1.4.2
