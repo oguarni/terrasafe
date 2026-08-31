@@ -125,3 +125,45 @@ def test_settings_reject_weights_not_summing_to_one():
     """Weights that do not sum to 1.0 are rejected at construction."""
     with pytest.raises(ValidationError):
         Settings(rule_weight=0.7, ml_weight=0.4)
+
+
+def test_track_metrics_fallback_is_a_passthrough_when_metrics_unavailable():
+    """The ImportError fallback must return the function unchanged.
+
+    ``terravault.metrics`` imports cleanly whenever ``prometheus_client`` is
+    installed, so the fallback branch in ``scanner`` never runs in a normal
+    suite. Reimport the module with that import forced to fail, and assert the
+    decorator is a genuine passthrough — it must not wrap, rename, or otherwise
+    alter the function it is handed.
+    """
+    import builtins
+    import importlib
+    import sys
+
+    real_import = builtins.__import__
+
+    def failing_import(name, *args, **kwargs):
+        if name == "terravault.metrics":
+            raise ImportError("simulated: prometheus_client not installed")
+        return real_import(name, *args, **kwargs)
+
+    saved = sys.modules.pop("terravault.application.scanner", None)
+    builtins.__import__ = failing_import
+    try:
+        module = importlib.import_module("terravault.application.scanner")
+
+        def sample(value: int) -> int:
+            return value * 2
+
+        decorated = module.track_metrics(sample)
+        assert decorated is sample
+        assert decorated(21) == 42
+    finally:
+        builtins.__import__ = real_import
+        # Restore the normally-imported module so later tests see the real
+        # decorator rather than this module's fallback copy.
+        sys.modules.pop("terravault.application.scanner", None)
+        if saved is not None:
+            sys.modules["terravault.application.scanner"] = saved
+        else:
+            importlib.import_module("terravault.application.scanner")
