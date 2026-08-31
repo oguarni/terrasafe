@@ -5,7 +5,7 @@
 # configuration across all targets — a per-target flag drift would make the
 # numbers incomparable, and comparability is the whole point of a baseline.
 #
-# Detector choice (deliberate, see PLANO_LONGO_futuro.md Track B scope):
+# Detector choice (deliberate, per the Track B scope):
 #   * ASan is the primary detector — Track B's MVP scope is memory safety.
 #   * UBSan is restricted to its memory-safety-adjacent checks. The arithmetic
 #     and alignment checks (signed-integer-overflow, shift, alignment,

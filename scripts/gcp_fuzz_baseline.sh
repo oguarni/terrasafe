@@ -7,7 +7,7 @@
 # Track B's thesis question is: "does an LLM layer over fuzzing+sanitizers
 # measurably improve bug yield, time-to-reproduce, triage quality and patch
 # correctness versus plain fuzzing?" That question is unanswerable without the
-# denominator. docs/PLANO_LONGO_futuro.md is explicit about it:
+# denominator. The Track B plan is explicit about it:
 #
 #   "Stage 0 — Benchmark & baseline. [...] Establish a plain-fuzzing baseline
 #    (bugs found, time-to-repro). Without this you cannot claim the LLM added

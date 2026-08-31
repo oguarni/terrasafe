@@ -5,6 +5,37 @@
 .git.bak/
 
 # ===================================
+# Scratch prompts, AI-session and coursework residue (never published)
+# ===================================
+# These are not project documentation. They are hand-off prompts, agent session
+# state, and personal academic material that repeatedly leaked private operating
+# detail into a PUBLIC repo -- local drive paths, cloud-credit deadlines, named
+# third parties, defence dates. All of it was purged from git history on
+# 2026-08-31; these patterns exist so the same classes cannot come back.
+/Prompt_*.md
+/*_handoff.md
+/docs/ESTADO_*.md
+/docs/PLANO_*.md
+/TCC1_*.md
+/TCC*_*.md
+/terrasafe_analysis_improvements.md
+
+# Assistant-generated status / TODO / completion dumps at the repo root.
+# Real documentation lives in README.md, QUICKSTART.md, CLAUDE.md and docs/.
+/IMPLEMENTATION_SUMMARY.md
+/PRIORITY_*_IMPLEMENTATION.md
+/REFACTORING_COMPLETE.md
+/SECURITY_FIXES_SUMMARY.md
+/SETUP_TEST_RESULTS.md
+/TEST_FIXES_*.md
+/TEST_REFACTORING_*.md
+
+# Accidental junk: a stray Compose/Dockerfile concatenation, and the empty file
+# a `pip install pylint>=7.10.6` typo created by shell redirection.
+/docker_compose
+/=*
+
+# ===================================
 # Local scratch notes (never published)
 # ===================================
 # Reference material pulled into the tree while working on CI/agent tooling.

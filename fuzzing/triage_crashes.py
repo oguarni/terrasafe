@@ -4,7 +4,7 @@
 Track B's plan makes reproducibility a hard gate, not a reporting nicety:
 
     "Report a bug only if a sanitizer confirms it *and* a minimized input
-     replays it deterministically."   -- docs/PLANO_LONGO_futuro.md
+     replays it deterministically."   -- Track B plan, Stage 0
 
 This module is that gate, built in from the very first (un-augmented) baseline
 run so the LLM arm can never be measured against a softer standard. A libFuzzer

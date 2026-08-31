@@ -4,7 +4,7 @@ Every quantitative claim in the draft, mapped to the artefact it came from, so t
 
 **A claim without a source row is a bug.** Rows marked *derived* are arithmetic over sourced values and the arithmetic is shown.
 
-Cross-check document for the headline set: `docs/PLANO_LONGO_futuro.md`, section "Ground truth as of 2026-07-21" (lines 13–43). Where that block and a metrics file disagree, the metrics file wins and the discrepancy is noted below.
+Cross-check for the headline set: the metrics files cited in each row below. Where a narrative summary and a metrics file disagree, the metrics file wins and the discrepancy is noted below.
 
 ---
 
@@ -107,7 +107,7 @@ Primary source: `evaluation/results/foreign/metrics.json` (generated 2026-07-16T
 | Mean rule score, vulnerable / hardened (home) | 50.0 / 16.67 | `evaluation/results/metrics.json` | `hybrid_summary.mean_rule_positive`, `mean_rule_negative` |
 | Mean anomaly score, vulnerable / hardened (home) | 48.68 / 45.48 | same | `hybrid_summary.mean_ml_positive`, `mean_ml_negative` |
 | Mean final score, vulnerable / hardened (home) | 49.12 / 27.67 | same | `hybrid_summary.mean_final_positive`, `mean_final_negative` |
-| Rule separation 33.3 pts | 33.33 | *derived*: 50.0 − 16.67 | reported as 33.3 (matches `docs/PLANO_LONGO_futuro.md` line 22) |
+| Rule separation 33.3 pts | 33.33 | *derived*: 50.0 − 16.67 | reported as 33.3 |
 | ML separation 3.2 pts | 3.20 | *derived*: 48.68 − 45.48 | reported as 3.2 |
 | Hybrid separation 21.4 pts | 21.45 | *derived*: 49.12 − 27.67 | reported as 21.4, matching `evaluation/results/report.md` §2.5 ("separação média de 21.4 pontos") |
 | Case counts behind the means | 16 vulnerable, 6 hardened | `evaluation/results/metrics.json` | `hybrid_summary.{positive_cases,negative_cases}` |
@@ -170,7 +170,7 @@ Primary source: `evaluation/results/ml_atypicality/ml_atypicality_metrics.json`,
 | Independent replicate run id | `ml-atypical-20260721-012015` | same | `independent_reproduction.gcs_run` |
 | Replicate hardware | `e2-highcpu-16`, 16 workers (vs 8) | same | `independent_reproduction.machine` |
 | Replicate result identical on every headline metric | kept 18,041; rule-clean 437; lift 50.25; AUC 0.9151; rho 0.7478; typical half 0.0199; rule-flagged 0.0892 | same | `independent_reproduction.result` |
-| "Separately mined corpus" for the replicate | qualitative | `docs/PLANO_LONGO_futuro.md` | line 37 ("16 vs 8 workers, separately mined corpus"); `run_source.json` records the hardware difference but not the re-mine |
+| "Separately mined corpus" for the replicate | qualitative | *author’s records, not in repo* | `run_source.json` records the hardware difference but not the re-mine, so this claim has no in-repo source — treat it as unverified |
 | Launchers are committed | `scripts/gcp_eval_foreign.sh`, `scripts/gcp_ml_atypical.sh` | repository | read-only for this task; both scripts document the GCS layout and collection commands |
 | Raw competitor output preserved | per tool, per case | `evaluation/results/raw/<tool>/<case>.json` | e.g. `evaluation/results/raw/tfsec/public_s3.json` |
 
@@ -190,8 +190,7 @@ Primary source: `evaluation/results/ml_atypicality/ml_atypicality_metrics.json`,
 | Only work produced after enrolment counts | same | Art. 33 §3º |
 | Six months of first-author rights after approval | same | Art. 37 caput and §1º–2º |
 | TCC-as-article follows the SBC model (10–15 pages for the final product) | same | Art. 17 §1º–2º (applies to the TCC deliverable itself, not to the convalidating publication) |
-| Defence date 2026-07-03 | `docs/ESTADO_TCC2_2026-07-10.md` | "Contexto" section |
-| Advisor: Prof. Newton Carlos Will (banca president); co-advisor: Prof. Marlon (surname not recorded on disk) | same | "Contexto" and "Folha de Aprovação" sections |
+| Defence date 2026-07-03 | *author’s records, not in repo* | confirmed against the archived TCC 2 submission |
 
 ---
 

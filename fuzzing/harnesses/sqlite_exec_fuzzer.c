@@ -2,7 +2,7 @@
  *
  * A progress handler bounds runaway queries: without it a single pathological
  * input pins a worker for the whole campaign, which is exactly the failure mode
- * the A.3 run was killed by (see PLANO_LONGO_futuro.md, "Operational lesson").
+ * the A.3 run was killed by (see the Track B "Operational lesson").
  * The per-input libFuzzer -timeout is the outer guard; this is the inner one. */
 #include <stdint.h>
 #include <stdlib.h>
