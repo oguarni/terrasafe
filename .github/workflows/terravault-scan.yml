@@ -35,12 +35,12 @@ jobs:
 
     steps:
       - name: Checkout calling repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Checkout TerraVault action
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: ${{ github.repository }}
           path: _terravault_action
@@ -66,7 +66,7 @@ jobs:
 
       - name: Set up Python for report generation
         if: always()
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ inputs.python_version }}
 
