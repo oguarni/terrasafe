@@ -40,30 +40,30 @@ logger = logging.getLogger(__name__)
 #
 # ``tests/test_parser_normalization.py`` asserts the resulting contract and is
 # the guard if a future release changes shape again.
-try:
-    from hcl2.utils import SerializationOptions
-except ImportError:  # python-hcl2 < 8 has no serialization options and no need
-    _CANONICAL_OPTIONS = None
-else:
-    _CANONICAL_OPTIONS = SerializationOptions(
-        strip_string_quotes=True,
-        explicit_blocks=False,
-        with_comments=False,
-        preserve_heredocs=False,
-    )
+#
+# Imported unguarded on purpose. requirements.txt pins python-hcl2 exactly, so
+# a version without these options is not a supported install, and there is no
+# safe way to degrade: falling back to a bare ``hcl2.loads`` on a release that
+# moved this API would silently reproduce the under-reporting this boundary
+# exists to prevent. Failing at import with an ImportError is loud, immediate
+# and obviously wrong; a scan that quietly returns 52 instead of 89 is none of
+# those things.
+from hcl2.utils import SerializationOptions
+
+_CANONICAL_OPTIONS = SerializationOptions(
+    strip_string_quotes=True,
+    explicit_blocks=False,
+    with_comments=False,
+    preserve_heredocs=False,
+)
 
 
 def loads_canonical(raw_content: str) -> Dict[str, Any]:
     """Parse HCL into the canonical shape the scanner depends on.
 
-    Version-agnostic on purpose: on python-hcl2 v4 there are no serialization
-    options and the default output is already canonical, so this is a plain
-    ``hcl2.loads``. On v8 it applies the options above. Tests that need a parse
-    tree should call this rather than ``hcl2.loads`` so they exercise the same
-    representation production does.
+    Tests that need a parse tree should call this rather than ``hcl2.loads`` so
+    they exercise the representation production actually sees.
     """
-    if _CANONICAL_OPTIONS is None:
-        return hcl2.loads(raw_content)
     return hcl2.loads(raw_content, serialization_options=_CANONICAL_OPTIONS)
 
 
