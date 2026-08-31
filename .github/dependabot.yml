@@ -44,5 +44,23 @@ updates:
       runtime:
         patterns:
           - "*"
+    # python-hcl2 4 -> 8 is a parser rewrite, not a version bump, and it sits
+    # under every scan. v8 returns block keys and string values still wrapped in
+    # their literal quotes and adds an `__is_block__` marker, so
+    # `resource["aws_iam_role"]` no longer matches and every structural feature
+    # reads zero: iam_resource_count 2 -> 0, logging_resource_count 2 -> 0,
+    # ingress_rule_count 1 -> 0, encryption_coverage 0.5 -> 1.0, and the API
+    # risk score for the vulnerable fixture falls from >=70 to 52.
+    #
+    # Verified that it is the *only* blocker: with hcl2 held at 4.3.2 the other
+    # 21 updates in the runtime group — numpy 2.2.6, scikit-learn 1.7.2,
+    # fastapi 0.141.1 among them — pass the full suite, 196/196.
+    #
+    # Minor and patch updates still flow. Lift this ignore as part of a
+    # deliberate migration of parser.py and the feature extractor, not as a
+    # side effect of a grouped dependency PR.
+    ignore:
+      - dependency-name: "python-hcl2"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "deps"
