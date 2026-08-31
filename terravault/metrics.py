@@ -7,7 +7,7 @@ Provides comprehensive monitoring and observability.
 import time
 import functools
 import asyncio
-from typing import Callable, Any
+from typing import Callable, Any, TypeVar, cast
 import logging
 
 try:
@@ -125,7 +125,16 @@ else:  # pragma: no cover
     logger.warning("Prometheus metrics not available. Install prometheus-client to enable metrics.")
 
 
-def track_metrics(func: Callable) -> Callable:
+# Bound to the decorated callable rather than a bare `Callable`, so the
+# decorator preserves the signature it wraps. With `-> Callable` the return
+# type of every decorated function was erased to `Any`, which `warn_return_any`
+# then reported at the *call site* — `IntelligentSecurityScanner.scan` returning
+# the result of the decorated `_do_scan`. Erasing here to silence it there
+# would trade a real annotation for a suppression.
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def track_metrics(func: F) -> F:
     """
     Decorator to track metrics for a function.
 
@@ -135,7 +144,7 @@ def track_metrics(func: Callable) -> Callable:
         func: Function to track
 
     Returns:
-        Decorated function
+        Decorated function, with the wrapped signature preserved
     """
     if not METRICS_AVAILABLE:
         return func
@@ -188,10 +197,13 @@ def track_metrics(func: Callable) -> Callable:
             ).inc()
             raise
 
-    # Return appropriate wrapper based on function type
+    # Return appropriate wrapper based on function type. The casts are the
+    # standard escape hatch for a signature-preserving decorator: functools.wraps
+    # copies the runtime metadata but cannot tell the type checker that the
+    # *args/**kwargs wrapper stands in for F.
     if asyncio.iscoroutinefunction(func):
-        return async_wrapper
-    return sync_wrapper
+        return cast(F, async_wrapper)
+    return cast(F, sync_wrapper)
 
 
 def _record_scan_result(result: dict, duration: float) -> None:
