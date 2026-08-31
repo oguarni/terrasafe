@@ -10,6 +10,63 @@ from terravault.config.settings import get_settings
 logger = logging.getLogger(__name__)
 
 
+# --------------------------------------------------------------------------
+# Parse-shape normalization
+#
+# This module is the only place that calls into ``hcl2``, which makes it the
+# one seam where the parse representation can be pinned to a canonical shape.
+# Everything downstream — resource lookup, structural feature extraction, the
+# rule engine, the risk score — reads the tree by key, so a change in shape is
+# not a crash but a silent wrong answer: under an unnormalized python-hcl2 v8
+# tree ``resource["aws_security_group"]`` misses, every structural feature
+# reads zero, and the risk score for a knowingly vulnerable file falls from
+# >=70 to 52.
+#
+# v8 can emit the canonical shape itself, so normalization is configuration
+# rather than string surgery over parsed values. That distinction matters:
+# de-quoting by hand would corrupt any value that legitimately contains quotes,
+# such as an inline IAM policy document.
+#
+#   strip_string_quotes  string scalars arrive as ``tcp``, not ``'"tcp"'`` —
+#                        without it every literal comparison in the rule engine
+#                        fails, including the ``0.0.0.0/0`` CIDR match
+#   explicit_blocks      drops the ``__is_block__`` marker injected into every
+#                        block body
+#   with_comments        drops ``__comments__``; feature extraction treats every
+#                        key of a resource block as a resource type, so injected
+#                        metadata would be counted as infrastructure
+#   preserve_heredocs    unwraps heredocs to their content, so an inline policy
+#                        document is the JSON and not ``<<EOT\n...\nEOT``
+#
+# ``tests/test_parser_normalization.py`` asserts the resulting contract and is
+# the guard if a future release changes shape again.
+#
+# Imported unguarded on purpose. requirements.txt pins python-hcl2 exactly, so
+# a version without these options is not a supported install, and there is no
+# safe way to degrade: falling back to a bare ``hcl2.loads`` on a release that
+# moved this API would silently reproduce the under-reporting this boundary
+# exists to prevent. Failing at import with an ImportError is loud, immediate
+# and obviously wrong; a scan that quietly returns 52 instead of 89 is none of
+# those things.
+from hcl2.utils import SerializationOptions
+
+_CANONICAL_OPTIONS = SerializationOptions(
+    strip_string_quotes=True,
+    explicit_blocks=False,
+    with_comments=False,
+    preserve_heredocs=False,
+)
+
+
+def loads_canonical(raw_content: str) -> Dict[str, Any]:
+    """Parse HCL into the canonical shape the scanner depends on.
+
+    Tests that need a parse tree should call this rather than ``hcl2.loads`` so
+    they exercise the representation production actually sees.
+    """
+    return hcl2.loads(raw_content, serialization_options=_CANONICAL_OPTIONS)
+
+
 class TerraformParseError(Exception):
     """Raised when Terraform file parsing fails"""
 
@@ -181,7 +238,7 @@ class HCLParser:
         # Parse HCL/JSON
         # Note: Timeout is handled at the API level via asyncio.wait_for
         try:
-            tf_content = hcl2.loads(raw_content)
+            tf_content = loads_canonical(raw_content)
             logger.debug("Successfully parsed HCL file: %s", filepath)
             return tf_content, raw_content
         except Exception as hcl_error:  # pylint: disable=broad-exception-caught
