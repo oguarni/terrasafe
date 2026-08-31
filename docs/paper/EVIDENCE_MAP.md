@@ -1,6 +1,6 @@
 # Evidence map — `sbc_paper_draft.md`
 
-Every quantitative claim in the draft, mapped to the artefact it came from, so the paper can be re-verified mechanically. All paths are relative to the repository root `/home/oguarni/Documents/GitHub/terravault`.
+Every quantitative claim in the draft, mapped to the artefact it came from, so the paper can be re-verified mechanically. All paths are relative to the repository root.
 
 **A claim without a source row is a bug.** Rows marked *derived* are arithmetic over sourced values and the arithmetic is shown.
 
