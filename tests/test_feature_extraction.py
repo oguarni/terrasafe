@@ -4,9 +4,9 @@ These lock in the property that makes the hybrid model genuinely hybrid: ML
 features are derived from the *parsed infrastructure*, not from the rule
 findings, so the model can react to structure the deterministic rules ignore.
 """
-import hcl2
 import pytest
 
+from terravault.infrastructure.parser import loads_canonical
 from terravault.application.feature_extraction import (
     FEATURE_BOUNDS,
     FEATURE_NAMES,
@@ -26,7 +26,7 @@ def extractor():
 
 def _features(raw: str) -> dict:
     """Parse inline HCL and return the named structural feature vector."""
-    tf_content = hcl2.loads(raw)
+    tf_content = loads_canonical(raw)
     vector = StructuralFeatureExtractor().extract(tf_content, raw)
     assert vector.shape == (1, NUM_FEATURES)
     return dict(zip(FEATURE_NAMES, vector[0]))
@@ -116,7 +116,7 @@ def test_features_are_independent_of_the_rule_engine():
     resource "aws_subnet" "public" { map_public_ip_on_launch = true }
     resource "aws_cloudwatch_log_group" "g" { name = "g" }
     """
-    tf_content = hcl2.loads(raw)
+    tf_content = loads_canonical(raw)
 
     findings = SecurityRuleEngine().analyze(tf_content, raw)
     assert findings == []  # rules see nothing
