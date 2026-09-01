@@ -56,8 +56,8 @@ runs:
       shell: bash
       run: |
         ACTION_REQUIREMENTS="${{ github.action_path }}/requirements.txt"
-        REPO_ROOT="$(cd "${{ github.action_path }}/../../.." && pwd)"
-        pip install -r "$ACTION_REQUIREMENTS" -c "$REPO_ROOT/requirements.txt"
+        ACTION_PATH="${{ github.action_path }}"
+        pip install -r "$ACTION_REQUIREMENTS" -c "$ACTION_PATH/constraints.txt"
 
     - name: Initialize ML model
       shell: bash
