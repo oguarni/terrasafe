@@ -85,9 +85,13 @@ jobs:
         exit 0
 
     # Secret detection — produce SARIF for the consolidated report
+    # Pinned to the same version .pre-commit-config.yaml pins. The two must
+    # match: gitleaks' default ruleset changes between releases, so a skew makes
+    # the local hook and this gate disagree -- the exact failure the hook comment
+    # says to avoid.
     - name: Install gitleaks
       run: |
-        curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz \
+        curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
           | tar -xz -C /tmp gitleaks
         sudo mv /tmp/gitleaks /usr/local/bin/gitleaks
 
