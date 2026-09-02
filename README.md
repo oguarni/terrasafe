@@ -7,8 +7,7 @@
   **Hybrid Terraform Security Scanner — Deterministic Rules + ML Anomaly Detection**
 
   [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-  [![Tests 196 Passed](https://img.shields.io/badge/tests-196%20passed-2ea44f)](tests/)
-  [![Coverage 82.9%](https://img.shields.io/badge/coverage-82.9%25-dfb317)](tests/)
+  [![DevSecOps Pipeline](https://github.com/oguarni/terravault/actions/workflows/devsecops.yml/badge.svg)](https://github.com/oguarni/terravault/actions/workflows/devsecops.yml)
   [![Pylint 10.00](https://img.shields.io/badge/pylint-10.00%2F10-2ea44f)](https://pylint.pycqa.org/)
   [![SAST Clean](https://img.shields.io/badge/SAST-0%20issues-2ea44f)](https://bandit.readthedocs.io/)
   [![License AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
@@ -27,7 +26,7 @@
 - **Hybrid scoring** — 60% rule-based + 40% ML anomaly detection. Deterministic rules for known risks, Isolation Forest for everything else
 - **Fast enough for CI gating** — sub-second per-file scans — no meaningful pipeline latency
 - **Operable API** — FastAPI with bcrypt API keys, Redis rate limiting, async I/O, Prometheus metrics, correlation IDs
-- **Measured quality** — 196 focused pytest cases, 82.88% line / 73.29% branch coverage (1,438 of 1,735 measured statements), Pylint 10.00/10, 0 Flake8 issues, 0 Bandit findings, 0 pip-audit advisories. Regenerate with `make quality-gate`; the values land in `gate-metrics.json`
+- **Measured quality, held by a ratchet** — the CI quality gate fails the build if line coverage drops below its recorded floor, if a file grows past 300 SLOC, or if duplicate blocks appear; Pylint below 10.00/10 and any Bandit, Flake8 or Mypy finding fail it outright. That gate is the durable claim. The snapshot behind it, at `9577534` on 2026-09-02: **207 pytest cases** (207 passed, 0 skipped), **82.92% line / 73.29% branch** coverage, Pylint 10.00/10, 0 Flake8, 0 Bandit, 0 Mypy, 0 pip-audit advisories. Reproduce with `make quality-gate` — it writes `gate-metrics.json`, which is the only source these numbers should ever be copied from
 
 ---
 
@@ -318,17 +317,29 @@ print(response.json())
 
 ## Quality Metrics
 
-> All metrics from the latest full quality-gate run — **August 31, 2026** (`gate-metrics.json`).
+> All metrics from a full quality-gate run at `9577534` — **September 2, 2026**. Reproduce with
+> `make quality-gate`; it writes `gate-metrics.json`, which is the only source to copy these from.
+> `gate-metrics.json`, `coverage.xml` and `gate-report.md` are gitignored build artifacts, so a fresh
+> clone has none of them until the gate runs. The figure that is always on disk is `.ratchet.json`.
 
 | Category | Metric | Result |
 |----------|--------|--------|
-| **Testing** | Test suite | **196 tests** — 196 passed, 0 skipped |
-| **Testing** | Code coverage | **82.88% line / 73.29% branch** (1,438 / 1,735 statements) |
-| **Code Quality** | Pylint score | **10.00 / 10** |
+| **Testing** | Test suite | **207 tests** — 207 passed, 0 skipped |
+| **Testing** | Code coverage | **82.92% line** (1,442 / 1,739 statements) / **73.29% branch** (365 / 498) |
+| **Gate** | Coverage ratchet | floor **82.75%** — the build fails below it, and the floor only ever rises |
+| **Gate** | File-size cap | 5 files over 300 SLOC — a sixth fails the build |
+| **Gate** | Duplication guard | **0 duplicate blocks** |
+| **Code Quality** | Pylint score | **10.00 / 10** — floor is 10.00, so any drop fails the build |
 | **Code Quality** | Flake8 | **0 issues** |
-| **Code Quality** | Codebase size | 1,720 measured statements (3,946 non-blank lines) |
+| **Code Quality** | Mypy | **0 errors** |
+| **Code Quality** | Codebase size | 1,739 measured statements (4,065 non-blank lines) |
 | **Security** | SAST (Bandit) | **0 issues** — 0 High, 0 Medium, 0 Low |
 | **Security** | Dependencies (pip-audit) | **0 advisories** |
+
+The test count and the coverage percentage are the two figures here that move on their own. They are
+deliberately absent from the badges above — a hand-edited badge drifted through 137, 183 and 196
+before this — so the gate's pass/fail badge carries the standing claim and these numbers stay in one
+dated table.
 
 ---
 
