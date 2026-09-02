@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=70.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "terravault"
+version = "1.0.0"
+requires-python = ">=3.10"
+dynamic = ["dependencies", "optional-dependencies"]
+
+[project.scripts]
+terravault = "terravault.main:main"
+
+# Dependencies are intentionally read from the requirements files so a second,
+# driftable list cannot exist.
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+optional-dependencies.dev = {file = ["requirements-dev.txt"]}
+
+[tool.setuptools.packages.find]
+include = ["terravault*"]

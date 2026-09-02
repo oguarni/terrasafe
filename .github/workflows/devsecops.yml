@@ -51,11 +51,19 @@ jobs:
       with:
         python-version: '3.10'
 
+    - name: Verify TerraVault scan constraints are current
+      run: |
+        python .github/actions/terravault-scan/generate-constraints.py
+        git ls-files --error-unmatch -- .github/actions/terravault-scan/constraints.txt
+        git diff --exit-code -- .github/actions/terravault-scan/constraints.txt
+
+    - name: Install security tooling
+      run: pip install -r requirements-dev.txt
+
     # SAST - Static Application Security Testing
     - name: Run Bandit (SAST)
       id: bandit
       run: |
-        pip install bandit
         set +e
         bandit -r terravault/ --ini .bandit -f json -o bandit-report.json
         echo "bandit_exit=$?" >> "$GITHUB_OUTPUT"
@@ -76,7 +84,6 @@ jobs:
     - name: pip-audit (dependency CVEs)
       id: pip_audit
       run: |
-        pip install pip-audit
         set +e
         pip-audit -r requirements.txt -r requirements-dev.txt \
           --progress-spinner=off -f json -o pip-audit-report.json
@@ -481,7 +488,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
-          pip install bandit pip-audit
 
       - name: Download consolidated report
         if: steps.limits.outputs.proceed == 'true'

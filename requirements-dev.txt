@@ -23,6 +23,7 @@ pylint==4.0.7
 # old pin, so the tree was never black-clean to begin with.
 black==26.5.1
 flake8==7.3.0
+pre-commit==4.6.2
 
 # Type checking
 mypy==2.3.1
@@ -32,6 +33,7 @@ types-aiofiles>=25.1.0.20260518
 
 # Security scanning
 bandit==1.9.4
+pip-audit==2.10.1
 # lxml's XXE fix (PYSEC-2026-87 — the default resolve_entities=True lets
 # untrusted XML read local files) landed in 6.1.0, but lxml is transitive:
 # cyclonedx-bom 4.2.0 -> cyclonedx-python-lib[validation] capped it at

@@ -162,12 +162,10 @@ security-scan: install
 
 security-deps: install
 	@echo "🔍 Checking for vulnerable dependencies..."
-	$(VENV)/bin/pip install pip-audit
 	$(VENV)/bin/pip-audit -r requirements.txt -r requirements-dev.txt
 
 security-sast: install
 	@echo "🔍 Running SAST with Bandit..."
-	$(VENV)/bin/pip install bandit
 	$(VENV)/bin/bandit -r terravault/ --ini .bandit -f screen
 
 security-all: security-scan
@@ -198,14 +196,12 @@ ratchet-update: install
 # Pre-commit setup
 setup-hooks: install
 	@echo "🪝 Setting up pre-commit hooks..."
-	$(VENV)/bin/pip install pre-commit
 	$(VENV)/bin/pre-commit install
 	@echo "✅ Pre-commit hooks installed"
 
 # Generate Software Bill of Materials
 sbom: install
 	@echo "📦 Generating Software Bill of Materials..."
-	$(VENV)/bin/pip install cyclonedx-bom
 	$(VENV)/bin/cyclonedx-py requirements -o sbom.json requirements.txt
 	@echo "✅ SBOM generated: sbom.json"
 

@@ -48,13 +48,16 @@ runs:
   using: composite
   steps:
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: "3.10"
 
     - name: Install dependencies
       shell: bash
-      run: pip install -r ${{ github.action_path }}/requirements.txt
+      run: |
+        ACTION_REQUIREMENTS="${{ github.action_path }}/requirements.txt"
+        ACTION_PATH="${{ github.action_path }}"
+        pip install -r "$ACTION_REQUIREMENTS" -c "$ACTION_PATH/constraints.txt"
 
     - name: Initialize ML model
       shell: bash
