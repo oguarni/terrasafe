@@ -200,7 +200,7 @@ jobs:
 
       - name: Run Claude auto-fix
         if: steps.limits.outputs.proceed == 'true'
-        uses: anthropics/claude-code-action@a874e9ecd7bb36efdad65429c6b35815f5a08f10 # v1
+        uses: anthropics/claude-code-action@833fb0f8c9f6686b33d963a8bae0a94f4936ab2a # v1
         env:
           GATE_REPORT_PATH: gate-report.md
           GATE_METRICS_PATH: gate-metrics.json
